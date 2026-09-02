@@ -5,11 +5,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, LockKeyhole, MailWarning, ShieldCheck } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, LockKeyhole, MailCheck, MailWarning, ShieldCheck } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { EdgeMark } from "@/components/quantedge/landing";
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "forgot" | "reset";
 
 declare global {
   interface Window {
@@ -57,13 +57,36 @@ export function AuthView({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [needVerify, setNeedVerify] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Password-reset deep link: the reset email lands on /?reset=<token>.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("reset");
+    if (t) {
+      setMode("reset");
+      setResetToken(t);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setError(null);
+    setNotice(null);
+    setNeedVerify(false);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
       if (mode === "signup") {
@@ -75,13 +98,43 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           turnstileToken,
         });
         if (err) throw new Error(err.message || "Could not create your account.");
-      } else {
+      } else if (mode === "signin") {
         const { error: err } = await authClient.signIn.email({ email: email.trim(), password });
-        if (err) throw new Error(err.message || "Invalid email or password.");
+        if (err) {
+          if (err.status === 403 || err.code === "EMAIL_NOT_VERIFIED") {
+            setNeedVerify(true);
+            throw new Error("Please verify your email before signing in — check your inbox.");
+          }
+          throw new Error(err.message || "Invalid email or password.");
+        }
+      } else if (mode === "forgot") {
+        // Always returns success (no account enumeration).
+        await authClient.requestPasswordReset({ email: email.trim(), redirectTo: window.location.origin });
+        setNotice("If an account exists for that address, a reset link is on its way. Check your inbox (and spam).");
+      } else if (mode === "reset") {
+        if (newPassword !== confirmPassword) throw new Error("The two passwords don't match.");
+        const { error: err } = await authClient.resetPassword({ newPassword, token: resetToken });
+        if (err) throw new Error(err.message || "That reset link is invalid or has expired.");
+        setNotice("Password updated. Sign in with your new password.");
+        setPassword("");
+        switchMode("signin");
       }
       // session hook in the app shell flips the gate automatically
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please retry.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await authClient.sendVerificationEmail({ email: email.trim() });
+      setNotice("Verification email sent — check your inbox (and spam). Click the link to activate your trial.");
+    } catch {
+      setError("Couldn't send the verification email. Double-check the address and try again.");
     } finally {
       setBusy(false);
     }
@@ -115,7 +168,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
             {(["signup", "signin"] as Mode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setError(null); }}
+                onClick={() => switchMode(m)}
                 className={`relative rounded-lg py-2 text-xs font-semibold transition-colors ${
                   mode === m ? "bg-pos/15 text-pos" : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -124,6 +177,13 @@ export function AuthView({ onBack }: { onBack: () => void }) {
               </button>
             ))}
           </div>
+
+          {mode === "reset" && (
+            <p className="mt-4 flex items-center gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-2.5 text-xs leading-snug text-warn">
+              <KeyRound className="h-3.5 w-3.5 shrink-0" />
+              Choose a new password for your account.
+            </p>
+          )}
 
           <form onSubmit={submit} className="mt-5 space-y-3.5">
             {mode === "signup" && (
@@ -141,7 +201,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                 />
               </div>
             )}
-            <div>
+            <div className={mode === "reset" ? "hidden" : "block"}>
               <label htmlFor="qe-email" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Email</label>
               <input
                 id="qe-email"
@@ -150,11 +210,11 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
-                required
+                required={mode !== "reset"}
                 className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
               />
             </div>
-            <div>
+            <div className={mode === "forgot" || mode === "reset" ? "hidden" : "block"}>
               <label htmlFor="qe-password" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Password</label>
               <input
                 id="qe-password"
@@ -163,13 +223,45 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                required
-                minLength={8}
+                required={mode === "signin" || mode === "signup"}
+                minLength={mode === "signup" ? 8 : undefined}
                 className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
               />
             </div>
+            {mode === "reset" && (
+              <>
+                <div>
+                  <label htmlFor="qe-new-password" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">New password</label>
+                  <input
+                    id="qe-new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                    className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="qe-confirm-password" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Confirm new password</label>
+                  <input
+                    id="qe-confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat it"
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                    className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                  />
+                </div>
+              </>
+            )}
 
-            <Turnstile onToken={setTurnstileToken} />
+            {mode !== "forgot" && mode !== "reset" && <Turnstile onToken={setTurnstileToken} />}
 
             {error && (
               <p className="flex items-start gap-2 rounded-xl border border-neg/30 bg-neg/10 px-3.5 py-2.5 text-xs leading-snug text-neg" role="alert">
@@ -178,15 +270,56 @@ export function AuthView({ onBack }: { onBack: () => void }) {
               </p>
             )}
 
+            {notice && (
+              <p className="flex items-start gap-2 rounded-xl border border-pos/30 bg-pos/10 px-3.5 py-2.5 text-xs leading-snug text-pos" role="status">
+                <MailCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {notice}
+              </p>
+            )}
+
+            {needVerify && (
+              <button
+                type="button"
+                onClick={resendVerification}
+                disabled={busy}
+                className="w-full rounded-xl border border-hairline bg-panel-2 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-panel disabled:opacity-60"
+              >
+                Resend verification email
+              </button>
+            )}
+
             <button
               type="submit"
               disabled={busy}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-pos py-3 text-sm font-bold text-[#04110a] transition-all hover:brightness-110 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
-              {mode === "signup" ? "Start my 14-day free trial" : "Sign in to the terminal"}
+              {mode === "signup"
+                ? "Start my 14-day free trial"
+                : mode === "forgot"
+                  ? "Send reset link"
+                  : mode === "reset"
+                    ? "Set new password"
+                    : "Sign in to the terminal"}
             </button>
           </form>
+
+          {mode === "signin" && (
+            <button
+              onClick={() => switchMode("forgot")}
+              className="mt-3 w-full text-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Forgot your password?
+            </button>
+          )}
+          {mode === "forgot" && (
+            <button
+              onClick={() => switchMode("signin")}
+              className="mt-3 w-full text-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Back to sign in
+            </button>
+          )}
 
           <div className="mt-5 space-y-2 border-t border-hairline pt-4">
             <p className="flex items-center gap-2 text-[11px] text-muted-foreground">

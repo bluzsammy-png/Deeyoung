@@ -47,23 +47,34 @@ with `Contents: Read & Write` on the Deeyoung repo, and paste the token as the p
 4. In Supabase SQL Editor, enable row-level safety on any table the `anon` key can touch
    (the app talks to Postgres only from the server, but defense in depth is free).
 
-### Switch Prisma to Postgres
+### Postgres — already wired
 
-In `prisma/schema.prisma` change one line:
+The repo ships **`prisma/schema.postgres.prisma`** (production schema) alongside the
+sandbox SQLite one. Nothing to hand-edit:
 
-```diff
- datasource db {
--  provider = "sqlite"
-+  provider = "postgresql"
-   url      = env("DATABASE_URL")
- }
-```
+- Railway builds & starts against the Postgres schema automatically (`railway.json`).
+- The app picks the correct Prisma dialect from the `DATABASE_URL` at runtime.
 
-Apply the schema from your machine (one time):
+To apply the schema manually from your machine (optional — Railway also does it on boot):
 
 ```bash
-DATABASE_URL="<your encoded pooler URL>" bunx prisma db push
+DATABASE_URL="<your encoded pooler URL>" bun run db:push:pg
 ```
+
+Enable row-level security (defense in depth — the `anon` key exists even if the app
+never uses it). In Supabase SQL Editor:
+
+```sql
+do $$ declare t record;
+begin
+  for t in select tablename from pg_tables where schemaname = 'public' loop
+    execute format('alter table public.%I enable row level security;', t.tablename);
+  end loop;
+end $$;
+```
+
+(No policies = `anon` can read nothing. The app connects as the table owner, which
+bypasses RLS — exactly what we want.)
 
 ---
 
@@ -71,8 +82,8 @@ DATABASE_URL="<your encoded pooler URL>" bunx prisma db push
 
 1. railway.app → **New Project → Deploy from GitHub repo → Deeyoung**.
 2. Add a **Variable** for everything in `.env.example` (see table below).
-3. Railway auto-detects Next.js; the build runs `prisma generate` automatically.
-   If asked, start command: `bun .next/standalone/server.js` (or let Nixpacks decide).
+3. Railway auto-detects the repo and uses **`railway.json`**: the build generates the
+   Prisma client for Postgres, and boot applies the schema before serving traffic.
 4. **Networking → Generate Domain** → this is your live URL.
 5. First deploy checklist:
    - `GET /api/health` returns JSON (market data DEGRADED without a news key is normal)
@@ -88,6 +99,8 @@ DATABASE_URL="<your encoded pooler URL>" bunx prisma db push
 | `BETTER_AUTH_URL` | ✅ | `https://<your-railway-domain>` (or custom domain) |
 | `APP_SECRET` | ✅ | Separate salt for IP hashing |
 | `ADMIN_EMAILS` | ✅ | Comma-separated admin emails |
+| `RESEND_API_KEY` | launch | When set, **email verification becomes required** + reset mails work. Get a free key at resend.com |
+| `EMAIL_FROM` | launch | `"Deeyoung <no-reply@yourdomain.com>"` after verifying your domain in Resend |
 | `NEXT_PUBLIC_POSTHOG_KEY` | recommended | PostHog project key |
 | `NEXT_PUBLIC_POSTHOG_HOST` | optional | `https://eu.i.posthog.com` or `us…` |
 | `TURNSTILE_SECRET_KEY` | launch | Free bot protection — get keys at dash.cloudflare.com |
@@ -103,8 +116,10 @@ DATABASE_URL="<your encoded pooler URL>" bunx prisma db push
 | Layer | Where | Behavior |
 |---|---|---|
 | Temp-mail blocklist | signup hook | Disposable/relay domains rejected (extend weekly from `disposable-email-domains` on GitHub) |
+| MX deliverability | signup hook | Domains that can't receive mail are rejected (typo/lookalike protection); transient DNS failures fail open |
 | Signup velocity | signup hook | >3 accounts per HMAC-hashed IP / 24 h → 429. Raw IPs are never stored |
 | Turnstile | signup (env-gated) | Invisible captcha once keys are set |
+| Email verification | production-strict | Required automatically the moment `RESEND_API_KEY` is set; unverified accounts cannot sign in |
 | No-card 14-day trial | user create | `plan=TRIAL`, `trialEndsAt=+14d`; expired trials drop to FREE automatically |
 | Server-side entitlements | API guard | Pro APIs (SENTINEL, Backtest, AI Briefing) return `402 PREMIUM_REQUIRED` for FREE; free APIs stay open |
 | Moderation ladder | Admin & Trust panel | Warn → Suspend (sessions revoked) → Ban (sessions revoked, blocked at session layer); every action audited |
@@ -144,9 +159,15 @@ Everything already has a home:
    Paystack popup checkout (Plan code = ₦15,000/mo Pro).
 4. Add a 3-day grace dunning email before locking a lapsed subscription.
 
-## 8. Optional next steps
+## 8. Email (Resend) — recommended before launch
 
-- Email verification: create a Resend account, verify your domain (SPF/DKIM), then set
-  `requireEmailVerification: true` in `src/lib/auth.ts` and add better-auth's Resend plugin.
+1. Create a free account at resend.com → **API Keys** → copy into `RESEND_API_KEY`.
+2. **Domains → Add domain** → add the SPF/DKIM DNS records Resend shows you, then set
+   `EMAIL_FROM="Deeyoung <no-reply@yourdomain.com>"`.
+3. Done — from that moment, signup requires email verification and password reset is live.
+   Verification + reset mails use the branded dark template in `src/lib/email.ts`.
+
+## 9. Optional next steps
+
 - Error tracking: add Sentry (`bun add @sentry/nextjs`).
 - Extend the disposable-domain list weekly (see `src/lib/disposable-domains.ts`).

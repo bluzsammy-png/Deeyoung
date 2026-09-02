@@ -29,9 +29,11 @@ export function QuantEdgeApp() {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user as SessionUser | undefined;
 
-  // deep-link support: /?terminal=1 enters directly
+  // deep-link support: /?terminal=1 enters directly, /?reset=<token> opens the reset form
   useEffect(() => {
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("terminal")) {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("terminal") || params.has("reset")) {
       setEntered(true);
     }
   }, [setEntered]);
