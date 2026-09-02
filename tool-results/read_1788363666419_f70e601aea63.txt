@@ -1,0 +1,2002 @@
+     1→MASTER UPGRADE PROMPT — QUANTEDGE PRO
+     2→
+     3→Unified AI Market Intelligence + Trading Terminal
+     4→
+     5→Production Architecture • Analytics Brain • SENTINEL Action Layer • Mobile • SaaS • UX • Security • Scale
+     6→
+     7→⸻
+     8→
+     9→1. ROLE
+    10→
+    11→Act as my:
+    12→
+    13→* Principal Software Architect
+    14→* Quantitative Trading Systems Architect
+    15→* AI Product Architect
+    16→* Full-Stack Engineer
+    17→* FinTech UX/UI Designer
+    18→* Mobile App Architect
+    19→* DevOps/SRE Engineer
+    20→* Security Engineer
+    21→* QA/Test Engineer
+    22→* Product Manager
+    23→* Technical Writer
+    24→* SaaS/Subscription Architect
+    25→
+    26→You are upgrading my existing QuantEdge Pro application into a serious, production-ready, scalable financial intelligence platform.
+    27→
+    28→Current application:
+    29→
+    30→https://c1eek7j3be20-d.space-z.ai
+    31→
+    32→Do NOT blindly rebuild it.
+    33→
+    34→First inspect, understand, test, and audit what already exists.
+    35→
+    36→⸻
+    37→
+    38→2. MOST IMPORTANT PRODUCT PRINCIPLE
+    39→
+    40→QUANTEDGE PRO MUST BE ONE PRODUCT TO THE USER.
+    41→
+    42→The user must NEVER feel like Analytics and SENTINEL are two separate applications.
+    43→
+    44→Internally they are separate architectural layers.
+    45→
+    46→Externally they are one unified experience.
+    47→
+    48→The mental model should be:
+    49→
+    50→QuantEdge tells me what is happening, why it is happening, what opportunities exist, what risks exist, and optionally helps me act on them.
+    51→
+    52→The product should feel simple on the surface while being sophisticated underneath.
+    53→
+    54→⸻
+    55→
+    56→3. THE TWO-BRAIN ARCHITECTURE
+    57→
+    58→QuantEdge has two major systems.
+    59→
+    60→BRAIN 1 — ANALYTICS
+    61→
+    62→Analytics is the primary product.
+    63→
+    64→It answers:
+    65→
+    66→"What is happening in the market, and what does it mean?"
+    67→
+    68→Analytics should continuously provide:
+    69→
+    70→* Market data
+    71→* Stocks
+    72→* ETFs
+    73→* Crypto
+    74→* Technical analysis
+    75→* News
+    76→* Catalysts
+    77→* Market regimes
+    78→* Multi-factor signals
+    79→* Volume analysis
+    80→* Volatility analysis
+    81→* Liquidity analysis
+    82→* Relative strength
+    83→* Portfolio analytics
+    84→* Portfolio risk
+    85→* Correlation analysis
+    86→* Strategy analysis
+    87→* Backtesting
+    88→* AI explanations
+    89→* Historical signal performance
+    90→* Market summaries
+    91→* Watchlists
+    92→* Opportunities
+    93→* Risk warnings
+    94→
+    95→Analytics works even when SENTINEL is completely disabled.
+    96→
+    97→⸻
+    98→
+    99→4. BRAIN 2 — SENTINEL
+   100→
+   101→SENTINEL is the optional action layer sitting on top of Analytics.
+   102→
+   103→It answers:
+   104→
+   105→"Given what Analytics discovered, should I take action?"
+   106→
+   107→SENTINEL receives opportunities/signals from Analytics and then applies:
+   108→
+   109→* User permissions
+   110→* Risk limits
+   111→* Position limits
+   112→* Portfolio exposure
+   113→* Correlation limits
+   114→* Session restrictions
+   115→* Asset restrictions
+   116→* Strategy restrictions
+   117→* Maximum daily loss
+   118→* Maximum trade risk
+   119→* Maximum notional
+   120→* Maximum open positions
+   121→* Minimum liquidity
+   122→* Spread requirements
+   123→* Volatility restrictions
+   124→* News/event restrictions
+   125→
+   126→Only after passing deterministic safety checks can SENTINEL proceed.
+   127→
+   128→ADDENDUM — asset-class risk calibration: crypto is not stocks with a different ticker. When the crypto segment is re-added, SENTINEL's risk engine must use asset-class-specific parameters (volatility bands, position sizing, stop distance in ATR terms, and daily-loss circuit breakers) for crypto rather than reusing equity defaults — 24/7 markets and higher realized volatility will otherwise blow through equity-calibrated risk limits and either trigger constant circuit breakers or, worse, undersize the risk controls for how fast crypto moves.
+   129→
+   130→⸻
+   131→
+   132→5. NEVER MIX RESPONSIBILITIES
+   133→
+   134→Architecture must follow:
+   135→
+   136→MARKET DATA
+   137→     ↓
+   138→NEWS / CATALYSTS
+   139→     ↓
+   140→ANALYTICS ENGINE
+   141→     ↓
+   142→SIGNAL ENGINE
+   143→     ↓
+   144→RISK ENGINE
+   145→     ↓
+   146→AI REASONING
+   147→     ↓
+   148→DECISION VALIDATOR
+   149→     ↓
+   150→SENTINEL
+   151→     ↓
+   152→EXECUTION ENGINE
+   153→     ↓
+   154→PAPER BROKER / ALPACA PAPER
+   155→
+   156→The AI must NEVER bypass the deterministic Risk Engine.
+   157→
+   158→The AI may explain, rank, summarize, and reason.
+   159→
+   160→The AI must NOT override hard risk controls.
+   161→
+   162→⸻
+   163→
+   164→6. SIMPLE USER EXPERIENCE
+   165→
+   166→The user should not need to understand the architecture.
+   167→
+   168→The main experience should look approximately like:
+   169→
+   170→QUANTEDGE PRO
+   171→Good morning.
+   172→MARKET REGIME
+   173→Risk-On
+   174→S&P 500       +0.8%
+   175→NASDAQ        +1.2%
+   176→BTC           +2.1%
+   177→YOUR PORTFOLIO
+   178→+$1,284
+   179→+2.4%
+   180→OPPORTUNITIES
+   181→NVDA
+   182→Strong bullish setup
+   183→84% Signal Score
+   184→BTC
+   185→Momentum strengthening
+   186→78% Signal Score
+   187→TSLA
+   188→Catalyst + technical confirmation
+   189→81% Signal Score
+   190→SENTINEL
+   191→Observe Mode
+   192→[Review Opportunities]
+   193→
+   194→The product should guide the user from:
+   195→
+   196→Understand → Investigate → Decide → Act
+   197→
+   198→⸻
+   199→
+   200→7. USER LEVELS
+   201→
+   202→Design the product around four progressively advanced experiences.
+   203→
+   204→LEVEL 1 — ANALYTICS
+   205→
+   206→User asks:
+   207→
+   208→"What's happening?"
+   209→
+   210→They can:
+   211→
+   212→* Explore markets
+   213→* View charts
+   214→* Read catalysts
+   215→* Understand regimes
+   216→* Analyze portfolio
+   217→* Review opportunities
+   218→
+   219→No trading automation required.
+   220→
+   221→⸻
+   222→
+   223→LEVEL 2 — SIGNALS
+   224→
+   225→User asks:
+   226→
+   227→"Tell me when something interesting happens."
+   228→
+   229→They receive:
+   230→
+   231→* Signal alerts
+   232→* Catalyst alerts
+   233→* Risk alerts
+   234→* Watchlist alerts
+   235→
+   236→⸻
+   237→
+   238→LEVEL 3 — SENTINEL APPROVE
+   239→
+   240→User asks:
+   241→
+   242→"Find opportunities and let me approve them."
+   243→
+   244→SENTINEL:
+   245→
+   246→1. Detects opportunity
+   247→2. Runs signal analysis
+   248→3. Runs risk analysis
+   249→4. Creates trade proposal
+   250→5. Sends notification
+   251→6. User reviews
+   252→7. User approves/rejects
+   253→8. Execution occurs only after approval
+   254→
+   255→⸻
+   256→
+   257→LEVEL 4 — SENTINEL DELEGATE
+   258→
+   259→User asks:
+   260→
+   261→"Execute automatically within my rules."
+   262→
+   263→SENTINEL can execute only inside strict user-defined limits.
+   264→
+   265→Default mode must remain:
+   266→
+   267→OBSERVE
+   268→
+   269→Never silently enable autonomous execution.
+   270→
+   271→⸻
+   272→
+   273→8. ONBOARDING
+   274→
+   275→Create a friendly onboarding system.
+   276→
+   277→The user should be able to understand QuantEdge without reading documentation first.
+   278→
+   279→Flow:
+   280→
+   281→Welcome
+   282→ ↓
+   283→What are you interested in?
+   284→Stocks / ETFs / Crypto
+   285→ ↓
+   286→Experience
+   287→Beginner / Intermediate / Advanced
+   288→ ↓
+   289→What do you want?
+   290→Learn / Analyze / Find Opportunities / Paper Trade / Automate
+   291→ ↓
+   292→Risk Preferences
+   293→ ↓
+   294→Notification Preferences
+   295→ ↓
+   296→Optional Broker Connection
+   297→ ↓
+   298→QuantEdge Dashboard
+   299→
+   300→Default users into Analytics + Observe Mode.
+   301→
+   302→⸻
+   303→
+   304→9. BUILT-IN "HOW TO USE QUANTEDGE"
+   305→
+   306→Create a complete Help / Learn Center inside the application.
+   307→
+   308→Do NOT make it a boring technical manual.
+   309→
+   310→Make it friendly, visual, searchable, contextual, and beginner-friendly.
+   311→
+   312→Sections should include:
+   313→
+   314→START HERE
+   315→
+   316→* What is QuantEdge?
+   317→* How QuantEdge works
+   318→* Analytics vs SENTINEL
+   319→* What is a Signal?
+   320→* What is Signal Confidence?
+   321→* What is Risk Score?
+   322→* What is a Catalyst?
+   323→* What is Market Regime?
+   324→* What is Paper Trading?
+   325→
+   326→ANALYTICS
+   327→
+   328→* Reading charts
+   329→* Technical indicators
+   330→* Understanding VWAP
+   331→* Understanding EMA
+   332→* Understanding RSI
+   333→* Understanding MACD
+   334→* Understanding Bollinger Bands
+   335→* Understanding volume
+   336→* Understanding volatility
+   337→* Understanding market regimes
+   338→* Reading news/catalysts
+   339→* Understanding portfolio risk
+   340→* Understanding correlations
+   341→* Understanding opportunities
+   342→
+   343→SENTINEL
+   344→
+   345→* Observe Mode
+   346→* Approve Mode
+   347→* Delegate Mode
+   348→* How approvals work
+   349→* How risk limits work
+   350→* How to pause SENTINEL
+   351→* How to stop SENTINEL
+   352→* Emergency Stop
+   353→* Broker connection
+   354→* Paper execution
+   355→
+   356→RESEARCH
+   357→
+   358→* Backtesting
+   359→* Walk-forward testing
+   360→* Strategy Lab
+   361→* Signal history
+   362→* Performance metrics
+   363→
+   364→ACCOUNT
+   365→
+   366→* Notifications
+   367→* Providers
+   368→* API keys
+   369→* Broker connections
+   370→* Subscription
+   371→* Privacy
+   372→* Security
+   373→
+   374→⸻
+   375→
+   376→10. CONTEXTUAL EDUCATION
+   377→
+   378→Every complicated concept should have a small:
+   379→
+   380→ⓘ
+   381→
+   382→or
+   383→
+   384→?
+   385→
+   386→Example:
+   387→
+   388→Signal Confidence: 84%
+   389→
+   390→Tap:
+   391→
+   392→What does this mean?
+   393→
+   394→QuantEdge's signal engine currently finds strong alignment between the selected technical, market, volatility, volume, and catalyst factors.
+   395→
+   396→This is NOT an 84% probability that the trade will win.
+   397→
+   398→Do this throughout the application.
+   399→
+   400→The user should be able to learn without leaving the screen.
+   401→
+   402→⸻
+   403→
+   404→11. NEWS + CATALYST ENGINE
+   405→
+   406→Build a serious Catalyst Intelligence system.
+   407→
+   408→Track relevant events such as:
+   409→
+   410→* Breaking news
+   411→* Earnings
+   412→* Earnings surprises
+   413→* Guidance
+   414→* Analyst upgrades
+   415→* Analyst downgrades
+   416→* SEC filings
+   417→* Insider activity
+   418→* M&A
+   419→* Contracts
+   420→* Product launches
+   421→* Regulatory decisions
+   422→* Lawsuits
+   423→* Management changes
+   424→* Macro events
+   425→* Economic releases
+   426→* Unusual volume catalysts
+   427→* Sector events
+   428→* Crypto-specific events
+   429→
+   430→Every catalyst should contain:
+   431→
+   432→* Headline
+   433→* Source
+   434→* Timestamp
+   435→* URL
+   436→* Category
+   437→* Sentiment
+   438→* Relevance
+   439→* Catalyst strength
+   440→* Affected ticker(s)
+   441→
+   442→NEVER fabricate news.
+   443→
+   444→If the provider is unavailable, display:
+   445→
+   446→NEWS DATA UNAVAILABLE
+   447→
+   448→Never display:
+   449→
+   450→No news
+   451→
+   452→unless the system actually verified there is no relevant news.
+   453→
+   454→ADDENDUM — provider cost reality: a news/catalyst feed is the single biggest new recurring cost this upgrade order introduces. Before building the UI, pick and cost out the actual provider (e.g. Polygon.io news, Benzinga, NewsAPI, Alpha Vantage news) against sections 29 and 65 (Zero-Cost Development Principle) — confirm free-tier request limits at 100 / 1,000 / 10,000 users before committing the feature to the roadmap.
+   455→
+   456→⸻
+   457→
+   458→12. CATALYST → SIGNAL INTELLIGENCE
+   459→
+   460→News must not simply be displayed.
+   461→
+   462→Create:
+   463→
+   464→Catalyst Intelligence
+   465→
+   466→For each asset show:
+   467→
+   468→TECHNICAL SETUP
+   469→Strong
+   470→CATALYST
+   471→Positive
+   472→VOLUME
+   473→Elevated
+   474→REGIME
+   475→Risk-On
+   476→LIQUIDITY
+   477→Healthy
+   478→OVERALL
+   479→High-quality setup
+   480→
+   481→Separate:
+   482→
+   483→* Technical confirmation
+   484→* Catalyst confirmation
+   485→
+   486→Do not let news automatically create a trade.
+   487→
+   488→⸻
+   489→
+   490→13. MARKET REGIME ENGINE
+   491→
+   492→Create a dedicated Market Regime Engine.
+   493→
+   494→Detect conditions including:
+   495→
+   496→* Bull
+   497→* Bear
+   498→* Sideways
+   499→* High volatility
+   500→* Low volatility
+   501→* Momentum
+   502→* Mean reversion
+   503→* Risk-on
+   504→* Risk-off
+   505→* Event-driven
+   506→* Liquidity stress
+   507→
+   508→Regime should influence:
+   509→
+   510→* Signal thresholds
+   511→* Confidence
+   512→* Position sizing
+   513→* Trade frequency
+   514→* Stop distance
+   515→* Approval requirements
+   516→* Automation permissions
+   517→
+   518→The system should explain:
+   519→
+   520→"Why is this regime active?"
+   521→
+   522→⸻
+   523→
+   524→14. MULTI-FACTOR SIGNAL ENGINE
+   525→
+   526→Keep the existing signal engine and improve it.
+   527→
+   528→Existing factors include:
+   529→
+   530→* EMA structure
+   531→* VWAP position
+   532→* RSI momentum
+   533→* MACD expansion
+   534→* Bollinger stretch
+   535→* Relative volume
+   536→* ROC
+   537→
+   538→Add where appropriate:
+   539→
+   540→* ATR
+   541→* Market regime
+   542→* Catalyst strength
+   543→* Liquidity
+   544→* Spread
+   545→* Relative strength
+   546→* Portfolio exposure
+   547→* Correlation
+   548→* Optional fundamental/contextual factors
+   549→
+   550→Show factor contributions visually.
+   551→
+   552→Example:
+   553→
+   554→SIGNAL SCORE: 84
+   555→EMA Structure       +18
+   556→VWAP                +15
+   557→RSI                 +12
+   558→MACD                +14
+   559→Volume              +11
+   560→Catalyst            +9
+   561→Regime              +5
+   562→------------------------
+   563→TOTAL               84
+   564→
+   565→⸻
+   566→
+   567→15. PORTFOLIO INTELLIGENCE
+   568→
+   569→Go beyond P&L.
+   570→
+   571→Show:
+   572→
+   573→* Asset allocation
+   574→* Sector exposure
+   575→* Long/short exposure
+   576→* Concentration
+   577→* Correlation
+   578→* Portfolio volatility
+   579→* Drawdown
+   580→* Risk per position
+   581→* Total portfolio risk
+   582→* Largest contributors
+   583→* Largest detractors
+   584→* Scenario analysis
+   585→
+   586→Warn users when several positions are effectively the same trade.
+   587→
+   588→Example:
+   589→
+   590→"Your NVDA, AMD and SMH exposure creates elevated semiconductor concentration."
+   591→
+   592→⸻
+   593→
+   594→16. SENTINEL MODES
+   595→
+   596→OBSERVE
+   597→
+   598→Signal-only.
+   599→
+   600→No orders.
+   601→
+   602→Default.
+   603→
+   604→⸻
+   605→
+   606→APPROVE
+   607→
+   608→SENTINEL proposes trades.
+   609→
+   610→User receives:
+   611→
+   612→SENTINEL OPPORTUNITY
+   613→NVDA
+   614→Long
+   615→Entry: $XXX
+   616→Stop: $XXX
+   617→Target: $XXX
+   618→Risk: $XXX
+   619→R:R: X.X
+   620→Signal: 84
+   621→Catalyst: Positive
+   622→Regime: Risk-On
+   623→Risk Check: PASSED
+   624→[APPROVE]
+   625→[REJECT]
+   626→
+   627→Approval must expire.
+   628→
+   629→Approval must be:
+   630→
+   631→* User-specific
+   632→* Trade-specific
+   633→* Single-use
+   634→* Time-limited
+   635→* Audited
+   636→
+   637→⸻
+   638→
+   639→DELEGATE
+   640→
+   641→Automatic execution within hard limits.
+   642→
+   643→Controls:
+   644→
+   645→* Risk per trade
+   646→* Maximum position
+   647→* Maximum notional
+   648→* Maximum open positions
+   649→* Maximum daily loss
+   650→* Maximum weekly loss
+   651→* Maximum daily trades
+   652→* Allowed assets
+   653→* Allowed strategies
+   654→* Allowed sessions
+   655→* Maximum correlated exposure
+   656→* Maximum portfolio drawdown
+   657→* Minimum R:R
+   658→* Minimum liquidity
+   659→
+   660→⸻
+   661→
+   662→17. SENTINEL SAFETY STATES
+   663→
+   664→Implement:
+   665→
+   666→* ACTIVE
+   667→* PAUSED
+   668→* WAITING_FOR_APPROVAL
+   669→* RISK_LOCKED
+   670→* BROKER_DISCONNECTED
+   671→* DATA_UNAVAILABLE
+   672→* NEWS_PROVIDER_UNAVAILABLE
+   673→* SYSTEM_DEGRADED
+   674→* EMERGENCY_STOP
+   675→
+   676→The UI must clearly explain why SENTINEL is not operating.
+   677→
+   678→⸻
+   679→
+   680→18. KILL SWITCH
+   681→
+   682→Create a highly visible Emergency Stop.
+   683→
+   684→Emergency Stop must:
+   685→
+   686→* Disable new automation
+   687→* Cancel eligible pending orders
+   688→* Cancel pending approvals
+   689→* Prevent new SENTINEL actions
+   690→* Record an audit event
+   691→* Notify the user
+   692→
+   693→Never hide this behind several menus.
+   694→
+   695→⸻
+   696→
+   697→19. PAPER TRADING
+   698→
+   699→Support:
+   700→
+   701→Internal QuantEdge Paper Engine
+   702→
+   703→and optionally:
+   704→
+   705→Alpaca Paper Trading
+   706→
+   707→Use an execution abstraction.
+   708→
+   709→ExecutionProvider
+   710→ ├── QuantEdgePaperProvider
+   711→ └── AlpacaPaperProvider
+   712→
+   713→Never hard-code the application to one broker.
+   714→
+   715→ADDENDUM — the Alpaca connection is also a future on-ramp to live trading. Even though this upgrade only wires up Alpaca's paper endpoint, design the ExecutionProvider interface and the user-facing copy as if a live-money provider could be added later, because that is the natural next request once users trust the paper results. Do not build it now, but do not paint the architecture into a corner — flag explicitly in the audit (section 62) and in section 51 that enabling real-money execution later would introduce broker-dealer/PDT/KYC obligations that paper trading does not carry, so that decision gets made deliberately rather than accidentally.
+   716→
+   717→⸻
+   718→
+   719→20. REALISTIC PAPER EXECUTION
+   720→
+   721→Do not simulate perfect fills.
+   722→
+   723→Model where appropriate:
+   724→
+   725→* Slippage
+   726→* Spread
+   727→* Latency
+   728→* Partial fills
+   729→* Rejected orders
+   730→* Gaps
+   731→* Stop behavior
+   732→* Limit behavior
+   733→* Market orders
+   734→
+   735→Clearly label:
+   736→
+   737→QuantEdge Simulated
+   738→
+   739→versus
+   740→
+   741→Alpaca Paper
+   742→
+   743→Never imply simulated execution is real brokerage execution.
+   744→
+   745→⸻
+   746→
+   747→21. BACKTESTING
+   748→
+   749→Build a proper backtesting engine.
+   750→
+   751→Metrics:
+   752→
+   753→* Total return
+   754→* CAGR
+   755→* Maximum drawdown
+   756→* Sharpe
+   757→* Sortino
+   758→* Win rate
+   759→* Average win
+   760→* Average loss
+   761→* Largest win
+   762→* Largest loss
+   763→* Profit factor
+   764→* Expectancy
+   765→* Number of trades
+   766→* Exposure
+   767→* Benchmark comparison
+   768→
+   769→Prevent:
+   770→
+   771→* Look-ahead bias
+   772→* Future-data leakage
+   773→* Survivorship bias
+   774→* Unrealistic fills
+   775→
+   776→⸻
+   777→
+   778→22. WALK-FORWARD TESTING
+   779→
+   780→Support:
+   781→
+   782→* In-sample
+   783→* Out-of-sample
+   784→* Walk-forward validation
+   785→
+   786→Clearly explain when a strategy performs differently outside its training period.
+   787→
+   788→⸻
+   789→
+   790→23. STRATEGY LAB
+   791→
+   792→Allow users to:
+   793→
+   794→* Clone strategies
+   795→* Modify parameters
+   796→* Backtest
+   797→* Compare
+   798→* Save
+   799→* Version
+   800→* Paper test
+   801→* Activate
+   802→
+   803→Every strategy needs version history.
+   804→
+   805→⸻
+   806→
+   807→24. SIGNAL PERFORMANCE
+   808→
+   809→Track historical signals.
+   810→
+   811→Show:
+   812→
+   813→* Signal generated
+   814→* Entry
+   815→* Stop
+   816→* Target
+   817→* Outcome
+   818→* Duration
+   819→* Regime
+   820→* Catalyst
+   821→* Factors
+   822→* Result
+   823→
+   824→This allows QuantEdge to measure whether its signal engine is actually useful.
+   825→
+   826→Do NOT cherry-pick results.
+   827→
+   828→⸻
+   829→
+   830→25. REAL-TIME NOTIFICATIONS
+   831→
+   832→Notifications must be built into the core architecture.
+   833→
+   834→Supported channels:
+   835→
+   836→* Web Push
+   837→* Mobile Push
+   838→* Email
+   839→
+   840→No unnecessary channels.
+   841→
+   842→Events include:
+   843→
+   844→* New signal
+   845→* High-confidence opportunity
+   846→* SENTINEL approval request
+   847→* Trade executed
+   848→* Stop hit
+   849→* Target hit
+   850→* Risk limit
+   851→* Broker disconnected
+   852→* Major catalyst
+   853→* System degradation
+   854→* Account/security event
+   855→
+   856→Example:
+   857→
+   858→SENTINEL needs your approval
+   859→
+   860→NVDA Long
+   861→Signal 84
+   862→Risk: $50
+   863→R:R: 2.4
+   864→
+   865→Tap to review.
+   866→
+   867→The notification should deep-link directly to the relevant screen.
+   868→
+   869→ADDENDUM — build order dependency: mobile push (FCM/APNs) requires the actual iOS/Android app shells to exist first — a web-only build cannot deliver native push to a phone that hasn't installed an app. Sequence this so web push + email ship first (deliverable from the current web app), and mobile push activates as soon as the wrapped/native app in Phase 9 is in testers' hands, rather than promising phone notifications before there is a phone app to receive them.
+   870→
+   871→⸻
+   872→
+   873→26. NOTIFICATION CENTER
+   874→
+   875→Build:
+   876→
+   877→* Queued
+   878→* Sent
+   879→* Delivered
+   880→* Opened
+   881→* Failed
+   882→* Retry state
+   883→
+   884→Users control:
+   885→
+   886→* Event types
+   887→* Channels
+   888→* Quiet hours
+   889→* Importance threshold
+   890→* Watchlist alerts
+   891→
+   892→⸻
+   893→
+   894→27. REAL-TIME ARCHITECTURE
+   895→
+   896→Use event-driven architecture.
+   897→
+   898→Avoid making every user independently hammer market/news providers.
+   899→
+   900→Example:
+   901→
+   902→Market Provider
+   903→      ↓
+   904→Shared Market Cache
+   905→      ↓
+   906→Analytics Engine
+   907→      ↓
+   908→Signal Engine
+   909→      ↓
+   910→Event Bus
+   911→      ↓
+   912→1,000 users
+   913→
+   914→If 1,000 users watch NVDA, do NOT make 1,000 identical provider requests.
+   915→
+   916→Deduplicate and share data.
+   917→
+   918→Apply the same principle to:
+   919→
+   920→* News
+   921→* Signals
+   922→* Market scans
+   923→* Regime calculations
+   924→
+   925→⸻
+   926→
+   927→28. PROVIDER ABSTRACTION
+   928→
+   929→Create interfaces for:
+   930→
+   931→MarketDataProvider
+   932→NewsProvider
+   933→AIProvider
+   934→ExecutionProvider
+   935→NotificationProvider
+   936→EmailProvider
+   937→BillingProvider
+   938→
+   939→This prevents vendor lock-in.
+   940→
+   941→⸻
+   942→
+   943→29. API COST ARCHITECTURE
+   944→
+   945→I want the developer operating cost as close to $0 as realistically possible during development and early launch.
+   946→
+   947→Prefer:
+   948→
+   949→* Open source
+   950→* Free tiers
+   951→* Serverless
+   952→* Shared caching
+   953→* Efficient background jobs
+   954→* Local development
+   955→* Free push infrastructure
+   956→* Free/low-cost email tiers
+   957→* Free analytics/error monitoring where practical
+   958→
+   959→But NEVER design the system around fake "unlimited free" assumptions.
+   960→
+   961→Measure actual limits.
+   962→
+   963→⸻
+   964→
+   965→30. USER-PAID / BYOK ARCHITECTURE
+   966→
+   967→Where APIs create variable costs, support:
+   968→
+   969→BYOK — Bring Your Own Key
+   970→
+   971→Users can connect supported providers where appropriate.
+   972→
+   973→Examples may include:
+   974→
+   975→* AI providers
+   976→* Market-data providers
+   977→* News providers
+   978→* Broker providers
+   979→
+   980→Secrets must be:
+   981→
+   982→* Encrypted
+   983→* Server-side
+   984→* Never exposed to frontend
+   985→* Never logged
+   986→* Never returned in API responses
+   987→
+   988→Clearly tell users when their provider may charge them.
+   989→
+   990→Do not secretly consume developer API credits for user activity.
+   991→
+   992→⸻
+   993→
+   994→31. USAGE METERING
+   995→
+   996→Track:
+   997→
+   998→* User
+   999→* Provider
+  1000→* Service
+  1001→* Units
+  1002→* Timestamp
+  1003→* Estimated cost
+  1004→
+  1005→Potential usage categories:
+  1006→
+  1007→* AI calls
+  1008→* News requests
+  1009→* Market data
+  1010→* Backtests
+  1011→* Analysis
+  1012→* Storage
+  1013→* Compute
+  1014→* Notifications
+  1015→
+  1016→This will allow future pricing based on actual economics.
+  1017→
+  1018→⸻
+  1019→
+  1020→32. MULTI-TENANT SAAS
+  1021→
+  1022→The system must support multiple users safely.
+  1023→
+  1024→Core entities should include:
+  1025→
+  1026→Users
+  1027→Profiles
+  1028→Subscriptions
+  1029→Entitlements
+  1030→Watchlists
+  1031→Strategies
+  1032→StrategyVersions
+  1033→Signals
+  1034→SignalFactors
+  1035→Positions
+  1036→Orders
+  1037→Fills
+  1038→RiskProfiles
+  1039→BrokerConnections
+  1040→Notifications
+  1041→NotificationPreferences
+  1042→News
+  1043→Catalysts
+  1044→MarketRegimes
+  1045→Backtests
+  1046→UsageEvents
+  1047→AuditEvents
+  1048→SystemEvents
+  1049→
+  1050→No user may access another user's data.
+  1051→
+  1052→⸻
+  1053→
+  1054→33. AUTHENTICATION
+  1055→
+  1056→Implement production-grade authentication:
+  1057→
+  1058→* Email/password
+  1059→* Email verification
+  1060→* Password reset
+  1061→* Secure sessions
+  1062→* Optional MFA
+  1063→* Device/session management
+  1064→* Suspicious login detection
+  1065→* Rate limiting
+  1066→* Secure password hashing
+  1067→
+  1068→Never store plaintext passwords.
+  1069→
+  1070→⸻
+  1071→
+  1072→34. DATABASE
+  1073→
+  1074→Trading/account/security state must NOT depend on localStorage.
+  1075→
+  1076→localStorage may only be used for appropriate client preferences/cache.
+  1077→
+  1078→All authoritative state must live in the backend.
+  1079→
+  1080→⸻
+  1081→
+  1082→35. SUBSCRIPTIONS + ENTITLEMENTS
+  1083→
+  1084→Separate:
+  1085→
+  1086→Billing
+  1087→
+  1088→from:
+  1089→
+  1090→Entitlements
+  1091→
+  1092→Example:
+  1093→
+  1094→Subscription
+  1095→      ↓
+  1096→Entitlement Service
+  1097→      ↓
+  1098→Analytics features
+  1099→SENTINEL
+  1100→Backtesting
+  1101→Strategy Lab
+  1102→Advanced alerts
+  1103→AI features
+  1104→
+  1105→Never rely only on frontend checks.
+  1106→
+  1107→ADDENDUM — store billing rules: if subscriptions are sold through a native iOS or Android app, Apple's and Google's store guidelines require their own in-app purchase system for digital subscriptions — a Stripe checkout embedded in the native app is not permitted for this kind of recurring digital entitlement. Plan for a BillingProvider abstraction (per section 28) with a StripeProvider for the web and a StoreKit/Google Play Billing provider for the native apps, both feeding the same EntitlementService, rather than assuming one payment integration covers web and mobile.
+  1108→
+  1109→⸻
+  1110→
+  1111→36. MOBILE
+  1112→
+  1113→Web, iOS and Android must use the same backend intelligence.
+  1114→
+  1115→Do not create three different brains.
+  1116→
+  1117→Mobile should have a dedicated responsive experience.
+  1118→
+  1119→Suggested navigation:
+  1120→
+  1121→Home
+  1122→Markets
+  1123→Signals
+  1124→Portfolio
+  1125→More
+  1126→
+  1127→Approval should be possible in one or two taps.
+  1128→
+  1129→⸻
+  1130→
+  1131→37. DESIGN DIRECTION
+  1132→
+  1133→Completely redesign the current visual language where necessary.
+  1134→
+  1135→Target:
+  1136→
+  1137→Premium quantitative intelligence terminal
+  1138→
+  1139→NOT:
+  1140→
+  1141→* Generic AI SaaS
+  1142→* AI robot graphics
+  1143→* Random gradients
+  1144→* Excessive glow
+  1145→* Random stickers
+  1146→* Stock-photo hero images
+  1147→* Generic illustrations
+  1148→* Too many fonts
+  1149→* Mixed icon libraries
+  1150→
+  1151→Use product-native visual assets:
+  1152→
+  1153→* Market heatmaps
+  1154→* Factor charts
+  1155→* Catalyst timelines
+  1156→* Risk gauges
+  1157→* Portfolio exposure diagrams
+  1158→* Regime indicators
+  1159→* Signal breakdowns
+  1160→* Execution timelines
+  1161→* Real terminal screenshots
+  1162→* Clean data visualization
+  1163→
+  1164→The interface should communicate:
+  1165→
+  1166→serious + intelligent + trustworthy + modern
+  1167→
+  1168→ADDENDUM — replace decorative assets with real product screenshots. The current landing page has no screenshot, chart preview, or example of the SENTINEL approval card — for a product about to charge money, this is the single highest-leverage design fix, ahead of fonts or color. Every marketing surface (landing page, App Store/Play Store listing) should pull directly from real in-app screens once section 8 and 53's dashboard exist, not stock imagery or generic illustration.
+  1169→
+  1170→⸻
+  1171→
+  1172→38. TYPOGRAPHY
+  1173→
+  1174→Use a consistent professional system.
+  1175→
+  1176→Prefer:
+  1177→
+  1178→* Inter
+  1179→* Geist
+  1180→* Similar high-quality UI font
+  1181→
+  1182→For numbers/data:
+  1183→
+  1184→* Tabular numerals
+  1185→* Monospace where useful
+  1186→
+  1187→Do not use excessive typography styles.
+  1188→
+  1189→⸻
+  1190→
+  1191→39. COLORS
+  1192→
+  1193→Use semantic colors.
+  1194→
+  1195→Green = positive
+  1196→
+  1197→Red = negative/risk
+  1198→
+  1199→Amber = warning
+  1200→
+  1201→Neutral = information
+  1202→
+  1203→Avoid turning the whole application into a neon trading dashboard.
+  1204→
+  1205→⸻
+  1206→
+  1207→40. ANIMATION
+  1208→
+  1209→Animation should communicate state.
+  1210→
+  1211→Use animation for:
+  1212→
+  1213→* Price updates
+  1214→* Signal changes
+  1215→* Notifications
+  1216→* Loading
+  1217→* Execution states
+  1218→* Regime changes
+  1219→
+  1220→Do NOT animate everything.
+  1221→
+  1222→Performance comes first.
+  1223→
+  1224→⸻
+  1225→
+  1226→41. RESPONSIVE DESIGN
+  1227→
+  1228→The application must work properly on:
+  1229→
+  1230→* Desktop
+  1231→* Laptop
+  1232→* Tablet
+  1233→* iPhone
+  1234→* Android
+  1235→
+  1236→Do not simply shrink the desktop UI.
+  1237→
+  1238→Create mobile-specific layouts where needed.
+  1239→
+  1240→⸻
+  1241→
+  1242→42. FRIENDLY ERROR SYSTEM
+  1243→
+  1244→Never show technical errors like:
+  1245→
+  1246→ERR_PROVIDER_TIMEOUT_502
+  1247→
+  1248→Instead:
+  1249→
+  1250→Market data is temporarily unavailable.
+  1251→
+  1252→QuantEdge has paused affected signals until fresh data returns.
+  1253→
+  1254→For every failure explain:
+  1255→
+  1256→1. What happened
+  1257→2. What QuantEdge is doing
+  1258→3. What the user needs to do, if anything
+  1259→
+  1260→⸻
+  1261→
+  1262→43. DATA FAILURE SAFETY
+  1263→
+  1264→If market data becomes stale:
+  1265→
+  1266→Display:
+  1267→
+  1268→STALE DATA
+  1269→
+  1270→and pause affected automation.
+  1271→
+  1272→Never pretend stale data is live.
+  1273→
+  1274→If broker disconnects:
+  1275→
+  1276→BROKER DISCONNECTED
+  1277→
+  1278→and pause SENTINEL.
+  1279→
+  1280→If news provider fails:
+  1281→
+  1282→NEWS DATA UNAVAILABLE
+  1283→
+  1284→Never silently fabricate or infer missing data.
+  1285→
+  1286→⸻
+  1287→
+  1288→44. OBSERVABILITY
+  1289→
+  1290→Implement:
+  1291→
+  1292→* Structured logging
+  1293→* Error tracking
+  1294→* Health checks
+  1295→* Correlation IDs
+  1296→* Event IDs
+  1297→* Request IDs
+  1298→* Provider health
+  1299→* Background job health
+  1300→* Notification health
+  1301→
+  1302→Trace:
+  1303→
+  1304→Signal
+  1305→ ↓
+  1306→Risk
+  1307→ ↓
+  1308→Decision
+  1309→ ↓
+  1310→Approval
+  1311→ ↓
+  1312→Order
+  1313→ ↓
+  1314→Broker
+  1315→ ↓
+  1316→Fill
+  1317→ ↓
+  1318→Notification
+  1319→
+  1320→⸻
+  1321→
+  1322→45. AUDIT TRAIL
+  1323→
+  1324→Create an immutable audit system.
+  1325→
+  1326→Record:
+  1327→
+  1328→* Login
+  1329→* Logout
+  1330→* Settings changes
+  1331→* Risk changes
+  1332→* SENTINEL changes
+  1333→* Approvals
+  1334→* Rejections
+  1335→* Orders
+  1336→* Fills
+  1337→* Broker connection changes
+  1338→* API key changes
+  1339→* Subscription changes
+  1340→* Emergency stop
+  1341→* Admin actions
+  1342→
+  1343→⸻
+  1344→
+  1345→46. SECURITY
+  1346→
+  1347→Implement:
+  1348→
+  1349→* HTTPS
+  1350→* Secure cookies
+  1351→* Authorization
+  1352→* Tenant isolation
+  1353→* Input validation
+  1354→* Rate limiting
+  1355→* CSRF protection where applicable
+  1356→* XSS protection
+  1357→* Secure headers
+  1358→* Dependency scanning
+  1359→* Brute-force protection
+  1360→* Server-side secret handling
+  1361→* Encryption
+  1362→* No sensitive data in logs
+  1363→
+  1364→Broker/API secrets must never appear in frontend source code.
+  1365→
+  1366→⸻
+  1367→
+  1368→47. ADMIN CONTROL CENTER
+  1369→
+  1370→Create a proper admin system.
+  1371→
+  1372→Admin should see:
+  1373→
+  1374→* Users
+  1375→* Subscriptions
+  1376→* Entitlements
+  1377→* System health
+  1378→* API/provider health
+  1379→* Usage
+  1380→* Errors
+  1381→* Failed notifications
+  1382→* Broker connections
+  1383→* Background jobs
+  1384→* Audit events
+  1385→* Performance
+  1386→* Security events
+  1387→
+  1388→Roles:
+  1389→
+  1390→SUPER_ADMIN
+  1391→ADMIN
+  1392→SUPPORT
+  1393→ANALYST
+  1394→
+  1395→Do not expose sensitive credentials unnecessarily.
+  1396→
+  1397→⸻
+  1398→
+  1399→48. USER CONTROL CENTER
+  1400→
+  1401→Create one friendly settings area.
+  1402→
+  1403→Sections:
+  1404→
+  1405→Trading
+  1406→
+  1407→* Risk
+  1408→* Position limits
+  1409→* Sessions
+  1410→* Assets
+  1411→* Strategies
+  1412→
+  1413→SENTINEL
+  1414→
+  1415→* Mode
+  1416→* Permissions
+  1417→* Limits
+  1418→* Kill switch
+  1419→
+  1420→Notifications
+  1421→
+  1422→* Push
+  1423→* Web
+  1424→* Email
+  1425→* Quiet hours
+  1426→
+  1427→Data Providers
+  1428→
+  1429→* Market data
+  1430→* News
+  1431→* AI
+  1432→
+  1433→Broker
+  1434→
+  1435→* Paper broker
+  1436→* Alpaca
+  1437→
+  1438→Account
+  1439→
+  1440→* Security
+  1441→* Sessions
+  1442→* Subscription
+  1443→* Privacy
+  1444→
+  1445→⸻
+  1446→
+  1447→49. FREE-FIRST INFRASTRUCTURE
+  1448→
+  1449→Use the most economical architecture that can realistically support the application.
+  1450→
+  1451→Evaluate technologies such as:
+  1452→
+  1453→* Convex
+  1454→* Firebase
+  1455→* Supabase
+  1456→* PostgreSQL
+  1457→* Serverless infrastructure
+  1458→* Open-source services
+  1459→
+  1460→Do not choose based on popularity alone.
+  1461→
+  1462→Choose based on:
+  1463→
+  1464→* Free tier
+  1465→* Scalability
+  1466→* Realtime support
+  1467→* Authentication
+  1468→* Database
+  1469→* Cron/jobs
+  1470→* File storage
+  1471→* Security
+  1472→* Developer simplicity
+  1473→* Cost at 100 users
+  1474→* Cost at 1,000 users
+  1475→* Cost at 10,000 users
+  1476→
+  1477→If the current stack is suitable, preserve it rather than rewriting unnecessarily.
+  1478→
+  1479→⸻
+  1480→
+  1481→50. MARKET DATA REALITY
+  1482→
+  1483→Never market data as "real-time" unless the actual provider/license supports that claim.
+  1484→
+  1485→Every data source must have:
+  1486→
+  1487→* Provider
+  1488→* Timestamp
+  1489→* Update frequency
+  1490→* Entitlement
+  1491→* Delay status
+  1492→* Coverage
+  1493→
+  1494→The UI should clearly distinguish:
+  1495→
+  1496→LIVE
+  1497→
+  1498→DELAYED
+  1499→
+  1500→STALE
+  1501→
+  1502→UNAVAILABLE
+  1503→
+  1504→ADDENDUM — the current landing page markets "LIVE US EQUITIES · REAL-TIME DATA" prominently and only discloses "delayed per exchange terms" in the footer. Move that disclosure up so it is visible before someone clicks through to the terminal, not just after — this is both an honesty issue and a store-review risk (see section 51).
+  1505→
+  1506→⸻
+  1507→
+  1508→51. LEGAL / STORE READINESS
+  1509→
+  1510→Prepare architecture for:
+  1511→
+  1512→* Apple App Store
+  1513→* Google Play
+  1514→* Web
+  1515→
+  1516→The application must clearly distinguish:
+  1517→
+  1518→* Financial information
+  1519→* Educational information
+  1520→* Paper trading
+  1521→* Simulated execution
+  1522→* Real brokerage execution
+  1523→
+  1524→Do not make guaranteed-profit claims.
+  1525→
+  1526→Do not claim:
+  1527→
+  1528→"This trade will win."
+  1529→
+  1530→Do not claim:
+  1531→
+  1532→"AI predicts the market perfectly."
+  1533→
+  1534→Use appropriate financial-risk disclaimers.
+  1535→
+  1536→Before launch, verify current Apple and Google requirements rather than relying on old assumptions.
+  1537→
+  1538→ADDENDUM — minimum legal surface before charging anyone: Terms of Service, Privacy Policy, and a stated refund/cancellation policy, all linked from both the marketing site and inside the app — not just the trading disclaimer already on the landing page. Both stores will reject a paid finance-adjacent app at review without these. Also confirm the subscription billing approach against the addendum in section 35 (native IAP vs. web Stripe) before submitting to either store.
+  1539→
+  1540→⸻
+  1541→
+  1542→52. PRODUCT POSITIONING
+  1543→
+  1544→The product should NOT primarily be marketed as:
+  1545→
+  1546→"An AI trading bot."
+  1547→
+  1548→Instead:
+  1549→
+  1550→QuantEdge Pro is an AI-powered market intelligence and trading terminal.
+  1551→
+  1552→SENTINEL becomes the optional action layer.
+  1553→
+  1554→This makes the product useful to:
+  1555→
+  1556→* Beginners
+  1557→* Active traders
+  1558→* Analysts
+  1559→* Quant users
+  1560→* Paper traders
+  1561→* Advanced automated users
+  1562→
+  1563→⸻
+  1564→
+  1565→53. DASHBOARD STRUCTURE
+  1566→
+  1567→Create a clean unified dashboard.
+  1568→
+  1569→Recommended structure:
+  1570→
+  1571→┌─────────────────────────────────────┐
+  1572→│ QUANTEDGE PRO                       │
+  1573→│ Market: RISK-ON     SENTINEL: OFF  │
+  1574→├─────────────────────────────────────┤
+  1575→│ Market Overview                     │
+  1576→├─────────────────────────────────────┤
+  1577→│ Top Opportunities                   │
+  1578→├─────────────────────────────────────┤
+  1579→│ News & Catalysts                    │
+  1580→├─────────────────────────────────────┤
+  1581→│ Portfolio Intelligence              │
+  1582→├─────────────────────────────────────┤
+  1583→│ Risk                                │
+  1584→├─────────────────────────────────────┤
+  1585→│ SENTINEL                            │
+  1586→├─────────────────────────────────────┤
+  1587→│ Recent Activity                     │
+  1588→└─────────────────────────────────────┘
+  1589→
+  1590→Users should be able to progressively explore deeper information.
+  1591→
+  1592→⸻
+  1593→
+  1594→54. BEGINNER / ADVANCED EXPERIENCE
+  1595→
+  1596→Support two presentation levels.
+  1597→
+  1598→Beginner
+  1599→
+  1600→Show:
+  1601→
+  1602→* What happened
+  1603→* Why it matters
+  1604→* What to watch
+  1605→* Risk
+  1606→* Simple explanations
+  1607→
+  1608→Advanced
+  1609→
+  1610→Allow:
+  1611→
+  1612→* Factor weights
+  1613→* Technical indicators
+  1614→* Regime details
+  1615→* Risk parameters
+  1616→* Execution settings
+  1617→* Strategy parameters
+  1618→* Backtest controls
+  1619→* Advanced analytics
+  1620→
+  1621→Do not remove sophistication.
+  1622→
+  1623→Hide complexity until the user wants it.
+  1624→
+  1625→⸻
+  1626→
+  1627→55. SYSTEM FAILURE PRINCIPLE
+  1628→
+  1629→QuantEdge must fail safely.
+  1630→
+  1631→When uncertain:
+  1632→
+  1633→DO NOTHING.
+  1634→
+  1635→Never:
+  1636→
+  1637→* Invent data
+  1638→* Invent news
+  1639→* Execute without permission
+  1640→* Continue automation with stale data
+  1641→* Ignore risk limits
+  1642→* Assume broker connectivity
+  1643→* Pretend an order filled
+  1644→* Pretend a notification was delivered
+  1645→
+  1646→⸻
+  1647→
+  1648→56. PERFORMANCE + SCALE
+  1649→
+  1650→Audit the architecture for:
+  1651→
+  1652→1 user
+  1653→
+  1654→100 users
+  1655→
+  1656→1,000 users
+  1657→
+  1658→10,000 users
+  1659→
+  1660→Identify:
+  1661→
+  1662→* Bottlenecks
+  1663→* Provider limits
+  1664→* Database limits
+  1665→* WebSocket limits
+  1666→* Background job limits
+  1667→* API costs
+  1668→* Storage
+  1669→* Compute
+  1670→* Notification volume
+  1671→* Caching requirements
+  1672→
+  1673→Use shared computation and caching wherever possible.
+  1674→
+  1675→⸻
+  1676→
+  1677→57. TESTING
+  1678→
+  1679→Create automated tests for:
+  1680→
+  1681→Unit
+  1682→
+  1683→* Indicators
+  1684→* Signal scoring
+  1685→* Risk calculations
+  1686→* Position sizing
+  1687→* Regime classification
+  1688→* Backtesting
+  1689→
+  1690→Integration
+  1691→
+  1692→* Market provider
+  1693→* News provider
+  1694→* Database
+  1695→* Auth
+  1696→* Broker
+  1697→* Notifications
+  1698→
+  1699→End-to-end
+  1700→
+  1701→Test:
+  1702→
+  1703→Signal
+  1704→→ Risk
+  1705→→ SENTINEL
+  1706→→ Approval
+  1707→→ Execution
+  1708→→ Fill
+  1709→→ Notification
+  1710→
+  1711→Also test failure states.
+  1712→
+  1713→⸻
+  1714→
+  1715→58. SECURITY TESTING
+  1716→
+  1717→Test:
+  1718→
+  1719→* Unauthorized access
+  1720→* Cross-user data access
+  1721→* Broken authorization
+  1722→* API key leakage
+  1723→* Session attacks
+  1724→* Injection
+  1725→* XSS
+  1726→* CSRF
+  1727→* Rate-limit bypass
+  1728→* Brute force
+  1729→* Subscription bypass
+  1730→* Entitlement bypass
+  1731→* Approval replay
+  1732→* Duplicate order submission
+  1733→
+  1734→⸻
+  1735→
+  1736→59. IDEMPOTENCY
+  1737→
+  1738→Critical operations must be idempotent.
+  1739→
+  1740→Especially:
+  1741→
+  1742→* Orders
+  1743→* Approvals
+  1744→* Notifications
+  1745→* Subscription events
+  1746→* Broker callbacks
+  1747→
+  1748→A retry must never accidentally create two trades.
+  1749→
+  1750→⸻
+  1751→
+  1752→60. SYSTEM HEALTH
+  1753→
+  1754→Create a visible internal health system.
+  1755→
+  1756→Monitor:
+  1757→
+  1758→* Market data
+  1759→* News
+  1760→* AI
+  1761→* Database
+  1762→* Broker
+  1763→* Notifications
+  1764→* Background workers
+  1765→* WebSocket/realtime
+  1766→* Billing
+  1767→* Authentication
+  1768→
+  1769→Use states:
+  1770→
+  1771→HEALTHY
+  1772→
+  1773→DEGRADED
+  1774→
+  1775→DOWN
+  1776→
+  1777→⸻
+  1778→
+  1779→61. DO NOT DELETE GOOD EXISTING WORK
+  1780→
+  1781→Before modifying anything:
+  1782→
+  1783→Identify:
+  1784→
+  1785→* What already works
+  1786→* What is simulated
+  1787→* What is hard-coded
+  1788→* What is production-ready
+  1789→* What is insecure
+  1790→* What is incomplete
+  1791→* What should be retained
+  1792→* What should be replaced
+  1793→
+  1794→Preserve useful existing functionality.
+  1795→
+  1796→Refactor rather than rewrite when practical.
+  1797→
+  1798→⸻
+  1799→
+  1800→62. MANDATORY INITIAL AUDIT
+  1801→
+  1802→Before implementation, produce an audit.
+  1803→
+  1804→Include:
+  1805→
+  1806→A. Current Architecture
+  1807→
+  1808→B. Current Tech Stack
+  1809→
+  1810→C. Current Database
+  1811→
+  1812→D. Current Authentication
+  1813→
+  1814→E. Current APIs
+  1815→
+  1816→F. Current Market Data
+  1817→
+  1818→G. Current Signal Engine
+  1819→
+  1820→H. Current SENTINEL implementation
+  1821→
+  1822→I. Current Paper Trading
+  1823→
+  1824→J. Current Notifications
+  1825→
+  1826→K. Current UI
+  1827→
+  1828→L. Current Mobile Responsiveness
+  1829→
+  1830→M. Security Issues
+  1831→
+  1832→N. Performance Issues
+  1833→
+  1834→O. Scalability Issues
+  1835→
+  1836→P. Fake/Mock/Simulated Features
+  1837→
+  1838→Q. Missing Features
+  1839→
+  1840→R. Estimated cost
+  1841→
+  1842→S. Free alternatives
+  1843→
+  1844→T. Recommended architecture
+  1845→
+  1846→⸻
+  1847→
+  1848→63. IMPLEMENTATION ORDER
+  1849→
+  1850→Do not randomly implement features.
+  1851→
+  1852→Use this order.
+  1853→
+  1854→PHASE 0 — AUDIT
+  1855→
+  1856→Inspect the entire existing project.
+  1857→
+  1858→Do not modify anything yet.
+  1859→
+  1860→⸻
+  1861→
+  1862→PHASE 1 — FOUNDATION
+  1863→
+  1864→Build/repair:
+  1865→
+  1866→* Backend
+  1867→* Database
+  1868→* Authentication
+  1869→* Multi-tenancy
+  1870→* Provider abstraction
+  1871→* Security
+  1872→* Core data models
+  1873→
+  1874→⸻
+  1875→
+  1876→PHASE 2 — ANALYTICS BRAIN
+  1877→
+  1878→Build:
+  1879→
+  1880→* Market data
+  1881→* Stocks
+  1882→* ETFs
+  1883→* Crypto
+  1884→* News
+  1885→* Catalysts
+  1886→* Regime engine
+  1887→* Signal engine
+  1888→* Portfolio intelligence
+  1889→* Risk analytics
+  1890→
+  1891→⸻
+  1892→
+  1893→PHASE 3 — RESEARCH
+  1894→
+  1895→Build:
+  1896→
+  1897→* Signal history
+  1898→* Backtesting
+  1899→* Walk-forward testing
+  1900→* Strategy Lab
+  1901→* Performance analytics
+  1902→
+  1903→⸻
+  1904→
+  1905→PHASE 4 — SENTINEL
+  1906→
+  1907→Build:
+  1908→
+  1909→* Observe
+  1910→* Approve
+  1911→* Delegate
+  1912→* Risk engine
+  1913→* Approval system
+  1914→* Kill switch
+  1915→* Execution abstraction
+  1916→* Internal paper trading
+  1917→* Optional Alpaca Paper
+  1918→
+  1919→⸻
+  1920→
+  1921→PHASE 5 — REALTIME
+  1922→
+  1923→Build:
+  1924→
+  1925→* Event system
+  1926→* Realtime updates
+  1927→* Web push
+  1928→* Mobile push
+  1929→* Email
+  1930→* Notification center
+  1931→* Deep links
+  1932→
+  1933→⸻
+  1934→
+  1935→PHASE 6 — SAAS
+  1936→
+  1937→Build:
+  1938→
+  1939→* Subscriptions
+  1940→* Entitlements
+  1941→* Usage tracking
+  1942→* BYOK
+  1943→* Account controls
+  1944→* Billing architecture
+  1945→
+  1946→⸻
+  1947→
+  1948→PHASE 7 — SECURITY + RELIABILITY
+  1949→
+  1950→Build:
+  1951→
+  1952→* Audit
+  1953→* Observability
+  1954→* Failure handling
+  1955→* Rate limits
+  1956→* Security testing
+  1957→* Idempotency
+  1958→* Health monitoring
+  1959→
+  1960→⸻
+  1961→
+  1962→PHASE 8 — UX/UI
+  1963→
+  1964→Redesign the entire experience around:
+  1965→
+  1966→One unified QuantEdge product.
+  1967→
+  1968→Analytics is primary.
+  1969→
+  1970→SENTINEL is integrated naturally.
+  1971→
+  1972→Make it premium, clean, visual, understandable, and fast.
+  1973→
+  1974→⸻
+  1975→
+  1976→PHASE 9 — MOBILE
+  1977→
+  1978→Create:
+  1979→
+  1980→* Responsive web
+  1981→* iOS
+  1982→* Android
+  1983→
+  1984→Use the same backend and intelligence layer.
+  1985→
+  1986→⸻
+  1987→
+  1988→PHASE 10 — LAUNCH
+  1989→
+  1990→Prepare:
+  1991→
+  1992→* Production deployment
+  1993→* Monitoring
+  1994→* Security review
+  1995→* Store compliance
+  1996→* Privacy
+  1997→* Terms
+  1998→* Financial disclaimers
+  1999→* Help center
+  2000→* Support
+
+[showing lines 1-2000 of 2233; use offset=2001 with limit to continue reading]

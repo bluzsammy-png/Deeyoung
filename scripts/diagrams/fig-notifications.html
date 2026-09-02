@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --text: #1F2937; --sub: #6B7280; --border: #E5E7EB; }
+  body { font-family: 'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #FFF; color: var(--text); }
+  #root { width: fit-content; min-width: 1560px; padding: 44px 40px; }
+  .title { font-size: 24px; font-weight: 700; text-align: center; }
+  .subtitle { font-size: 14px; color: var(--sub); text-align: center; margin-top: 6px; margin-bottom: 30px; }
+  .lanes { display: flex; gap: 20px; justify-content: center; }
+  .lane { width: 350px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px 16px; }
+  .lane-head { font-size: 15px; font-weight: 700; color: #334155; border-left: 4px solid #64748B; background: #F0F4F8; border-radius: 6px; padding: 7px 12px; margin-bottom: 11px; }
+  .lane.l2 .lane-head { border-color: #5B7A99; background: #E8EDF2; color: #1E3A5F; }
+  .lane.l3 .lane-head { border-color: #B8912E; background: #FDF9EE; color: #7A5E14; }
+  .lane.l4 .lane-head { border-color: #3A5C7A; background: #D8E0EA; color: #172540; }
+  .node { background: #FFFFFF; border: 1.5px solid #CBD5E1; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+  .node .n { font-size: 13.5px; font-weight: 600; color: #1E40AF; }
+  .node .d { font-size: 11.5px; color: #6B7280; margin-top: 3px; line-height: 1.45; }
+  .node.gold { border-color: #C9B36A; background: #FDF9EE; } .node.gold .n { color: #7A5E14; }
+  .node.neutral .n { color: #334155; }
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 9px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+  .b-phase { background: #EFF6FF; color: #1E40AF; border: 1px solid #93C5FD; }
+  .b-later { background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; }
+  .flow-arrow { align-self: center; color: #94A3B8; font-size: 26px; padding: 0 2px; flex-shrink: 0; }
+  .bottom { margin: 24px auto 0; width: 1420px; background: #FFFFFF; border: 1px dashed #C9B36A; border-radius: 10px; padding: 14px 20px; }
+  .bottom .rt { font-size: 13.5px; font-weight: 700; color: #7A5E14; margin-bottom: 9px; }
+  .states { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .stc { font-size: 12px; font-weight: 600; border-radius: 14px; padding: 5px 12px; border: 1.5px solid; white-space: nowrap; }
+  .s1 { background: #F1F5F9; color: #334155; border-color: #94A3B8; }
+  .s2 { background: #EFF6FF; color: #1E40AF; border-color: #60A5FA; }
+  .s3 { background: #FDF9EE; color: #7A5E14; border-color: #C9B36A; }
+  .s4 { background: #F0FDF4; color: #065F46; border-color: #6EE7B7; }
+  .s5 { background: #F5F3FF; color: #5B21B6; border-color: #C4B5FD; }
+  .arr { color: #94A3B8; font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="title">Notification Architecture — Event-Driven, User-Controlled (§25–§26)</div>
+  <div class="subtitle">Events originate once on the shared bus — users never poll. Every notification deep-links to the exact screen (e.g., the pending approval card).</div>
+  <div class="lanes">
+    <div class="lane">
+      <div class="lane-head">EVENT SOURCES</div>
+      <div class="node neutral"><div class="n">Signal events</div><div class="d">new signal · high-confidence opportunity on watchlist</div></div>
+      <div class="node neutral"><div class="n">SENTINEL events</div><div class="d">approval requested · trade executed · stop hit · target hit</div></div>
+      <div class="node neutral"><div class="n">Risk events</div><div class="d">risk limit touched · daily breaker armed · emergency stop</div></div>
+      <div class="node neutral"><div class="n">System events</div><div class="d">broker disconnected · data stale/unavailable · provider degraded</div></div>
+      <div class="node neutral"><div class="n">Catalyst events</div><div class="d">major catalyst on held/watched symbol</div></div>
+      <div class="node neutral"><div class="n">Account events</div><div class="d">login, security, subscription changes</div></div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="lane l2">
+      <div class="lane-head">EVENT BUS</div>
+      <div class="node"><div class="n">Single fan-out hub</div><div class="d">analytics, SENTINEL, and system workers publish; notification service subscribes</div></div>
+      <div class="node"><div class="n">Correlation IDs</div><div class="d">event → signal → order traceable end-to-end (§44)</div></div>
+      <div class="node"><div class="n">Event → deep link mapping</div><div class="d">every event type knows its destination screen</div></div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="lane l3">
+      <div class="lane-head">NOTIFICATION SERVICE</div>
+      <div class="node gold"><div class="n">Dedupe &amp; coalesce</div><div class="d">one catalyst → one notification, not one per watched list</div></div>
+      <div class="node gold"><div class="n">Importance threshold</div><div class="d">user-set floor; low-importance events stay in center only</div></div>
+      <div class="node gold"><div class="n">Preferences per event type</div><div class="d">channel selection, watchlist-only alerts, opt-out</div></div>
+      <div class="node gold"><div class="n">Quiet hours</div><div class="d">respect user timezone; approvals still queue for morning review</div></div>
+      <div class="node gold"><div class="n">Delivery state machine</div><div class="d">queued → sent → delivered → opened / failed → retry (never pretend delivered, §55)</div></div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="lane l4">
+      <div class="lane-head">CHANNELS</div>
+      <div class="node"><div class="n">Web Push (VAPID) <span class="badge b-phase">PHASE 5</span></div><div class="d">free infrastructure; works on desktop + Android Chrome today</div></div>
+      <div class="node"><div class="n">Email <span class="badge b-phase">PHASE 5</span></div><div class="d">verification, approvals digest, receipts; free-tier provider</div></div>
+      <div class="node"><div class="n">Mobile Push (FCM/APNs) <span class="badge b-later">PHASE 9</span></div><div class="d">activates only when native shells exist (§25 addendum)</div></div>
+      <div class="node neutral"><div class="n">In-app Notification Center <span class="badge b-phase">PHASE 5</span></div><div class="d">full history, read state, filters — source of truth</div></div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="rt">Approval notification example (deep-linked, tap-to-act)</div>
+    <div class="states">
+      <span class="stc s1">“SENTINEL needs your approval”</span><span class="arr">→</span>
+      <span class="stc s2">NVDA Long · Signal 84 · Risk $50 · R:R 2.4</span><span class="arr">→</span>
+      <span class="stc s3">Tap → approval card (TTL countdown visible)</span><span class="arr">→</span>
+      <span class="stc s4">Approve / Reject — single-use, audited</span><span class="arr">→</span>
+      <span class="stc s5">Executed only after approval; outcome notification follows</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

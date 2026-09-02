@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --text: #1F2937; --sub: #6B7280; --border: #E5E7EB; }
+  body { font-family: 'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #FFF; color: var(--text); }
+  #root { width: fit-content; min-width: 1560px; padding: 44px 40px; }
+  .title { font-size: 24px; font-weight: 700; text-align: center; }
+  .subtitle { font-size: 14px; color: var(--sub); text-align: center; margin-top: 6px; margin-bottom: 30px; }
+  .iface { display: grid; grid-template-columns: 300px 40px 1fr; align-items: stretch; margin-bottom: 14px; }
+  .iface-head { background: #F0F4F8; border: 2px solid #64748B; border-radius: 10px 0 0 10px; border-right: none; padding: 10px 16px; display: flex; flex-direction: column; justify-content: center; }
+  .iface-head .n { font-size: 15.5px; font-weight: 700; color: #1E3050; }
+  .iface-head .d { font-size: 11.5px; color: #64748B; margin-top: 2px; }
+  .conn { display: flex; align-items: center; justify-content: center; color: #94A3B8; font-size: 20px; background: #F8FAFC; border-top: 2px solid #E2E8F0; border-bottom: 2px solid #E2E8F0; }
+  .impls { display: flex; gap: 12px; background: #F8FAFC; border: 2px solid #E2E8F0; border-left: none; border-radius: 0 10px 10px 0; padding: 10px 14px; }
+  .impl { flex: 1 1 0; min-width: 200px; background: #FFFFFF; border: 1.5px solid #CBD5E1; border-radius: 8px; padding: 8px 12px; }
+  .impl .top { display: flex; align-items: center; gap: 8px; }
+  .impl .n { font-size: 13.5px; font-weight: 600; color: #334155; }
+  .impl .d { font-size: 11px; color: #6B7280; margin-top: 3px; line-height: 1.45; }
+  .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; padding: 2px 7px; border-radius: 9px; white-space: nowrap; }
+  .b-live { background: #F0FDF4; color: #065F46; border: 1px solid #6EE7B7; }
+  .b-phase { background: #EFF6FF; color: #1E40AF; border: 1px solid #93C5FD; }
+  .b-no { background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; }
+  .b-byok { background: #FDF9EE; color: #7A5E14; border: 1px solid #E7D9A8; }
+  .note { margin: 20px auto 0; width: fit-content; max-width: 1400px; background: #FDF9EE; border: 1px solid #E7D9A8; border-radius: 10px; padding: 12px 20px; font-size: 12.5px; color: #57534E; line-height: 1.6; }
+  .note b { color: #7A5E14; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="title">QuantEdge Pro — Provider Abstraction (no vendor lock-in, BYOK-ready)</div>
+  <div class="subtitle">Eight interfaces (spec §28). Implementations are swappable adapters; secrets stay server-side, encrypted, never returned to any client. Badges show build phase and who pays.</div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">MarketDataProvider</span><span class="d">quotes · candles · movers · status</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">YahooFinanceAdapter</span><span class="badge b-live">LIVE (unofficial)</span></div><div class="d">Current feed; delayed per exchange terms. No SLA — must gain health checks + fallback (§50).</div></div>
+      <div class="impl"><div class="top"><span class="n">StooqAdapter</span><div class="d"></div><span class="badge b-phase">FALLBACK</span></div><div class="d">Free EOD/delayed backup when Yahoo fails or rate-limits.</div></div>
+      <div class="impl"><div class="top"><span class="n">PolygonAdapter</span><span class="badge b-byok">BYOK / PAID</span></div><div class="d">Optional licensed upgrade if “real-time” is ever marketed (§50).</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">NewsProvider</span><span class="d">catalysts §11 · costed first (§29/§65)</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">FinnhubAdapter</span><span class="badge b-phase">PHASE 2 (free tier)</span></div><div class="d">US company news, ~60 req/min free; server-side cache + dedupe mandatory.</div></div>
+      <div class="impl"><div class="top"><span class="n">MarketauxAdapter</span><span class="badge b-phase">FALLBACK</span></div><div class="d">Sentiment-tagged backup; verify free-tier limits before UI ships.</div></div>
+      <div class="impl"><div class="top"><span class="n">Benzinga/Polygon News</span><span class="badge b-byok">PAID / BYOK</span></div><div class="d">Only if catalyst UX proves value and users fund it (§30).</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">AIProvider</span><span class="d">briefing · explanations · summaries</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">GLM (z-ai SDK)</span><span class="badge b-live">LIVE</span></div><div class="d">Server-side today. Add grounding: pass cached data + timestamps, forbid unverifiable levels.</div></div>
+      <div class="impl"><div class="top"><span class="n">OpenAI-compatibleAdapter</span><span class="badge b-byok">BYOK</span></div><div class="d">Users bring their own key; metered to their account, developer cost $0 (§30).</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">ExecutionProvider</span><span class="d">order lifecycle §19–§20</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">QuantEdgePaperProvider</span><span class="badge b-live">LIVE (upgrade)</span></div><div class="d">Add slippage, spread, latency, partial fills, rejects; labeled “QuantEdge Simulated”.</div></div>
+      <div class="impl"><div class="top"><span class="n">AlpacaPaperProvider</span><span class="badge b-phase">PHASE 4</span></div><div class="d">Real paper brokerage; interface designed so a live provider could slot in later (§19 addendum).</div></div>
+      <div class="impl"><div class="top"><span class="n">LiveBrokerProvider</span><span class="badge b-no">NOT BUILT</span></div><div class="d">Reserved only. Real money ⇒ broker-dealer / PDT / KYC obligations — deliberate decision required (§51).</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">NotificationProvider</span><span class="d">§25–§26 fan-out</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">WebPushAdapter (VAPID)</span><span class="badge b-phase">PHASE 5</span></div><div class="d">Free infrastructure; ships with notification center + deep links.</div></div>
+      <div class="impl"><div class="top"><span class="n">MobilePushAdapter</span><span class="badge b-phase">PHASE 9</span></div><div class="d">FCM / APNs — only after native shells exist (§25 addendum).</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">EmailProvider</span><span class="d">verification · alerts · receipts</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">ResendAdapter</span><span class="badge b-phase">PHASE 5</span></div><div class="d">Free tier ~3k emails/mo (verify); quiet hours applied before send.</div></div>
+      <div class="impl"><div class="top"><span class="n">BrevoAdapter</span><span class="badge b-phase">FALLBACK</span></div><div class="d">Alternative free tier (~300/day, verify) — swap via same interface.</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">BillingProvider</span><span class="d">§35 billing ⇄ entitlements split</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">StripeAdapter</span><span class="badge b-phase">PHASE 6 (web)</span></div><div class="d">Web checkout first; feeds EntitlementService — never frontend-only checks.</div></div>
+      <div class="impl"><div class="top"><span class="n">StoreKit / Play Billing</span><span class="badge b-phase">PHASE 9 (native)</span></div><div class="d">Apple/Google IAP required for digital subscriptions in native apps (§35 addendum).</div></div>
+    </div>
+  </div>
+  <div class="iface">
+    <div class="iface-head"><span class="n">SharedInfrastructure</span><span class="d">cross-cutting</span></div>
+    <div class="conn">→</div>
+    <div class="impls">
+      <div class="impl"><div class="top"><span class="n">Postgres (Supabase/Neon)</span><span class="badge b-phase">PHASE 1</span></div><div class="d">Replaces SQLite for multi-user; free tier to start, measured limits (§65).</div></div>
+      <div class="impl"><div class="top"><span class="n">Web Push / Sentry / Uptime</span><span class="badge b-live">FREE TIERS</span></div><div class="d">Push free (VAPID); error tracking + uptime on free tiers — verify limits.</div></div>
+    </div>
+  </div>
+  <div class="note"><b>Cost discipline (§29, §65):</b> every paid adapter behind an interface, every free tier measured at 100 / 1,000 / 10,000 users, BYOK wherever user activity drives variable cost, and no feature commits to a roadmap slot before its provider limits are priced out.</div>
+</div>
+</body>
+</html>
