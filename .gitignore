@@ -59,3 +59,19 @@ server.log
 
 # local verification screenshots
 verify-*.png
+
+# sandbox/local artifacts — never publish
+/.zscripts/
+/Caddyfile
+/audit/
+/download/
+/examples/
+/mini-services/
+/scripts/
+/tests/
+/tool-results/
+/upload/
+/worklog.md
+/dev.log
+/server.log
+verify-*.png
