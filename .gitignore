@@ -56,3 +56,6 @@ server.log
 /db
 *.db
 *.db-journal
+
+# local verification screenshots
+verify-*.png
