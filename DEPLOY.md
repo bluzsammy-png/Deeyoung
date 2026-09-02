@@ -1,0 +1,152 @@
+# DEPLOY — Deeyoung (QuantEdge Pro) to GitHub → Supabase → Railway
+
+Launch path: **push to GitHub → create Postgres in Supabase → deploy app on Railway.**
+Payments (Paystack) are intentionally deferred; the billing module is stubbed and ready.
+
+---
+
+## 0. Prerequisites
+
+- GitHub account with 2FA enabled
+- Railway account (railway.app) — log in with GitHub
+- Supabase project (already created: `qmummmtraypryueyicza`, eu-west-1)
+- ⚠️ If the Supabase DB password was ever pasted into a chat/ticket, rotate it now:
+  Supabase Dashboard → Settings → Database → **Reset database password**.
+
+---
+
+## 1. Push to GitHub
+
+```bash
+# from the project root
+git init
+git add .
+git commit -m "QuantEdge Pro — auth, trials, anti-abuse, admin, billing stub"
+
+git remote add origin https://github.com/bluzsammy-png/Deeyoung.git
+git branch -M main
+git push -u origin main
+```
+
+If the push asks for credentials: GitHub no longer accepts account passwords.
+Use **Settings → Developer settings → Personal access tokens → Fine-grained token**
+with `Contents: Read & Write` on the Deeyoung repo, and paste the token as the password.
+(Or install the `gh` CLI and run `gh auth login`.)
+
+`.env`, `db/` (SQLite), and `.next/` are already gitignored — secrets never leave your machine.
+
+---
+
+## 2. Supabase (production database)
+
+1. Dashboard → **Project Settings → Database**.
+2. Copy the **Session pooler** connection string (port 5432, host like
+   `aws-1-eu-west-1.pooler.supabase.com`). This is IPv4-friendly → works from Railway.
+3. **URL-encode special characters** in the password (`@` → `%40`, `&` → `%26`, `$` → `%24`),
+   then append `?sslmode=require`.
+4. In Supabase SQL Editor, enable row-level safety on any table the `anon` key can touch
+   (the app talks to Postgres only from the server, but defense in depth is free).
+
+### Switch Prisma to Postgres
+
+In `prisma/schema.prisma` change one line:
+
+```diff
+ datasource db {
+-  provider = "sqlite"
++  provider = "postgresql"
+   url      = env("DATABASE_URL")
+ }
+```
+
+Apply the schema from your machine (one time):
+
+```bash
+DATABASE_URL="<your encoded pooler URL>" bunx prisma db push
+```
+
+---
+
+## 3. Railway (app hosting)
+
+1. railway.app → **New Project → Deploy from GitHub repo → Deeyoung**.
+2. Add a **Variable** for everything in `.env.example` (see table below).
+3. Railway auto-detects Next.js; the build runs `prisma generate` automatically.
+   If asked, start command: `bun .next/standalone/server.js` (or let Nixpacks decide).
+4. **Networking → Generate Domain** → this is your live URL.
+5. First deploy checklist:
+   - `GET /api/health` returns JSON (market data DEGRADED without a news key is normal)
+   - Register your admin account — its email must be in `ADMIN_EMAILS`
+   - Visit `/?terminal=1` → you should land in the terminal
+
+### Environment variables (Railway → Variables)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | ✅ | Encoded Supabase pooler URL + `?sslmode=require` |
+| `BETTER_AUTH_SECRET` | ✅ | `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | ✅ | `https://<your-railway-domain>` (or custom domain) |
+| `APP_SECRET` | ✅ | Separate salt for IP hashing |
+| `ADMIN_EMAILS` | ✅ | Comma-separated admin emails |
+| `NEXT_PUBLIC_POSTHOG_KEY` | recommended | PostHog project key |
+| `NEXT_PUBLIC_POSTHOG_HOST` | optional | `https://eu.i.posthog.com` or `us…` |
+| `TURNSTILE_SECRET_KEY` | launch | Free bot protection — get keys at dash.cloudflare.com |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | launch | Pairs with the secret |
+| `NEXT_PUBLIC_APP_URL` | optional | Canonical URL for metadata |
+
+> Changing `NEXT_PUBLIC_*` variables requires a redeploy (they are baked into the client bundle).
+
+---
+
+## 4. Anti-abuse stack — what is already enforced
+
+| Layer | Where | Behavior |
+|---|---|---|
+| Temp-mail blocklist | signup hook | Disposable/relay domains rejected (extend weekly from `disposable-email-domains` on GitHub) |
+| Signup velocity | signup hook | >3 accounts per HMAC-hashed IP / 24 h → 429. Raw IPs are never stored |
+| Turnstile | signup (env-gated) | Invisible captcha once keys are set |
+| No-card 14-day trial | user create | `plan=TRIAL`, `trialEndsAt=+14d`; expired trials drop to FREE automatically |
+| Server-side entitlements | API guard | Pro APIs (SENTINEL, Backtest, AI Briefing) return `402 PREMIUM_REQUIRED` for FREE; free APIs stay open |
+| Moderation ladder | Admin & Trust panel | Warn → Suspend (sessions revoked) → Ban (sessions revoked, blocked at session layer); every action audited |
+| Audit trail | `AuditEvent` | Admin actions, billing waitlist, moderation decisions |
+
+Admin access: any email in `ADMIN_EMAILS` gets `role=ADMIN` at signup →
+**Admin & Trust** appears in the terminal sidebar.
+
+---
+
+## 5. PostHog (analytics)
+
+1. Create a project at posthog.com (EU or US cloud — free tier is generous).
+2. Copy the project API key into `NEXT_PUBLIC_POSTHOG_KEY` on Railway and redeploy.
+3. Session replay + funnels can be enabled later from the PostHog dashboard.
+
+---
+
+## 6. Custom domain
+
+- Railway → Settings → Networking → **Custom Domain** → point your `CNAME` at it.
+- Update `BETTER_AUTH_URL` to the new domain and redeploy.
+- In Supabase → Auth → URL Configuration, add the domain if you ever enable email verification links.
+
+---
+
+## 7. When Paystack verification clears (payments)
+
+Everything already has a home:
+
+1. Set `PAYSTACK_SECRET_KEY` / `PAYSTACK_PUBLIC_KEY` on Railway.
+2. Implement `POST /api/billing/paystack/webhook` — verify `x-paystack-signature`
+   (HMAC-SHA512 over the **raw** body: use `await req.text()` in Next.js), then handle
+   `charge.success`, `subscription.create`, `subscription.not_renew`, `subscription.disable`
+   by updating `user.plan` / a `subscriptions` table.
+3. Replace the waitlist CTA in `src/components/quantedge/billing-modal.tsx` with
+   Paystack popup checkout (Plan code = ₦15,000/mo Pro).
+4. Add a 3-day grace dunning email before locking a lapsed subscription.
+
+## 8. Optional next steps
+
+- Email verification: create a Resend account, verify your domain (SPF/DKIM), then set
+  `requireEmailVerification: true` in `src/lib/auth.ts` and add better-auth's Resend plugin.
+- Error tracking: add Sentry (`bun add @sentry/nextjs`).
+- Extend the disposable-domain list weekly (see `src/lib/disposable-domains.ts`).

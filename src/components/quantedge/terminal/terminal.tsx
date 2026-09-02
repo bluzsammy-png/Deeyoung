@@ -7,12 +7,16 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity, Bell, BookOpen, Bot, FlaskConical, Gauge, LayoutDashboard, LineChart,
-  PauseCircle, Play, Settings, Wallet, X,
+  PauseCircle, Play, Settings, ShieldCheck, Wallet, X,
 } from "lucide-react";
 import { useApp, type TerminalView } from "@/lib/store";
+import { authClient, type SessionUser } from "@/lib/auth-client";
+import { hasPremiumAccess } from "@/lib/entitlements";
 import { EdgeMark } from "@/components/quantedge/landing";
 import { LegalModal } from "@/components/quantedge/legal";
 import { DataBadge } from "@/components/quantedge/ui-bits";
+import { AccountMenu, PlanBadge } from "@/components/quantedge/account-menu";
+import { PremiumGate } from "@/components/quantedge/premium-gate";
 import { DashboardView } from "@/components/quantedge/terminal/dashboard";
 import { MarketsView } from "@/components/quantedge/terminal/markets";
 import { PortfolioView } from "@/components/quantedge/terminal/portfolio";
@@ -21,6 +25,7 @@ import { ResearchView } from "@/components/quantedge/terminal/research";
 import { SignalsView } from "@/components/quantedge/terminal/signals-view";
 import { LearnView } from "@/components/quantedge/terminal/learn";
 import { SettingsView } from "@/components/quantedge/terminal/settings";
+import { AdminView } from "@/components/quantedge/terminal/admin";
 import { fmtPct, fmtPrice } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 
@@ -42,6 +47,10 @@ interface TickerState { quote: Quote }
 export function Terminal() {
   const view = useApp((s) => s.view);
   const setView = useApp((s) => s.setView);
+  const { data: session } = authClient.useSession();
+  const user = session?.user as SessionUser | undefined;
+  const premium = !!user && hasPremiumAccess(user);
+  const isAdmin = user?.role === "ADMIN";
   const [tickers, setTickers] = useState<TickerState[]>([]);
   const [tickInfo, setTickInfo] = useState({ state: "LIVE", provider: "" });
   const [notifOpen, setNotifOpen] = useState(false);
@@ -68,10 +77,11 @@ export function Terminal() {
     return () => { alive = false; clearInterval(iv); clearTimeout(t); };
   }, []);
 
-  // ── SENTINEL heartbeat: tick every 75s + fetch state ──
+  // ── SENTINEL heartbeat: tick every 75s + fetch state (Pro feature; skipped on FREE) ──
   const refreshState = useCallback(async () => {
     try {
       const res = await fetch("/api/sentinel/state");
+      if (res.status === 402 || res.status === 401) return; // plan doesn't include SENTINEL
       const json = await res.json();
       if (json.notifications) setNotifications(json.notifications);
       const pending = (json.approvals ?? []).filter((a: { status: string }) => a.status === "PENDING").length;
@@ -81,6 +91,7 @@ export function Terminal() {
   }, []);
 
   useEffect(() => {
+    if (!premium) return;
     const t = setTimeout(refreshState, 0);
     const tick = async () => {
       try { await fetch("/api/sentinel/tick", { method: "POST" }); } catch { /* skip */ }
@@ -90,7 +101,10 @@ export function Terminal() {
     // initial tick shortly after mount
     const t0 = setTimeout(tick, 2500);
     return () => { clearInterval(iv); clearTimeout(t0); clearTimeout(t); };
-  }, [refreshState]);
+  }, [refreshState, premium]);
+
+  // derived: FREE plans never see the sentinel mini status (no setState-in-effect needed)
+  const visibleSentinelStatus = premium ? sentinelStatus : null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -107,7 +121,7 @@ export function Terminal() {
         </button>
 
         <nav className="flex-1 space-y-0.5 px-3 py-2">
-          {NAV.map((n) => {
+          {[...NAV, ...(isAdmin ? [{ id: "admin" as TerminalView, label: "Admin & Trust", icon: ShieldCheck }] : [])].map((n) => {
             const active = view === n.id;
             return (
               <button
@@ -129,14 +143,14 @@ export function Terminal() {
         </nav>
 
         {/* sentinel mini status */}
-        {sentinelStatus && (
+        {visibleSentinelStatus && (
           <button onClick={() => setView("sentinel")} className="mx-3 mb-3 rounded-xl border border-hairline bg-panel-2 p-3 text-left transition-colors hover:border-pos/30">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SENTINEL</span>
-              <span className={`h-2 w-2 rounded-full ${sentinelStatus.killSwitch ? "bg-neg qe-pulse-dot" : sentinelStatus.state === "ACTIVE" ? "bg-pos qe-pulse-dot" : "bg-warn"}`} />
+              <span className={`h-2 w-2 rounded-full ${visibleSentinelStatus.killSwitch ? "bg-neg qe-pulse-dot" : visibleSentinelStatus.state === "ACTIVE" ? "bg-pos qe-pulse-dot" : "bg-warn"}`} />
             </div>
-            <p className="mt-1.5 text-xs font-semibold">{sentinelStatus.state.replace(/_/g, " ")}</p>
-            <p className="text-[10px] text-muted-foreground">Mode: {sentinelStatus.mode}</p>
+            <p className="mt-1.5 text-xs font-semibold">{visibleSentinelStatus.state.replace(/_/g, " ")}</p>
+            <p className="text-[10px] text-muted-foreground">Mode: {visibleSentinelStatus.mode}</p>
           </button>
         )}
       </aside>
@@ -171,6 +185,14 @@ export function Terminal() {
             <span className="rounded-lg border border-neg/40 bg-neg/15 px-2.5 py-1 text-[10px] font-bold tracking-wider text-neg qe-alarm">
               EMERGENCY STOP
             </span>
+          )}
+
+          {/* plan + account */}
+          {user && (
+            <div className="flex items-center gap-2">
+              <PlanBadge user={user} onClickUpgrade={() => setView("settings")} />
+              <AccountMenu user={user} />
+            </div>
           )}
 
           {/* notifications */}
@@ -242,10 +264,11 @@ export function Terminal() {
               {view === "markets" && <MarketsView />}
               {view === "signals" && <SignalsView />}
               {view === "portfolio" && <PortfolioView />}
-              {view === "sentinel" && <SentinelView />}
-              {view === "research" && <ResearchView />}
+              {view === "sentinel" && <PremiumGate feature="sentinel"><SentinelView /></PremiumGate>}
+              {view === "research" && <PremiumGate feature="research"><ResearchView /></PremiumGate>}
               {view === "learn" && <LearnView />}
               {view === "settings" && <SettingsView />}
+              {view === "admin" && isAdmin && <AdminView />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -271,8 +294,11 @@ export function Terminal() {
           </div>
           {/* overflow row */}
           <div className="flex justify-center gap-1 border-t border-hairline px-2 py-1">
-            {["research", "learn", "settings"].map((id) => {
-              const n = NAV.find((x) => x.id === id)!;
+            {[...(["research", "learn", "settings"] as TerminalView[]), ...(isAdmin ? (["admin"] as TerminalView[]) : [])].map((id) => {
+              const n = id === "admin"
+                ? { id: "admin" as TerminalView, label: "Admin & Trust", icon: ShieldCheck }
+                : NAV.find((x) => x.id === id)!;
+              if (!n) return null;
               return (
                 <button
                   key={id}

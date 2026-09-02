@@ -52,3 +52,7 @@ prompt
 server.log
 # Skills directory
 /skills/
+# local sqlite (sandbox dev only — production is Supabase Postgres)
+/db
+*.db
+*.db-journal

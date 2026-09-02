@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bootstrapUser } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { marketProvider } from "@/lib/providers/market";
 import { DEFAULT_PARAMS, runBacktest } from "@/lib/engine/backtest";
@@ -10,10 +10,9 @@ export const maxDuration = 120;
 
 const UNIVERSE_LIST = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "PLTR", "COIN", "QQQ", "SMH", "SPY", "JPM"];
 
-/** POST /api/backtest — run a bias-guarded backtest (§21/§22). Metered (§31). */
-export async function POST(req: NextRequest) {
+/** POST /api/backtest — run a bias-guarded backtest (§21/§22). Metered (§31). Pro feature. */
+export const POST = withGuard(async (req: NextRequest, { user }) => {
   const body = await req.json().catch(() => ({}));
-  const { user } = await bootstrapUser();
 
   const symbol = typeof body.symbol === "string" && UNIVERSE_LIST.includes(body.symbol.toUpperCase()) ? body.symbol.toUpperCase() : "NVDA";
   const rangeMonths = [3, 6, 12, 24].includes(body.rangeMonths) ? body.rangeMonths : 12;
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ symbol, rangeMonths, params, ...result });
-}
+}, { premium: true });
 
 function clampNum(v: unknown, min: number, max: number, dflt: number): number {
   const n = typeof v === "number" ? v : Number(v);

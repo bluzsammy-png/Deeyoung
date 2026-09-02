@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { PostHogProvider } from "@/components/posthog-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,16 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QuantEdge Pro — AI Market Intelligence & Trading Terminal",
+  title: "Deeyoung · QuantEdge Pro — AI Market Intelligence & Trading Terminal",
   description:
-    "One unified terminal: real-time market analytics, multi-factor signals, catalyst intelligence, portfolio risk, and SENTINEL — the optional supervised action layer with paper trading.",
-  keywords: ["QuantEdge", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
-  authors: [{ name: "QuantEdge Pro" }],
+    "One unified terminal: real-time market analytics, multi-factor signals, catalyst intelligence, portfolio risk, and SENTINEL — the optional supervised action layer with paper trading. 14-day free trial, no card required.",
+  keywords: ["Deeyoung", "QuantEdge", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
+  authors: [{ name: "Deeyoung" }],
   icons: { icon: "/favicon.svg" },
   openGraph: {
-    title: "QuantEdge Pro — AI Market Intelligence & Trading Terminal",
-    description: "Understand the market. See what matters. Act with supervision.",
-    siteName: "QuantEdge Pro",
+    title: "Deeyoung · QuantEdge Pro — AI Market Intelligence & Trading Terminal",
+    description: "Understand the market. See what matters. Act with supervision. Start your 14-day free trial.",
+    siteName: "Deeyoung · QuantEdge Pro",
     type: "website",
   },
 };
@@ -45,8 +46,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        <PostHogProvider>
+          {children}
+          <Toaster />
+        </PostHogProvider>
       </body>
     </html>
   );

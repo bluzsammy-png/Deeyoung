@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { bootstrapUser, effectiveState, parse } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
+import { effectiveState } from "@/lib/sentinel";
 import { getRegime } from "@/lib/engine/regime";
 import { computeSignal } from "@/lib/engine/signals";
 import { marketProvider } from "@/lib/providers/market";
@@ -11,8 +12,7 @@ export const dynamic = "force-dynamic";
  * GET /api/signals — Analytics brain scan (works with SENTINEL fully disabled §3)
  * Returns top opportunities with full factor breakdown (§14) and plain-language WHY (§6).
  */
-export async function GET() {
-  const { user, config, account } = await bootstrapUser();
+export const GET = withGuard(async (_req, { user, config, account }) => {
   const regime = await getRegime();
   const { quotes } = await marketProvider.getQuotes(["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "PLTR", "GOOGL", "AMZN", "COIN", "SMH", "QQQ", "JPM", "MSTR", "UNH", "XLE", "XLF", "XLV", "IWM", "SPY"]);
   const scanList = quotes.slice(0, 12);
@@ -52,4 +52,4 @@ export async function GET() {
     sentinel: { mode: config.mode, state: effectiveState(config, false), killSwitch: config.killSwitch },
     asOf: Date.now(),
   });
-}
+});

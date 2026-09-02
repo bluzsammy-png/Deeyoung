@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bootstrapUser } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 import { getRegime } from "@/lib/engine/regime";
 import { marketProvider } from "@/lib/providers/market";
 import { db } from "@/lib/db";
@@ -16,8 +16,7 @@ export const maxDuration = 60;
  *     honest status instead of letting the model invent a briefing.
  * The AI can NEVER change risk limits or bypass the risk engine — output is prose only (§5).
  */
-export async function POST() {
-  const { user, config, account } = await bootstrapUser();
+export const POST = withGuard(async (_req, { user, config, account }) => {
 
   const regime = await getRegime();
   const { quotes } = await marketProvider.getQuotes(["SPY", "QQQ", "NVDA", "AAPL", "MSFT", "TSLA", "AMD"]);
@@ -68,4 +67,4 @@ export async function POST() {
       message: "AI briefing is temporarily unavailable. Market data and signals continue to work — the briefing writer will return shortly.",
     });
   }
-}
+}, { premium: true });

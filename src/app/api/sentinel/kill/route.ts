@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bootstrapUser } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -9,9 +9,8 @@ export const dynamic = "force-dynamic";
  * { engaged: true }  → disable automation, cancel pending approvals, audit, notify.
  * { engaged: false } → release (requires confirmRelease=true; always audited).
  */
-export async function POST(req: NextRequest) {
+export const POST = withGuard(async (req: NextRequest, { user }) => {
   const body = await req.json().catch(() => ({}));
-  const { user } = await bootstrapUser();
   const config = await db.sentinelConfig.findUnique({ where: { userId: user.id } });
   if (!config) return NextResponse.json({ error: "Config missing" }, { status: 500 });
 
@@ -62,4 +61,4 @@ export async function POST(req: NextRequest) {
     },
   });
   return NextResponse.json({ ok: true, killSwitch: false });
-}
+}, { premium: true });

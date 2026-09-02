@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bootstrapUser } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { getExecutionProvider } from "@/lib/providers/execution";
 import { marketProvider } from "@/lib/providers/market";
@@ -11,12 +11,11 @@ export const dynamic = "force-dynamic";
  * Body: { approvalId, decision: "APPROVE" | "REJECT" }
  * Replay protection: approval status transitions are conditional (PENDING → decided exactly once §59).
  */
-export async function POST(req: NextRequest) {
+export const POST = withGuard(async (req: NextRequest, { user }) => {
   const body = await req.json().catch(() => null);
   if (!body?.approvalId || !["APPROVE", "REJECT"].includes(body.decision)) {
     return NextResponse.json({ error: "approvalId and decision (APPROVE|REJECT) required" }, { status: 400 });
   }
-  const { user } = await bootstrapUser();
 
   // Conditional update = atomic single-use claim (no double-execution on retries §59)
   const claimed = await db.approval.updateMany({
@@ -122,4 +121,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true, decision: "APPROVED", execution: exec });
-}
+}, { premium: true });

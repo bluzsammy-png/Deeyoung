@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { bootstrapUser, effectiveState, parse } from "@/lib/sentinel";
+import { effectiveState } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 /** GET /api/sentinel/state — config, effective state, pending approvals, notifications, audit tail */
-export async function GET() {
-  const { user, config, account } = await bootstrapUser();
-
+export const GET = withGuard(async (_req, { user, config, account }) => {
   const now = new Date();
   // expire stale approvals lazily on read (time-limited §16)
   await db.approval.updateMany({
@@ -36,4 +35,4 @@ export async function GET() {
     auditEvents,
     openSignals,
   });
-}
+}, { premium: true });

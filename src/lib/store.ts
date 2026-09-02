@@ -5,7 +5,7 @@
 
 import { create } from "zustand";
 
-export type TerminalView = "dashboard" | "markets" | "portfolio" | "signals" | "sentinel" | "research" | "learn" | "settings";
+export type TerminalView = "dashboard" | "markets" | "portfolio" | "signals" | "sentinel" | "research" | "learn" | "settings" | "admin";
 
 interface AppState {
   entered: boolean;

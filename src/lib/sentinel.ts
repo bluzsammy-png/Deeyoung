@@ -11,44 +11,24 @@ import { getExecutionProvider } from "@/lib/providers/execution";
 import type { Quote, SentinelMode, SentinelState, SentinelTickResult } from "@/lib/types";
 import type { PaperAccount, Position, SentinelConfig } from "@prisma/client";
 
-const DEMO_EMAIL = "owner@quantedge.local";
+const WATCHLIST_SEED = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "SPY", "QQQ", "SMH", "PLTR", "META"];
 
-/** Invite-only soft launch (audit D1): one provisioned owner account. */
-export async function bootstrapUser() {
-  let user = await db.user.findUnique({ where: { email: DEMO_EMAIL } });
-  if (!user) {
-    user = await db.user.create({
-      data: {
-        email: DEMO_EMAIL,
-        name: "Owner",
-        onboarded: true,
-        experience: "INTERMEDIATE",
-        interests: JSON.stringify(["STOCKS", "ETFS"]),
-        goals: JSON.stringify(["ANALYZE", "OPPORTUNITIES", "PAPER_TRADE"]),
-        sentinelConfig: { create: {} },
-        account: { create: {} },
-      },
-    });
-    // Seed watchlist with the liquid core of the universe
-    const seed = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "SPY", "QQQ", "SMH", "PLTR", "META"];
-    await db.watchlistItem.createMany({
-      data: seed.map((symbol) => ({ userId: user!.id, symbol })),
-    });
-    await db.auditEvent.create({
-      data: { userId: user.id, category: "ADMIN", action: "ACCOUNT_PROVISIONED", detail: "{}" },
-    });
+/**
+ * Ensure a signed-in user has SENTINEL config, paper account and seeded watchlist.
+ * Multi-user (session-based); called by the API guard on every request.
+ */
+export async function ensureUserProvisioned(userId: string) {
+  const [config, account] = await Promise.all([
+    db.sentinelConfig.upsert({ where: { userId }, update: {}, create: { userId } }),
+    db.paperAccount.upsert({ where: { userId }, update: {}, create: { userId } }),
+  ]);
+  const count = await db.watchlistItem.count({ where: { userId } });
+  if (count === 0) {
+    await db.watchlistItem
+      .createMany({ data: WATCHLIST_SEED.map((symbol) => ({ userId, symbol })) })
+      .catch(() => undefined); // tolerate benign races on first load
   }
-  const config = await db.sentinelConfig.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: { userId: user.id },
-  });
-  const account = await db.paperAccount.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: { userId: user.id },
-  });
-  return { user, config, account };
+  return { config, account };
 }
 
 export function parse<T>(json: string, fallback: T): T {

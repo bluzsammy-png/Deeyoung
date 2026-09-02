@@ -14,10 +14,17 @@ datasource db {
 // ─── Identity & Tenancy ───────────────────────────────────────────────────────
 
 model User {
-  id               String   @id @default(cuid())
+  id               String   @id
   email            String   @unique
+  emailVerified    Boolean  @default(false)
   name             String?
+  image            String?
   role             String   @default("USER") // USER | SUPPORT | ANALYST | ADMIN | SUPER_ADMIN
+  // ── Subscription & trust state (billing/anti-abuse layer) ──
+  status           String   @default("ACTIVE") // ACTIVE | WARNED | SUSPENDED | BANNED
+  plan             String   @default("TRIAL") // TRIAL | FREE | PREMIUM
+  trialEndsAt      DateTime?
+  ipHash           String?  // HMAC-SHA256 of signup IP (GDPR-safe, never raw IP)
   experience       String   @default("BEGINNER") // BEGINNER | INTERMEDIATE | ADVANCED
   interests        String   @default("[]") // JSON: ["STOCKS","ETFS","CRYPTO"]
   goals            String   @default("[]") // JSON: ["LEARN","ANALYZE","OPPORTUNITIES","PAPER_TRADE","AUTOMATE"]
@@ -39,6 +46,84 @@ model User {
   auditEvents     AuditEvent[]
   usageEvents     UsageEvent[]
   sessions        UserSession[]
+
+  // Better Auth relations
+  authSessions    Session[]
+  authAccounts    Account[]
+  warnings        Warning[]
+}
+
+// ─── Better Auth (better-auth.com) ───────────────────────────────────────────
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  issuer                String?
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ─── Anti-abuse & moderation ─────────────────────────────────────────────────
+
+// Signup velocity tracking: N signups per hashed IP per 24h window
+model SignupAttempt {
+  id        String   @id @default(cuid())
+  ipHash    String
+  email     String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+}
+
+// Moderation ladder: WARN → SUSPEND → BAN (with appeals via support)
+model Warning {
+  id             String    @id @default(cuid())
+  userId         String
+  reason         String
+  message        String    @default("")
+  acknowledgedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model UserSession {

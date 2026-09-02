@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { bootstrapUser, sentinelTick } from "@/lib/sentinel";
+import { sentinelTick } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /** POST /api/sentinel/tick — run the SENTINEL scan cycle (heartbeat or manual). */
-export async function POST() {
-  const { user } = await bootstrapUser();
+export const POST = withGuard(async (_req, { user }) => {
   const result = await sentinelTick(user.id);
   return NextResponse.json(result);
-}
+}, { premium: true });

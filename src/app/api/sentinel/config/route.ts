@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bootstrapUser } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -8,11 +8,10 @@ const MODES = ["OBSERVE", "APPROVE", "DELEGATE"];
 const STATES = ["ACTIVE", "PAUSED"];
 
 /** POST /api/sentinel/config — update SENTINEL mode, limits, pause state. Audited (§45). */
-export async function POST(req: NextRequest) {
+export const POST = withGuard(async (req: NextRequest, { user, config }) => {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
-  const { user, config } = await bootstrapUser();
   const updates: Record<string, unknown> = {};
   const changes: string[] = [];
 
@@ -60,4 +59,4 @@ export async function POST(req: NextRequest) {
     data: { userId: user.id, category: "RISK", action: "SENTINEL_CONFIG_UPDATED", detail: JSON.stringify({ changes }) },
   });
   return NextResponse.json({ ok: true, config: updated, changes });
-}
+}, { premium: true });

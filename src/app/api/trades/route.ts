@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bootstrapUser, parse } from "@/lib/sentinel";
+import { withGuard } from "@/lib/guard";
+import { parse } from "@/lib/sentinel";
 import { db } from "@/lib/db";
 import { getExecutionProvider, newRequestId } from "@/lib/providers/execution";
 import { marketProvider, UNIVERSE } from "@/lib/providers/market";
@@ -11,15 +12,13 @@ export const dynamic = "force-dynamic";
  * Body: { symbol, side: BUY|SELL, qty, type?: MARKET|LIMIT, limitPrice?, requestId }
  * This is the user's own action — distinct from SENTINEL automation. Labeled simulated.
  */
-export async function POST(req: NextRequest) {
+export const POST = withGuard(async (req: NextRequest, { user, account }) => {
   const body = await req.json().catch(() => null);
   if (!body?.symbol || !["BUY", "SELL"].includes(body.side) || typeof body.qty !== "number" || body.qty <= 0) {
     return NextResponse.json({ error: "symbol, side (BUY|SELL), qty>0 required" }, { status: 400 });
   }
   const symbol = String(body.symbol).toUpperCase();
   if (!/^[A-Z0-9.\-]{1,10}$/.test(symbol)) return NextResponse.json({ error: "Invalid symbol" }, { status: 400 });
-
-  const { user, account } = await bootstrapUser();
 
   // Idempotency: same requestId never creates two orders (§59)
   const requestId = String(body.requestId ?? newRequestId());
@@ -110,4 +109,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: exec.ok, order, execution: exec });
-}
+});
