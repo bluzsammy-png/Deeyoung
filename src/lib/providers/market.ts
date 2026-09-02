@@ -27,7 +27,7 @@ const MAX_QUEUE = 40;   // beyond this, fail fast to honest fallback instead of 
 
 function paced<T>(fn: () => Promise<T>): Promise<T> {
   if (queueDepth > MAX_QUEUE) {
-    upstreamErrorCount++; lastUpstreamErrorAt = Date.now();
+    noteUpstreamError();
     return Promise.reject(new Error("UPSTREAM_QUEUE_SATURATED"));
   }
   queueDepth++;
@@ -41,20 +41,20 @@ function paced<T>(fn: () => Promise<T>): Promise<T> {
   return run as Promise<T>;
 }
 
-async function fetchWithRetry(url: string, tries = 3): Promise<Response | null> {
+async function fetchWithRetry(url: string, tries = 2): Promise<Response | null> {
   for (let i = 0; i < tries; i++) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": nextUA(), Accept: "application/json" }, signal: AbortSignal.timeout(9000) });
+      const res = await fetch(url, { headers: { "User-Agent": nextUA(), Accept: "application/json" }, signal: AbortSignal.timeout(5000) });
       if (process.env.NODE_ENV !== "production" && res.status !== 200) console.error("[market] upstream status:", res.status, url.slice(30, 80));
       if (res.status === 429) {
-        await new Promise((r) => setTimeout(r, 600 * (i + 1) + Math.random() * 300));
+        await new Promise((r) => setTimeout(r, 350 * (i + 1) + Math.random() * 250));
         continue;
       }
       return res;
     } catch (err) {
       if (process.env.NODE_ENV !== "production") console.error("[market] fetch error:", (err as Error)?.message, (err as Error & { cause?: Error })?.cause?.message ?? "");
       if (i === tries - 1) return null;
-      await new Promise((r) => setTimeout(r, 300 * (i + 1)));
+      await new Promise((r) => setTimeout(r, 250 * (i + 1)));
     }
   }
   return null;
@@ -74,8 +74,13 @@ const cache = new Map<string, CacheEntry<unknown>>();
 function cacheGet<T>(key: string): T | null {
   const e = cache.get(key) as CacheEntry<T> | undefined;
   if (!e) return null;
-  if (Date.now() > e.expires) { cache.delete(key); return null; }
+  if (Date.now() > e.expires) return null; // entry retained for stale-while-error serving
   return e.value;
+}
+/** Last-resort read: returns even expired entries so the UI never stalls on a throttled upstream. */
+function cacheGetStale<T>(key: string): T | null {
+  const e = cache.get(key) as CacheEntry<T> | undefined;
+  return e ? e.value : null;
 }
 function cacheSet<T>(key: string, value: T, ttlMs: number) {
   cache.set(key, { value, expires: Date.now() + ttlMs });
@@ -92,8 +97,26 @@ export function upstreamHealth() {
     recentErrors: upstreamErrorCount,
     lastErrorAt: lastUpstreamErrorAt,
     healthy: Date.now() - lastUpstreamErrorAt > 120_000,
+    breakerOpen: breakerOpen(),
   };
 }
+
+// ─── Circuit breaker: during 429 storms, fail over to SIM/stale in 0ms ────────
+let breakerOpenUntil = 0;
+const BREAKER_THRESHOLD = 3;
+const BREAKER_OPEN_MS = 45_000;
+function noteUpstreamError() {
+  const now = Date.now();
+  upstreamErrorCount++;
+  lastUpstreamErrorAt = now;
+  if (upstreamErrorCount >= BREAKER_THRESHOLD) breakerOpenUntil = now + BREAKER_OPEN_MS;
+}
+function breakerOpen() { return Date.now() < breakerOpenUntil; }
+/** Race a slow upstream call against a UI-friendly deadline; the loser still warms the cache. */
+function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+}
+const UPSTREAM_DEADLINE_MS = 2600;
 
 // ─── Universe metadata (static names/sectors; prices always live) ─────────────
 
@@ -138,7 +161,7 @@ async function yahooChart(symbol: string, range: string, interval: string): Prom
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`;
   try {
     const res = await paced(() => fetchWithRetry(url));
-    if (!res || !res.ok) { upstreamErrorCount++; lastUpstreamErrorAt = Date.now(); return null; }
+    if (!res || !res.ok) { noteUpstreamError(); return null; }
     const json = await res.json();
     const result = json?.chart?.result?.[0];
     if (!result) return null;
@@ -158,7 +181,7 @@ async function yahooChart(symbol: string, range: string, interval: string): Prom
     return { meta, candles, dataState: state };
   } catch (err) {
     if (process.env.NODE_ENV !== "production") console.error("[market] yahooChart failed:", (err as Error)?.message, (err as Error & { cause?: Error })?.cause?.message ?? "");
-    upstreamErrorCount++; lastUpstreamErrorAt = Date.now();
+    noteUpstreamError();
     return null;
   }
 }
@@ -183,7 +206,10 @@ export class YahooProvider implements MarketDataProvider {
     const lastC = candles[candles.length - 1];
     const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? candles[0]?.o ?? lastC.c;
     const price = meta.regularMarketPrice ?? lastC.c;
-    const avgVol = await this.avgVolume(symbol);
+    // avgVolume must NEVER block the quote path (it costs a second upstream request).
+    // Serve from its 30-min cache, else estimate, then refine in the background.
+    const cachedAvg = cacheGet<number>(`avgvol:${symbol}`);
+    const avgVol = cachedAvg ?? Math.round((meta.regularMarketVolume ?? candles.reduce((a, c) => a + c.v, 0)) * 0.92);
     const quote: Quote = {
       symbol,
       name: UNIVERSE[symbol]?.name ?? meta.shortName ?? meta.longName ?? symbol,
@@ -206,6 +232,14 @@ export class YahooProvider implements MarketDataProvider {
       provider: this.name,
     };
     cacheSet(key, quote, 30_000); // 30s shared TTL — pacing-friendly
+    if (!cachedAvg) {
+      void this.avgVolume(symbol).then((avg) => {
+        if (avg > 0) {
+          const cur = cacheGetStale<Quote>(key);
+          if (cur) cacheSet(key, { ...cur, avgVolume: avg }, 30_000);
+        }
+      }).catch(() => undefined);
+    }
     return quote;
   }
 
@@ -317,29 +351,49 @@ export class SimulatedProvider implements MarketDataProvider {
 const yahoo = new YahooProvider();
 const sim = new SimulatedProvider();
 
+// Facade: breaker → upstream (deadline) → stale cache (labeled STALE) → SIM.
+// The UI gets a usable frame in milliseconds even while Yahoo is throttling us.
 export const marketProvider = {
   async getQuote(symbol: string): Promise<Quote> {
-    const q = await yahoo.getQuote(symbol);
-    if (q) return q;
+    if (!breakerOpen()) {
+      const q = await withDeadline(yahoo.getQuote(symbol), UPSTREAM_DEADLINE_MS);
+      if (q) return q;
+    }
+    const stale = cacheGetStale<Quote>(`quote:${symbol}`);
+    if (stale) return { ...stale, dataState: "STALE" } as Quote;
     const s = await sim.getQuote(symbol);
     return s as Quote;
   },
 
   async getQuotes(symbols: string[]): Promise<{ quotes: Quote[]; provider: string }> {
-    const results = await Promise.all(symbols.map((s) => yahoo.getQuote(s)));
+    const results = await Promise.all(
+      symbols.map(async (s) => {
+        if (breakerOpen()) return null;
+        return withDeadline(yahoo.getQuote(s), UPSTREAM_DEADLINE_MS);
+      }),
+    );
     const quotes: Quote[] = [];
     let degraded = false;
     for (let i = 0; i < symbols.length; i++) {
       if (results[i]) quotes.push(results[i] as Quote);
-      else { degraded = true; const s = await sim.getQuote(symbols[i]); quotes.push(s as Quote); }
+      else {
+        degraded = true;
+        const stale = cacheGetStale<Quote>(`quote:${symbols[i]}`);
+        if (stale) quotes.push({ ...stale, dataState: "STALE" } as Quote);
+        else quotes.push((await sim.getQuote(symbols[i])) as Quote);
+      }
     }
     return { quotes, provider: degraded ? "YAHOO_CHART+QUANTEDGE_SIM" : "YAHOO_CHART" };
   },
 
   async getCandles(symbol: string, tf: keyof typeof RANGE_MAP): Promise<CandleSeries> {
     const { range, interval } = RANGE_MAP[tf] ?? RANGE_MAP["1M"];
-    const r = await yahoo.getCandles(symbol, range, interval);
-    if (r) return r;
+    if (!breakerOpen()) {
+      const r = await withDeadline(yahoo.getCandles(symbol, range, interval), UPSTREAM_DEADLINE_MS + 1200);
+      if (r) return r;
+    }
+    const stale = cacheGetStale<CandleSeries>(`candles:${symbol}:${range}:${interval}`);
+    if (stale) return { ...stale, dataState: "STALE" } as CandleSeries;
     return (await sim.getCandles(symbol, range, interval)) as CandleSeries;
   },
 };

@@ -21,7 +21,7 @@ import { ResearchView } from "@/components/quantedge/terminal/research";
 import { SignalsView } from "@/components/quantedge/terminal/signals-view";
 import { LearnView } from "@/components/quantedge/terminal/learn";
 import { SettingsView } from "@/components/quantedge/terminal/settings";
-import { fmtPct } from "@/lib/format";
+import { fmtPct, fmtPrice } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 
 const NAV: { id: TerminalView; label: string; icon: typeof LayoutDashboard }[] = [
@@ -156,7 +156,8 @@ export function Terminal() {
               {[...tickers, ...tickers].map((t, i) => (
                 <span key={i} className="flex items-center gap-1.5 whitespace-nowrap text-xs">
                   <span className="font-semibold">{t.quote.symbol}</span>
-                  <span className="qe-num text-muted-foreground">{fmtPct(t.quote.changePct)}</span>
+                  <span className="qe-num text-foreground/75">{fmtPrice(t.quote.price)}</span>
+                  <span className={`qe-num ${t.quote.changePct >= 0 ? "text-pos" : "text-neg"}`}>{fmtPct(t.quote.changePct)}</span>
                   <span className={`h-1.5 w-1.5 rounded-full ${t.quote.changePct >= 0 ? "bg-pos" : "bg-neg"}`} />
                 </span>
               ))}

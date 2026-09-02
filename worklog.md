@@ -26,3 +26,25 @@ Stage Summary:
 - Recon artifacts: /home/z/my-project/audit/site-index.html, chunks/, screenshots
 - Key verdict: strong single-user prototype; NOT production-ready (no auth; unauthenticated mutations verified; global shared paper book; no news/notifications/backtesting/billing). ~2/3 of codebase preserved via refactor-not-rewrite; 11-phase plan (0-10); 8 decisions require owner input (D1-D8) before Phase 1.
 - Implementation NOT started, per the mandate (audit first, owner review next).
+
+---
+Task ID: 2
+Agent: Main agent (Super Z)
+Task: User green-lit implementation ("begin... upgrade graphics and everything, even better"). Execute Graphics 2.0 upgrade pass on the QuantEdge Pro app built after the Phase 0 audit.
+
+Work Log:
+- Read worklog + surveyed existing codebase (full Prisma schema, 14 API routes, landing + 8-view terminal, custom SVG charts)
+- market.ts performance fix: circuit breaker (3 errors -> 45s open), stale-while-error cache serving (labeled STALE), 2.6s per-call deadline, fail-fast fetch (2 tries/5s timeout/shorter 429 backoff), non-blocking avgVolume (background refine)
+- New AuroraBackdrop component (src/components/quantedge/charts/aurora.tsx): DPR-aware canvas particle constellation with correlation lines, cursor "liquidity magnet" interaction, tab-hidden pause, prefers-reduced-motion fallback + 3 animated aurora blobs
+- CandleChart 2.0 (charts/core.tsx): gradient candle bodies, glowing last-price dashed line + solid axis price tag, full crosshair with price/time tags, gradient volume bars, time axis labels (intraday/daily aware), pathLength-animated EMA overlays
+- EquityCurve 2.0: animated draw-in + glow + pop-in end marker; Sparkline: end-point dot + optional glow
+- Widgets glow pass: SignalRing gradient stroke + drop-shadow, RegimeOrb rotating halo ring, RiskGauge needle glow, heatmap hover ring + colored shadow
+- globals.css: aurora keyframes, qe-gradient-text (animated), qe-beam, qe-panel-hover, reduced-motion guards
+- Landing 2.0: cinematic backdrop integration, animated gradient headline, honest capability chips, traveling beam on preview frame, icon chips + hover-glow cards
+- Terminal: ticker tape now shows price + colored pct per symbol
+- Verified: lint clean; quote API 4.5s -> 8ms cached / breaker-protected; browser-checked landing, dashboard, markets (chart crosshair works), sentinel, mobile 390px; console clean, zero page errors
+
+Stage Summary:
+- QuantEdge Pro upgraded to Graphics 2.0; all views verified end-to-end in browser (desktop + mobile)
+- Key artifacts: aurora.tsx (new), charts/core.tsx + widgets.tsx + landing.tsx + terminal.tsx + globals.css (upgraded), market.ts (resilience/latency)
+- Honest-data doctrine preserved: STALE/SIMULATED labels surface through existing DataBadge

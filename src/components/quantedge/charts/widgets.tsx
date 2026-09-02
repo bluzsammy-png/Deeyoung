@@ -18,17 +18,25 @@ export function SignalRing({ score, size = 92, label = "SIGNAL" }: { score: numb
   const circ = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, score)) / 100;
   const col = score >= 75 ? POS : score >= 60 ? WARN : "#8b93a7";
+  const gid = `sr-${size}-${score >= 75 ? "p" : score >= 60 ? "w" : "m"}`;
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={col} />
+            <stop offset="100%" stopColor={score >= 75 ? "#6ee7b7" : col} />
+          </linearGradient>
+        </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" className="text-hairline" strokeWidth={6} />
         <motion.circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={col} strokeWidth={6} strokeLinecap="round"
+          stroke={`url(#${gid})`} strokeWidth={6} strokeLinecap="round"
           strokeDasharray={circ}
           initial={{ strokeDashoffset: circ }}
           animate={{ strokeDashoffset: circ * (1 - pct) }}
           transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+          style={{ filter: `drop-shadow(0 0 5px ${col}99)` }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -61,6 +69,7 @@ export function RiskGauge({ value, size = 170, label = "RISK" }: { value: number
         <motion.line
           x1={cx} y1={cy} x2={needle.x} y2={needle.y}
           stroke="#e6e9ef" strokeWidth={2.4} strokeLinecap="round"
+          style={{ filter: "drop-shadow(0 0 4px rgba(230,233,239,0.5))" }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
         />
         <circle cx={cx} cy={cy} r={4.5} fill="#e6e9ef" />
@@ -124,6 +133,17 @@ export function RegimeOrb({ regime, size = 150 }: { regime: RegimeState | null; 
     <div className="flex items-center gap-5">
       <div className="relative" style={{ width: size, height: size }}>
         <div className="qe-breathe absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${col}33 0%, transparent 65%)` }} />
+        {/* rotating halo — slow orbital scan */}
+        <motion.svg
+          width={size} height={size} className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+        >
+          <circle
+            cx={size / 2} cy={size / 2} r={size / 2 - 4} fill="none"
+            stroke={col} strokeOpacity={0.35} strokeWidth={1.2} strokeDasharray="2 10" strokeLinecap="round"
+          />
+        </motion.svg>
         <svg width={size} height={size} className="relative">
           <circle cx={size / 2} cy={size / 2} r={size / 2 - 8} fill="none" stroke={col} strokeOpacity={0.25} strokeWidth={1.5} />
           <circle cx={size / 2} cy={size / 2} r={size / 2 - 20} fill="none" stroke={col} strokeOpacity={0.5} strokeWidth={1} strokeDasharray="4 6" />
@@ -167,8 +187,9 @@ export function MarketHeatmap({ cells, onPick }: { cells: HeatCell[]; onPick?: (
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: i * 0.03, duration: 0.4 }}
           onClick={() => onPick?.(cell.symbol)}
-          className="qe-panel-2 group flex min-h-[72px] cursor-pointer flex-col justify-between rounded-lg p-2.5 text-left transition-transform hover:z-10 hover:scale-[1.03]"
+          className="qe-panel-2 group flex min-h-[72px] cursor-pointer flex-col justify-between rounded-lg p-2.5 text-left ring-0 ring-white/0 transition-all duration-200 hover:z-10 hover:scale-[1.03] hover:ring-1 hover:ring-white/25"
           style={{ background: color(cell.changePct) }}
+          whileHover={{ boxShadow: `0 10px 32px -10px ${color(cell.changePct).replace(/,[0-9.]+\)$/, ", 0.55)")}` }}
         >
           <div className="flex w-full items-baseline justify-between">
             <span className="text-sm font-bold tracking-tight text-white">{cell.symbol}</span>

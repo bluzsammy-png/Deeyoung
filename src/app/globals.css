@@ -272,3 +272,65 @@
 
 html { scroll-behavior: smooth; }
 body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+/* ─── Graphics 2.0 — cinematic layer ────────────────────────────────────────── */
+
+/* Aurora gradient blobs (landing backdrop) */
+@keyframes qe-aurora-a {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(70px, 44px) scale(1.14) rotate(8deg); }
+  100% { transform: translate(-36px, 84px) scale(0.95) rotate(-6deg); }
+}
+@keyframes qe-aurora-b {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-64px, 52px) scale(1.1); }
+  100% { transform: translate(38px, -30px) scale(0.94); }
+}
+@keyframes qe-aurora-c {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(52px, -46px) scale(1.08); }
+  100% { transform: translate(-52px, 30px) scale(1.02); }
+}
+.qe-aurora { filter: blur(92px); will-change: transform; }
+.qe-aurora-a { background: radial-gradient(circle at 38% 38%, rgba(16, 185, 129, 0.17), transparent 66%); animation: qe-aurora-a 26s ease-in-out infinite alternate; }
+.qe-aurora-b { background: radial-gradient(circle at 60% 40%, rgba(110, 231, 183, 0.12), transparent 66%); animation: qe-aurora-b 33s ease-in-out infinite alternate; }
+.qe-aurora-c { background: radial-gradient(circle at 50% 50%, rgba(240, 185, 11, 0.08), transparent 66%); animation: qe-aurora-c 39s ease-in-out infinite alternate; }
+
+/* Animated gradient headline text */
+@keyframes qe-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.qe-gradient-text {
+  background: linear-gradient(90deg, #10b981, #6ee7b7, #f0b90b, #6ee7b7, #10b981);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: qe-gradient-shift 9s ease infinite;
+}
+
+/* Traveling beam across the top edge of the hero preview frame */
+@keyframes qe-beam {
+  0% { transform: translateX(-120%); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateX(420%); opacity: 0; }
+}
+.qe-beam { animation: qe-beam 4.2s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+
+/* Hover-glow panel — quiet at rest, alive on approach */
+.qe-panel-hover { transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease; }
+.qe-panel-hover:hover {
+  border-color: rgba(16, 185, 129, 0.30);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.10), 0 16px 48px -16px rgba(16, 185, 129, 0.22);
+}
+
+/* Soft outer glow used by charts (SVG strokes) */
+.qe-stroke-glow { filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.55)); }
+.qe-stroke-glow-neg { filter: drop-shadow(0 0 5px rgba(246, 70, 93, 0.55)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .qe-aurora-a, .qe-aurora-b, .qe-aurora-c, .qe-beam, .qe-gradient-text, .qe-ticker-track, .qe-breathe { animation: none !important; }
+}

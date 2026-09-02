@@ -14,6 +14,7 @@ import { useApp } from "@/lib/store";
 import { DataBadge, Price, Pct } from "@/components/quantedge/ui-bits";
 import { SignalRing } from "@/components/quantedge/charts/widgets";
 import { Sparkline } from "@/components/quantedge/charts/core";
+import { AuroraBackdrop } from "@/components/quantedge/charts/aurora";
 import { LegalModal } from "@/components/quantedge/legal";
 import type { Quote } from "@/lib/types";
 
@@ -42,9 +43,9 @@ export function Landing() {
 
   return (
     <div className="relative min-h-screen overflow-x-clip">
-      {/* backdrop */}
-      <div className="qe-grid-bg pointer-events-none absolute inset-0" />
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[880px] -translate-x-1/2 rounded-full bg-pos/10 blur-[140px]" />
+      {/* cinematic backdrop — market constellation + aurora (Graphics 2.0) */}
+      <AuroraBackdrop />
+      <div className="qe-grid-bg pointer-events-none absolute inset-0 opacity-60" />
 
       {/* nav */}
       <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
@@ -78,7 +79,7 @@ export function Landing() {
           <h1 className="max-w-3xl text-4xl font-bold leading-[1.06] tracking-tight sm:text-6xl">
             Understand the market.
             <br />
-            <span className="bg-gradient-to-r from-pos via-mint to-pos bg-clip-text text-transparent">See what matters.</span>
+            <span className="qe-gradient-text">See what matters.</span>
             <br />
             Act with supervision.
           </h1>
@@ -105,6 +106,27 @@ export function Landing() {
             </button>
             <span className="text-xs text-muted-foreground">No account needed in this preview · delayed data · paper trading</span>
           </div>
+
+          {/* honest capability strip (Graphics 2.0) */}
+          <div className="mt-7 flex flex-wrap items-center gap-2">
+            {[
+              { k: "20", v: "symbol liquid universe" },
+              { k: "7", v: "visible signal factors" },
+              { k: "4", v: "SENTINEL safety levels" },
+              { k: "100%", v: "paper execution" },
+            ].map((s, i) => (
+              <motion.span
+                key={s.v}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 + i * 0.08, duration: 0.45 }}
+                className="qe-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground"
+              >
+                <span className="qe-num font-bold text-pos">{s.k}</span>
+                {s.v}
+              </motion.span>
+            ))}
+          </div>
         </motion.div>
 
         {/* live product preview — the audit's #1 design fix (§37 addendum) */}
@@ -116,6 +138,10 @@ export function Landing() {
         >
           <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[28px] bg-pos/[0.05] blur-2xl" />
           <div className="qe-panel relative overflow-hidden shadow-2xl">
+            {/* traveling beam (Graphics 2.0) */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px overflow-hidden">
+              <div className="qe-beam h-px w-1/4 bg-gradient-to-r from-transparent via-mint to-transparent" />
+            </div>
             {/* window chrome */}
             <div className="flex items-center justify-between border-b border-hairline px-4 py-2.5">
               <div className="flex items-center gap-2">
@@ -185,9 +211,11 @@ export function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: i * 0.08, duration: 0.5 }}
-              className="qe-panel p-5"
+              className="qe-panel qe-panel-hover p-5"
             >
-              <f.icon className="h-5 w-5 text-pos" />
+              <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-pos/10 ring-1 ring-pos/20">
+                <f.icon className="h-5 w-5 text-pos" />
+              </div>
               <h3 className="mt-3 text-sm font-semibold">{f.title}</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{f.body}</p>
             </motion.div>
@@ -227,7 +255,7 @@ export function Landing() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="qe-panel-2 p-5"
+              className="qe-panel-2 qe-panel-hover p-5"
             >
               <div className="flex items-center justify-between">
                 <span className="qe-label text-pos">{l.lvl}</span>
