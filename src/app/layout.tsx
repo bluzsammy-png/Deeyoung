@@ -27,15 +27,22 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DeeYoung Pro — AI Market Intelligence & Trading Terminal",
+  title: "DeeYoung Pro — Market Signals, Catalysts & Risk. One Terminal.",
   description:
-    "One unified terminal: real-time market analytics, multi-factor signals, catalyst intelligence, portfolio risk, and SENTINEL — the optional supervised action layer with paper trading. 14-day free trial, no card required.",
+    "Price action, news flow and portfolio risk in one screen, priced for Nigeria. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. 14 days free, no card.",
   keywords: ["DeeYoung Pro", "DeeYoungs Ltd", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
   authors: [{ name: "DeeYoungs Ltd" }],
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
-    title: "DeeYoung Pro — AI Market Intelligence & Trading Terminal",
-    description: "Understand the market. See what matters. Act with supervision. Start your 14-day free trial.",
+    title: "DeeYoung Pro — See what's moving. Know why it's moving.",
+    description: "Move first. Market signals, catalysts and risk in one terminal — built in Lagos, tuned for global markets. 14-day free trial, no card.",
     siteName: "DeeYoung Pro",
     type: "website",
   },

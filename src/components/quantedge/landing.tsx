@@ -64,7 +64,7 @@ export function Landing() {
             <EdgeMark />
             <div className="leading-none">
               <span className="qe-display text-[15px] font-bold tracking-tight">DeeYoung<span className="text-brand"> Pro</span></span>
-              <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Market Intelligence Terminal</span>
+              <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Read the market. Move first.</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -93,24 +93,24 @@ export function Landing() {
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className="relative">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.08] px-3 py-1.5 text-[11px] font-medium text-foreground/90">
               <span className="qe-pulse-dot h-1.5 w-1.5 rounded-full bg-brand text-brand" />
-              Unified analytics + SENTINEL action layer — one product
+              Built in Lagos. Tuned for global markets.
             </div>
             <h1 className="qe-display max-w-3xl text-[42px] font-bold leading-[1.03] tracking-tight sm:text-7xl">
-              Understand the market.
+              See what&rsquo;s moving.
               <br />
-              <span className="qe-gradient-text">See what matters.</span>
+              Know why it&rsquo;s moving.
               <br />
-              Act with supervision.
+              <span className="qe-gradient-text">Move first.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              DeeYoung Pro tells you what is happening, why it is happening, and which opportunities and risks exist — with multi-factor signals, catalyst intelligence, and portfolio risk in one terminal. SENTINEL is the optional action layer: it proposes, you approve. Paper execution by default.
+              DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget. Price action, news flow and portfolio risk sit in one screen. Every signal shows the math behind its score — seven factors, nothing hidden. When you want a second pair of hands, SENTINEL drafts the trade and waits for your go-ahead. Paper execution until you decide otherwise.
             </p>
 
             {/* honesty disclosure — surfaced up front */}
             <div className="mt-6 inline-flex max-w-xl items-start gap-2 rounded-xl border border-warn/25 bg-warn/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-warn">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong className="font-semibold">Data honesty:</strong> quotes are provided on a <strong className="font-semibold">delayed basis per exchange terms</strong> — not real-time. Simulated fallback data is always labeled. Paper trading only.
+                <strong className="font-semibold">Straight talk:</strong> quotes are <strong className="font-semibold">delayed per exchange terms</strong>, not real-time. Simulated data is always labeled. Paper trading only — your money never moves here.
               </span>
             </div>
 
@@ -120,17 +120,17 @@ export function Landing() {
                 className="qe-glow group inline-flex items-center gap-2.5 rounded-xl bg-brand px-6 py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
               >
                 <Play className="h-4 w-4 fill-current" />
-                Launch the live terminal
+                Open the terminal — it&rsquo;s free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
-              <span className="text-xs text-muted-foreground">No account needed in this preview · delayed data · paper trading</span>
+              <span className="text-xs text-muted-foreground">No account needed to look around · delayed data · paper trading</span>
             </div>
 
             {/* honest capability strip */}
             <div className="mt-8 flex flex-wrap items-center gap-2">
               {[
-                { k: "20", v: "symbol liquid universe" },
-                { k: "7", v: "visible signal factors" },
+                { k: "20", v: "stocks covered in depth" },
+                { k: "7", v: "signal factors, math visible" },
                 { k: "4", v: "SENTINEL safety levels" },
                 { k: "100%", v: "paper execution" },
               ].map((s, i) => (
@@ -218,16 +218,16 @@ export function Landing() {
           <div className="pointer-events-none absolute inset-y-0 w-1/3 qe-shine bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
           <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <p className="qe-label text-brand-hi">The DeeYoung standard</p>
+              <p className="qe-label text-brand-hi">Why DeeYoung exists</p>
               <p className="qe-display mt-1.5 text-xl font-bold sm:text-2xl">
-                Institutional-grade analysis. <span className="text-brand-hi">Nigerian</span> hustle pricing.
+                Wall Street tools. <span className="text-brand-hi">Lagos</span> price tag.
               </p>
             </div>
             <button
               onClick={() => setEntered(true)}
               className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition-transform hover:scale-[1.03]"
             >
-              Claim your 14-day trial
+              Try it free for 14 days
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
@@ -273,7 +273,7 @@ export function Landing() {
             },
             {
               icon: ShieldCheck, title: "SENTINEL safety",
-              body: "Observe by default. Deterministic risk limits gate every proposal. Emergency stop one tap away. Paper execution, clearly labeled.",
+              body: "Starts in observe mode. Hard risk limits gate every proposal. One-tap emergency stop. Paper execution, clearly labeled.",
               sketch: (
                 <svg viewBox="0 0 120 36" className="h-9 w-full">
                   <path d="M60 3 L88 12 V22 C88 29 74 34 60 34 C46 34 32 29 32 22 V12 Z" fill="none" stroke="#dc2626" strokeWidth="2.4" strokeLinejoin="round" />
@@ -312,10 +312,10 @@ export function Landing() {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="qe-display text-xl font-bold tracking-tight sm:text-2xl">The DeeYoung loop</h2>
-            <p className="text-sm text-muted-foreground">understand → investigate → decide → act → learn</p>
+            <p className="text-sm text-muted-foreground">read → investigate → decide → act → learn</p>
           </div>
           <div className="mt-7 grid gap-5 sm:grid-cols-5">
-            {["Understand the regime", "See what matters", "Check the risk", "Decide", "Optionally act with SENTINEL"].map((s, i) => (
+            {["Read the regime", "Spot the setup", "Check the risk", "Make the call", "Let SENTINEL draft — you approve"].map((s, i) => (
               <div key={s} className="relative">
                 <span className="qe-num inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold text-brand-hi ring-1 ring-brand/25">0{i + 1}</span>
                 <p className="mt-2 text-[13px] font-medium leading-snug">{s}</p>
@@ -328,7 +328,7 @@ export function Landing() {
         {/* levels */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { lvl: "Level 1", name: "Analytics", body: "Markets, charts, catalysts, regimes, portfolio risk.", icon: TrendingUp },
+            { lvl: "Level 1", name: "Analytics", body: "Charts, catalysts, regime calls and portfolio risk — one view.", icon: TrendingUp },
             { lvl: "Level 2", name: "Signals", body: "Alerts when something interesting happens on your watchlist.", icon: Bell },
             { lvl: "Level 3", name: "SENTINEL Approve", body: "SENTINEL proposes. You approve or reject — every time.", icon: CheckCircle2 },
             { lvl: "Level 4", name: "SENTINEL Delegate", body: "Automatic execution inside your hard limits. Off by default.", icon: Sparkles },
@@ -363,13 +363,13 @@ export function Landing() {
           <div className="relative grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
             <div>
               <p className="qe-label text-brand-hi">Pricing</p>
-              <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">Pro plan — everything unlocked.</h2>
+              <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">One plan. The whole terminal.</h2>
               <ul className="mt-5 space-y-2.5 text-sm text-foreground/85">
                 {[
-                  "Full terminal: analytics, signals, catalysts, risk",
+                  "Everything: analytics, signals, catalysts, risk",
                   "SENTINEL supervised & delegated automation",
                   "Backtest Lab + AI Daily Briefing",
-                  "14-day free trial · no card required · cancel anytime",
+                  "14 days free · no card · cancel anytime",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2.5">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-hi" />
@@ -384,13 +384,13 @@ export function Landing() {
                 ₦15,000<span className="text-base font-medium text-muted-foreground">/month</span>
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                Card payments arrive after our payment provider onboarding completes — start free today, no card needed.
+                Cards aren&rsquo;t live yet — payment-provider onboarding is in progress. Start free now: no card, no charges, no surprises.
               </p>
               <button
                 onClick={() => setEntered(true)}
                 className="qe-glow mt-5 w-full rounded-xl bg-brand py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02]"
               >
-                Start my free trial
+                Start my 14-day trial
               </button>
               <p className="mt-3 text-[11px] text-muted-foreground">
                 Questions? <a className="text-brand-hi hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
@@ -436,11 +436,38 @@ export function Landing() {
 
 export function EdgeMark({ size = 34 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#0d0d0d" stroke="rgba(220,38,38,0.45)" />
-      <path d="M10 7.5 H17.5 C22 7.5 24.5 10.5 24.5 15.5 C24.5 21 21.5 24.5 16.8 24.5 H10 Z" fill="none" stroke="#f5f5f5" strokeWidth="2.5" strokeLinejoin="round" />
-      <path d="M6.5 28.5 L25.5 28.5" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="25.5" cy="28.5" r="1.6" fill="#dc2626" />
+    <svg width={size} height={size} viewBox="0 0 512 512" aria-hidden>
+      <defs>
+        <radialGradient id="dym-tile" cx="30%" cy="18%" r="105%">
+          <stop offset="0%" stopColor="#1b1b1f" />
+          <stop offset="55%" stopColor="#101013" />
+          <stop offset="100%" stopColor="#070708" />
+        </radialGradient>
+        <linearGradient id="dym-d" x1="0" y1="0" x2="0.25" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="62%" stopColor="#e8eaef" />
+          <stop offset="100%" stopColor="#c3c7d1" />
+        </linearGradient>
+        <linearGradient id="dym-wire" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor="#b91c1c" />
+          <stop offset="55%" stopColor="#dc2626" />
+          <stop offset="100%" stopColor="#f87171" />
+        </linearGradient>
+        <clipPath id="dym-clip">
+          <path d="M148 128 H246 C338 128 402 182 402 260 C402 338 338 392 246 392 H148 Z" />
+        </clipPath>
+      </defs>
+      <rect width="512" height="512" rx="118" fill="url(#dym-tile)" />
+      <rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
+      <path d="M148 128 H246 C338 128 402 182 402 260 C402 338 338 392 246 392 H148 Z" fill="url(#dym-d)" />
+      <path d="M228 204 H282 C308 204 326 228 326 260 C326 292 308 316 282 316 H228 Z" fill="#0b0b0d" />
+      <g clipPath="url(#dym-clip)">
+        <path d="M194 332.8 L436 116.8 L456 139.2 L214 355.2 Z" fill="#0c0c0e" />
+        <path d="M199 338.4 L441 122.4 L451 133.6 L209 349.6 Z" fill="url(#dym-wire)" />
+      </g>
+      <path d="M371 184.4 L443 121.4 L453 132.6 L381 195.6 Z" fill="url(#dym-wire)" />
+      <circle cx="461" cy="119" r="10" fill="#ef4444" />
+      <circle cx="461" cy="119" r="5.5" fill="#fecaca" />
     </svg>
   );
 }

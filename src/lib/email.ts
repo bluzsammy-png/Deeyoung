@@ -42,7 +42,14 @@ function shell(title: string, bodyHtml: string, ctaLabel: string, ctaUrl: string
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#0d1117;border:1px solid #1e252e;border-radius:16px;overflow:hidden;">
         <tr><td style="padding:28px 32px 0 32px;">
-          <p style="margin:0;font-size:15px;font-weight:700;color:#ef4444;letter-spacing:-0.2px;">&#9670; <span style="color:#e6edf3;">DeeYoung <span style="color:#ef4444;">Pro</span></span></p>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:10px;">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td style="width:30px;height:30px;background:#0a0a0c;border:1px solid rgba(220,38,38,0.5);border-radius:8px;text-align:center;font-size:16px;font-weight:800;color:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">D</td>
+              </tr></table>
+            </td>
+            <td style="font-size:15px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">DeeYoung <span style="color:#ef4444;">Pro</span></td>
+          </tr></table>
           <h1 style="margin:18px 0 0 0;font-size:20px;font-weight:700;color:#e6edf3;letter-spacing:-0.3px;">${title}</h1>
         </td></tr>
         <tr><td style="padding:14px 32px 0 32px;">

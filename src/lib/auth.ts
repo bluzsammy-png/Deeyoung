@@ -11,13 +11,16 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { db } from "@/lib/db";
-import { clientIpFromHeaders, hashIp, verifyTurnstile } from "@/lib/trust";
+import { clientIpFromHeaders, hashIp, isPrivateNetworkIp, verifyTurnstile } from "@/lib/trust";
 import { isDisposableEmail } from "@/lib/disposable-domains";
 import { assertEmailDomainDeliverable } from "@/lib/mx";
 import { emailConfigured, sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { TRIAL_DAYS } from "@/lib/entitlements";
 
-const MAX_SIGNUPS_PER_IP_PER_DAY = 3;
+// CGNAT reality: one MTN/Airtel tower can put hundreds of legitimate users behind a
+// single public IP, so the ceiling stays generous. The real abuse gate is the forced
+// email verification in production (each extra account costs the attacker a real inbox).
+const MAX_SIGNUPS_PER_IP_PER_DAY = 10;
 
 // Follow the DATABASE_URL dialect automatically — sandbox runs SQLite, Railway runs Postgres.
 const dbProvider = process.env.DATABASE_URL?.startsWith("postgres") ? "postgresql" : "sqlite";
@@ -86,8 +89,10 @@ export const auth = betterAuth({
           throw new APIError("BAD_REQUEST", { message: "Captcha verification failed — please try again." });
         }
       }
-      // Layer 3 — signup velocity per hashed IP (24h window). Flags farms, not NAT households.
-      if (ip) {
+      // Layer 3 — signup velocity per hashed IP (24h window). Flags farms, not NAT
+      // households. Private/loopback IPs are exempt: dev, previews and internal
+      // proxies all share them, and a shared bucket there locks out everyone.
+      if (ip && !isPrivateNetworkIp(ip)) {
         const ipHash = hashIp(ip);
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const recent = await db.signupAttempt.count({ where: { ipHash, createdAt: { gte: since } } });

@@ -116,7 +116,7 @@ export function Terminal() {
           <EdgeMark size={30} />
           <div className="leading-none">
             <span className="text-sm font-bold tracking-tight">DeeYoung<span className="text-brand"> Pro</span></span>
-            <span className="mt-1 block text-[8.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Intelligence Terminal</span>
+            <span className="mt-1 block text-[8.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Read the market. Move first.</span>
           </div>
         </button>
 

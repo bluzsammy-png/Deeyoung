@@ -159,8 +159,8 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           <div className="flex items-center gap-3">
             <EdgeMark size={34} />
             <div>
-              <p className="text-sm font-bold tracking-tight">DeeYoung<span className="text-pos"> Pro</span></p>
-              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Intelligence Terminal</p>
+              <p className="text-sm font-bold tracking-tight">DeeYoung<span className="text-brand"> Pro</span></p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Read the market. Move first.</p>
             </div>
           </div>
 
