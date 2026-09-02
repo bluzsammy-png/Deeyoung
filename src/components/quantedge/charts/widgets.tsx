@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Widget graphics: SignalRing, RiskGauge, FactorBars, RegimeOrb,
+// DEEYOUNG PRO — Widget graphics: SignalRing, RiskGauge, FactorBars, RegimeOrb,
 // MarketHeatmap, CorrelationMatrix, AllocationDonut, CatalystTimeline.
 
 import { motion } from "framer-motion";

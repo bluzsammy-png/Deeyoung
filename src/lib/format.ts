@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — display formatters (tabular, institutional)
+// DEEYOUNG PRO — display formatters (tabular, institutional)
 
 export function fmtPrice(v: number | null | undefined, currency = "USD"): string {
   if (v == null || !Number.isFinite(v)) return "—";

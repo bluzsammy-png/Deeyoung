@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — API route guard: session → account state → entitlements.
+// DEEYOUNG PRO — API route guard: session → account state → entitlements.
 // Every route handler is wrapped by withGuard(); premium routes pass { premium: true }.
 
 import { NextResponse } from "next/server";

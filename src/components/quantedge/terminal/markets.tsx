@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Markets view: heatmap (§37), live quote table, asset detail
+// DEEYOUNG PRO — Markets view: heatmap (§37), live quote table, asset detail
 // with candlestick chart, signal anatomy, and catalyst intelligence (§12).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -66,7 +66,7 @@ export function MarketsView() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${filter === f ? "bg-pos/12 text-pos" : "text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${filter === f ? "bg-brand/12 text-brand" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {f}
               </button>
@@ -91,7 +91,7 @@ export function MarketsView() {
                     <tr
                       key={q.symbol}
                       onClick={() => setFocused(q.symbol)}
-                      className={`cursor-pointer border-t border-hairline transition-colors hover:bg-panel-2 ${focused === q.symbol ? "bg-pos/[0.06]" : ""}`}
+                      className={`cursor-pointer border-t border-hairline transition-colors hover:bg-panel-2 ${focused === q.symbol ? "bg-brand/[0.07]" : ""}`}
                     >
                       <td className="px-3 py-2.5">
                         <div className="font-bold">{q.symbol}</div>
@@ -175,7 +175,7 @@ function AssetDetail({ symbol }: { symbol: string }) {
               <button
                 key={t}
                 onClick={() => setTf(t)}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ${tf === t ? "bg-pos/12 text-pos" : "text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ${tf === t ? "bg-brand/12 text-brand" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {t}
               </button>

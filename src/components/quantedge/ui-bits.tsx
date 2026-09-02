@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — UI primitives: honesty badges (§50), price flash (§40),
+// DEEYOUNG PRO — UI primitives: honesty badges (§50), price flash (§40),
 // contextual education ⓘ (§10), stat tiles.
 
 import { AnimatePresence, motion } from "framer-motion";

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — trust & anti-abuse primitives
+// DEEYOUNG PRO — trust & anti-abuse primitives
 // IPs are never stored raw (GDPR): HMAC-SHA256 with a server-side secret.
 
 import { createHmac } from "crypto";

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Market Regime Engine (§13)
+// DEEYOUNG PRO — Market Regime Engine (§13)
 // Classifies the current regime from index/ETF behavior and explains WHY it is active.
 
 import { atr, ema, lastDefined, realizedVolPct, roc, sma } from "@/lib/engine/indicators";
@@ -44,10 +44,10 @@ function classify(input: {
 
   const explanationMap: Record<string, string> = {
     RISK_ON: `Major indices are trading above their 50-day EMA with ${breadthPct.toFixed(0)}% of the tracked universe above its 20-day EMA, and 30-day realized volatility sits at a calm ${volPct.toFixed(1)}%. Conditions historically favor trend-following longs, so signal thresholds are modestly relaxed and position sizing is normal.`,
-    RISK_OFF: `Indices are below their 50-day EMA with deteriorating breadth (${breadthPct.toFixed(0)}% above EMA20) and volatility at ${volPct.toFixed(1)}%. QuantEdge raises signal thresholds, reduces position sizing, and widens stops to avoid chop-driven stop-outs.`,
+    RISK_OFF: `Indices are below their 50-day EMA with deteriorating breadth (${breadthPct.toFixed(0)}% above EMA20) and volatility at ${volPct.toFixed(1)}%. DeeYoung raises signal thresholds, reduces position sizing, and widens stops to avoid chop-driven stop-outs.`,
     HIGH_VOLATILITY: `30-day realized volatility has reached ${volPct.toFixed(1)}% (top decile of the past year). Risk per trade is cut, signal thresholds rise, and SENTINEL requires higher conviction before acting. Wide price swings can trigger stops that would survive in calmer regimes.`,
-    LOW_VOLATILITY: `Volatility is compressed (${volPct.toFixed(1)}%, low percentile of the past year) and ranges are narrowing. Breakouts from this base can be powerful, but QuantEdge watches for volatility expansions that often precede regime shifts.`,
-    SIDEWAYS: `The S&P 500 is within ±1% of its 50-day EMA and breadth is mixed (${breadthPct.toFixed(0)}%). Trend signals are less reliable in this regime, so QuantEdge leans on volume-confirmed setups and reduces trade frequency.`,
+    LOW_VOLATILITY: `Volatility is compressed (${volPct.toFixed(1)}%, low percentile of the past year) and ranges are narrowing. Breakouts from this base can be powerful, but DeeYoung watches for volatility expansions that often precede regime shifts.`,
+    SIDEWAYS: `The S&P 500 is within ±1% of its 50-day EMA and breadth is mixed (${breadthPct.toFixed(0)}%). Trend signals are less reliable in this regime, so DeeYoung leans on volume-confirmed setups and reduces trade frequency.`,
     MOMENTUM: `Short-term momentum is strong (SPY 10-day rate of change ${spyRoc.toFixed(1)}%). Momentum-continuation setups get priority; mean-reversion fades are penalized.`,
   };
 

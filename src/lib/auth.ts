@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Better Auth (better-auth.com) server config.
+// DEEYOUNG PRO — Better Auth (better-auth.com) server config.
 // Email/password auth + subscription state + anti-abuse layers:
 //   1. disposable/temp email domain blocklist
 //   1.5 MX deliverability check (rejects typo'd / dead domains, fails open on DNS hiccups)

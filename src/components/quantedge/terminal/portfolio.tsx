@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Portfolio Intelligence (§15) + paper trade ticket (§20)
+// DEEYOUNG PRO — Portfolio Intelligence (§15) + paper trade ticket (§20)
 // Beyond P&L: allocation, correlation, scenarios, concentration warnings.
 
 import { useCallback, useEffect, useState } from "react";
@@ -170,7 +170,7 @@ export function PortfolioView() {
               </div>
             )}
             {intel.warnings.length === 0 && (
-              <p className="mt-3 rounded-lg border border-pos/25 bg-pos/[0.07] px-3 py-2 text-[11px] leading-snug text-pos">
+              <p className="mt-3 rounded-lg border border-brand/25 bg-brand/[0.09] px-3 py-2 text-[11px] leading-snug text-brand-hi">
                 No concentration or correlation warnings. Diversification guidelines respected.
               </p>
             )}
@@ -259,7 +259,7 @@ function TradeTicket({ onDone }: { onDone: () => void }) {
         <input
           value={symbol}
           onChange={(e) => setSymbol(e.target.value.toUpperCase().slice(0, 8))}
-          className="qe-num w-28 rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-pos"
+          className="qe-num w-28 rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
         />
       </div>
       <div>
@@ -276,19 +276,19 @@ function TradeTicket({ onDone }: { onDone: () => void }) {
           min={1}
           value={qty}
           onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
-          className="qe-num w-24 rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm outline-none focus:border-pos"
+          className="qe-num w-24 rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm outline-none focus:border-brand"
         />
       </div>
       <button
         onClick={submit}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl bg-pos px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.02] disabled:opacity-50"
       >
         <ArrowUpRight className="h-4 w-4" />
         {busy ? "Routing…" : "Place paper order"}
       </button>
       <p className="w-full text-[11px] text-muted-foreground">
-        Fills are simulated with modeled slippage, spread, and latency on delayed data. QuantEdge Simulated ≠ real brokerage execution.
+        Fills are simulated with modeled slippage, spread, and latency on delayed data. DeeYoung Simulated ≠ real brokerage execution.
       </p>
     </div>
   );

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Shared domain types
+// DEEYOUNG PRO — Shared domain types
 // One product, two brains: Analytics (primary) + SENTINEL (optional action layer). §2–§5
 
 export type DataState = "LIVE" | "DELAYED" | "STALE" | "SIMULATED" | "UNAVAILABLE";

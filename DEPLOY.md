@@ -1,4 +1,4 @@
-# DEPLOY — Deeyoung (QuantEdge Pro) to GitHub → Supabase → Railway
+# DEPLOY — DeeYoung Pro to GitHub → Supabase → Railway
 
 Launch path: **push to GitHub → create Postgres in Supabase → deploy app on Railway.**
 Payments (Paystack) are intentionally deferred; the billing module is stubbed and ready.
@@ -21,16 +21,16 @@ Payments (Paystack) are intentionally deferred; the billing module is stubbed an
 # from the project root
 git init
 git add .
-git commit -m "QuantEdge Pro — auth, trials, anti-abuse, admin, billing stub"
+git commit -m "DeeYoung Pro — auth, trials, anti-abuse, admin, billing stub"
 
-git remote add origin https://github.com/bluzsammy-png/Deeyoung.git
+git remote add origin https://github.com/bluzsammy-png/DeeYoung.git
 git branch -M main
 git push -u origin main
 ```
 
 If the push asks for credentials: GitHub no longer accepts account passwords.
 Use **Settings → Developer settings → Personal access tokens → Fine-grained token**
-with `Contents: Read & Write` on the Deeyoung repo, and paste the token as the password.
+with `Contents: Read & Write` on the DeeYoung repo, and paste the token as the password.
 (Or install the `gh` CLI and run `gh auth login`.)
 
 `.env`, `db/` (SQLite), and `.next/` are already gitignored — secrets never leave your machine.
@@ -80,7 +80,7 @@ bypasses RLS — exactly what we want.)
 
 ## 3. Railway (app hosting)
 
-1. railway.app → **New Project → Deploy from GitHub repo → Deeyoung**.
+1. railway.app → **New Project → Deploy from GitHub repo → DeeYoung**.
 2. Add a **Variable** for everything in `.env.example` (see table below).
 3. Railway auto-detects the repo and uses **`railway.json`**: the build generates the
    Prisma client for Postgres, and boot applies the schema before serving traffic.
@@ -100,7 +100,7 @@ bypasses RLS — exactly what we want.)
 | `APP_SECRET` | ✅ | Separate salt for IP hashing |
 | `ADMIN_EMAILS` | ✅ | Comma-separated admin emails |
 | `RESEND_API_KEY` | launch | When set, **email verification becomes required** + reset mails work. Get a free key at resend.com |
-| `EMAIL_FROM` | launch | `"Deeyoung <no-reply@yourdomain.com>"` after verifying your domain in Resend |
+| `EMAIL_FROM` | launch | `"DeeYoung <no-reply@yourdomain.com>"` after verifying your domain in Resend |
 | `NEXT_PUBLIC_POSTHOG_KEY` | recommended | PostHog project key |
 | `NEXT_PUBLIC_POSTHOG_HOST` | optional | `https://eu.i.posthog.com` or `us…` |
 | `TURNSTILE_SECRET_KEY` | launch | Free bot protection — get keys at dash.cloudflare.com |
@@ -163,7 +163,7 @@ Everything already has a home:
 
 1. Create a free account at resend.com → **API Keys** → copy into `RESEND_API_KEY`.
 2. **Domains → Add domain** → add the SPF/DKIM DNS records Resend shows you, then set
-   `EMAIL_FROM="Deeyoung <no-reply@yourdomain.com>"`.
+   `EMAIL_FROM="DeeYoung <no-reply@yourdomain.com>"`.
 3. Done — from that moment, signup requires email verification and password reset is live.
    Verification + reset mails use the branded dark template in `src/lib/email.ts`.
 

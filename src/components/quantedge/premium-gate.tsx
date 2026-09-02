@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — PremiumGate: cosmetic lock overlay for Pro views.
+// DEEYOUNG PRO — PremiumGate: cosmetic lock overlay for Pro views.
 // Server routes enforce the same rule (402 PREMIUM_REQUIRED); this is UX, not security.
 
 import { useState, type ReactNode } from "react";
@@ -57,9 +57,9 @@ function LockedScreen({ feature, onUpgrade }: { feature: PremiumFeature; onUpgra
       className="flex min-h-[60vh] items-center justify-center"
     >
       <div className="qe-panel relative w-full max-w-[520px] overflow-hidden p-8 text-center">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-pos/[0.07] blur-3xl" />
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-pos/10">
-          <Icon className="h-7 w-7 text-pos" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand/[0.09] blur-3xl" />
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/12">
+          <Icon className="h-7 w-7 text-brand-hi" />
         </div>
         <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-warn/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-warn">
           <Lock className="h-3 w-3" /> Pro feature
@@ -72,7 +72,7 @@ function LockedScreen({ feature, onUpgrade }: { feature: PremiumFeature; onUpgra
           <ul className="mt-2.5 space-y-1.5 text-xs leading-relaxed">
             {Object.values(PREMIUM_FEATURES).map((f) => (
               <li key={f} className="flex items-start gap-2">
-                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-pos" />
+                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-brand-hi" />
                 {f}
               </li>
             ))}
@@ -81,7 +81,7 @@ function LockedScreen({ feature, onUpgrade }: { feature: PremiumFeature; onUpgra
 
         <button
           onClick={onUpgrade}
-          className="mt-6 w-full rounded-xl bg-pos py-3 text-sm font-bold text-[#04110a] transition-all hover:brightness-110"
+          className="mt-6 w-full rounded-xl bg-brand py-3 text-sm font-bold text-white transition-all hover:brightness-110"
         >
           Upgrade to Pro
         </button>

@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Signals view (Level 2 experience §7): live scan + alert-style feed.
+// DEEYOUNG PRO — Signals view (Level 2 experience §7): live scan + alert-style feed.
 // What is a signal? What is confidence? Answered inline (§9/§10).
 
 import { useCallback, useEffect, useState } from "react";
@@ -52,9 +52,9 @@ export function SignalsView() {
 
       {/* education strip (§9) */}
       <div className="qe-panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4 text-[11.5px] leading-relaxed text-muted-foreground">
-        <span><strong className="text-foreground">Signal</strong> — a factor-aligned setup worth your attention. <InfoTip title="What is a Signal?">QuantEdge computes factor contributions from trend (EMA), intraday control (VWAP), momentum (RSI/MACD), stretch (Bollinger), participation (volume), verified catalysts, and regime. Alignment above your threshold becomes a signal.</InfoTip></span>
+        <span><strong className="text-foreground">Signal</strong> — a factor-aligned setup worth your attention. <InfoTip title="What is a Signal?">DeeYoung computes factor contributions from trend (EMA), intraday control (VWAP), momentum (RSI/MACD), stretch (Bollinger), participation (volume), verified catalysts, and regime. Alignment above your threshold becomes a signal.</InfoTip></span>
         <span><strong className="text-foreground">Confidence</strong> — factor alignment, NOT win probability. <InfoTip title="What is Signal Confidence?">An 84% score means strong alignment across measured factors. It is NOT an 84% probability that the trade will win. Past alignment says nothing about any single outcome.</InfoTip></span>
-        <span><strong className="text-foreground">Regime-adjusted</strong> — thresholds shift with the market. <InfoTip title="Regime influence">In Risk-Off or High Volatility regimes, QuantEdge raises signal thresholds, reduces sizing, and widens stops automatically.</InfoTip></span>
+        <span><strong className="text-foreground">Regime-adjusted</strong> — thresholds shift with the market. <InfoTip title="Regime influence">In Risk-Off or High Volatility regimes, DeeYoung raises signal thresholds, reduces sizing, and widens stops automatically.</InfoTip></span>
       </div>
 
       {/* filters */}
@@ -63,7 +63,7 @@ export function SignalsView() {
         <div className="flex gap-1">
           {(["ALL", "LONG", "SHORT"] as const).map((d) => (
             <button key={d} onClick={() => setDir(d)}
-              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${dir === d ? "bg-pos/12 text-pos" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${dir === d ? "bg-brand/12 text-brand" : "text-muted-foreground hover:text-foreground"}`}>
               {d}
             </button>
           ))}
@@ -85,7 +85,7 @@ export function SignalsView() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i * 0.04, 0.4) }}
             onClick={() => { setFocused(s.symbol); setView("markets"); }}
-            className="qe-panel group p-4 text-left transition-colors hover:border-pos/30"
+            className="qe-panel group p-4 text-left transition-colors hover:border-brand/30"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

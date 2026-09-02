@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — User Control Center (§48): Trading, SENTINEL, Notifications,
+// DEEYOUNG PRO — User Control Center (§48): Trading, SENTINEL, Notifications,
 // Data Providers, Broker, Account. One friendly settings area.
 
 import { useCallback, useEffect, useState } from "react";
@@ -23,7 +23,7 @@ export function SettingsView() {
     STOP_HIT: true, TARGET_HIT: true, RISK_LIMIT: true, MAJOR_CATALYST: true, SYSTEM_DEGRADED: true,
   });
   const [quietHours, setQuietHours] = useState(true);
-  const [broker, setBroker] = useState("QUANTEDGE_SIM");
+  const [broker, setBroker] = useState("DEEYOUNG_SIM");
   const [finnhubKey, setFinnhubKey] = useState("");
   const [presentation, setPresentation] = useState<"SIMPLE" | "ADVANCED">("SIMPLE");
 
@@ -51,9 +51,9 @@ export function SettingsView() {
               <button
                 key={p}
                 onClick={() => { setPresentation(p); toast({ title: p === "SIMPLE" ? "Simple mode" : "Advanced mode", description: p === "SIMPLE" ? "Explanations lead, parameters hidden." : "Full parameters, factor weights, and controls surfaced." }); }}
-                className={`flex-1 rounded-xl border p-3 text-left transition-colors ${presentation === p ? "border-pos/40 bg-pos/[0.08]" : "border-hairline bg-panel-2 hover:border-pos/25"}`}
+                className={`flex-1 rounded-xl border p-3 text-left transition-colors ${presentation === p ? "border-brand/40 bg-brand/[0.10]" : "border-hairline bg-panel-2 hover:border-brand/25"}`}
               >
-                <p className={`text-xs font-bold ${presentation === p ? "text-pos" : ""}`}>{p === "SIMPLE" ? "Simple" : "Advanced"}</p>
+                <p className={`text-xs font-bold ${presentation === p ? "text-brand-hi" : ""}`}>{p === "SIMPLE" ? "Simple" : "Advanced"}</p>
                 <p className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground">
                   {p === "SIMPLE" ? "What happened, why it matters, what to watch." : "Factor weights, regime details, risk parameters."}
                 </p>
@@ -66,9 +66,9 @@ export function SettingsView() {
         <SettingsCard title="Broker" desc="Execution provider — paper only in this product">
           <div className="space-y-2">
             <BrokerOption
-              active={broker === "QUANTEDGE_SIM"}
-              onClick={() => { setBroker("QUANTEDGE_SIM"); toast({ title: "QuantEdge Simulated active", description: "Fills modeled with slippage, spread, and latency on delayed data." }); }}
-              name="QuantEdge Simulated"
+              active={broker === "DEEYOUNG_SIM"}
+              onClick={() => { setBroker("DEEYOUNG_SIM"); toast({ title: "DeeYoung Simulated active", description: "Fills modeled with slippage, spread, and latency on delayed data." }); }}
+              name="DeeYoung Simulated"
               desc="Built-in paper engine. Always labeled SIMULATED in the UI. No keys needed."
             />
             <BrokerOption
@@ -76,7 +76,7 @@ export function SettingsView() {
               onClick={() => {
                 toast({
                   title: "Alpaca Paper requires your keys (BYOK)",
-                  description: "Add ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY in the provider panel. QuantEdge never fills orders on a broker it is not connected to.",
+                  description: "Add ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY in the provider panel. DeeYoung never fills orders on a broker it is not connected to.",
                 });
               }}
               name="Alpaca Paper (BYOK)"
@@ -97,7 +97,7 @@ export function SettingsView() {
                 value={finnhubKey}
                 onChange={(e) => setFinnhubKey(e.target.value)}
                 placeholder="Paste key — stored server-side only"
-                className="flex-1 rounded-lg border border-input bg-panel-2 px-3 py-2 text-xs outline-none focus:border-pos"
+                className="flex-1 rounded-lg border border-input bg-panel-2 px-3 py-2 text-xs outline-none focus:border-brand"
               />
               <button
                 onClick={() => {
@@ -105,13 +105,13 @@ export function SettingsView() {
                   toast({ title: "Provider key queued for server-side storage", description: "In this preview, keys are held by the environment. The feed activates automatically when the server recognizes the key. Until then the catalyst feed stays honestly unavailable." });
                   setFinnhubKey("");
                 }}
-                className="rounded-lg bg-pos px-4 py-2 text-xs font-bold text-primary-foreground"
+                className="rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white"
               >
                 Save
               </button>
             </div>
             <p className="mt-2 text-[10.5px] leading-relaxed text-muted-foreground">
-              Free tier: 60 calls/min. QuantEdge dedupes and caches so 1,000 users watching NVDA generate one upstream request, not 1,000. Usage is metered in the audit trail.
+              Free tier: 60 calls/min. DeeYoung dedupes and caches so 1,000 users watching NVDA generate one upstream request, not 1,000. Usage is metered in the audit trail.
             </p>
           </div>
         </SettingsCard>
@@ -126,7 +126,7 @@ export function SettingsView() {
                   role="switch"
                   aria-checked={on}
                   onClick={() => setNotifPrefs((p) => ({ ...p, [event]: !p[event] }))}
-                  className={`relative h-5 w-9 rounded-full transition-colors ${on ? "bg-pos" : "bg-panel-3"}`}
+                  className={`relative h-5 w-9 rounded-full transition-colors ${on ? "bg-brand" : "bg-panel-3"}`}
                 >
                   <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
                 </button>
@@ -138,7 +138,7 @@ export function SettingsView() {
                 role="switch"
                 aria-checked={quietHours}
                 onClick={() => setQuietHours((q) => !q)}
-                className={`relative h-5 w-9 rounded-full transition-colors ${quietHours ? "bg-pos" : "bg-panel-3"}`}
+                className={`relative h-5 w-9 rounded-full transition-colors ${quietHours ? "bg-brand" : "bg-panel-3"}`}
               >
                 <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${quietHours ? "left-[18px]" : "left-0.5"}`} />
               </button>
@@ -182,7 +182,7 @@ export function SettingsView() {
               <LegalLink label="Refund & Cancellation" onClick={() => setLegal("REFUND")} />
             </div>
             <p className="flex items-start gap-1.5 pt-1 text-[10.5px] leading-relaxed text-muted-foreground">
-              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pos" />
+              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
               Every settings change, approval, and order is written to the immutable audit trail. Secrets are never exposed client-side.
             </p>
           </div>
@@ -208,9 +208,9 @@ function BrokerOption({ active, onClick, name, desc }: { active: boolean; onClic
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-pos/40 bg-pos/[0.08]" : "border-hairline bg-panel-2 hover:border-pos/25"}`}
+      className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-brand/40 bg-brand/[0.10]" : "border-hairline bg-panel-2 hover:border-brand/25"}`}
     >
-      <p className={`text-xs font-bold ${active ? "text-pos" : ""}`}>{name} {active && "· active"}</p>
+      <p className={`text-xs font-bold ${active ? "text-brand-hi" : ""}`}>{name} {active && "· active"}</p>
       <p className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground">{desc}</p>
     </button>
   );
@@ -218,7 +218,7 @@ function BrokerOption({ active, onClick, name, desc }: { active: boolean; onClic
 
 function LegalLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="rounded-lg border border-hairline bg-panel-2 px-3 py-1.5 text-[11px] font-medium transition-colors hover:border-pos/30 hover:text-pos">
+    <button onClick={onClick} className="rounded-lg border border-hairline bg-panel-2 px-3 py-1.5 text-[11px] font-medium transition-colors hover:border-brand/30 hover:text-pos">
       {label}
     </button>
   );

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Backtesting Engine (§21) with bias guards (§22)
+// DEEYOUNG PRO — Backtesting Engine (§21) with bias guards (§22)
 // Signal engine runs on a trailing window ONLY (no look-ahead); fills occur at
 // NEXT bar open + modeled slippage; equity marked at close.
 

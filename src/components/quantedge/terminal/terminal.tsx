@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Terminal shell: nav, live ticker tape (§40), SENTINEL heartbeat,
+// DEEYOUNG PRO — Terminal shell: nav, live ticker tape (§40), SENTINEL heartbeat,
 // notification center. Desktop sidebar + mobile bottom bar (§41 mobile-native).
 
 import { useCallback, useEffect, useState } from "react";
@@ -115,7 +115,7 @@ export function Terminal() {
         <button onClick={() => setView("dashboard")} className="flex items-center gap-2.5 px-5 py-5 text-left">
           <EdgeMark size={30} />
           <div className="leading-none">
-            <span className="text-sm font-bold tracking-tight">QuantEdge<span className="text-pos"> Pro</span></span>
+            <span className="text-sm font-bold tracking-tight">DeeYoung<span className="text-brand"> Pro</span></span>
             <span className="mt-1 block text-[8.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Intelligence Terminal</span>
           </div>
         </button>
@@ -128,10 +128,10 @@ export function Terminal() {
                 key={n.id}
                 onClick={() => setView(n.id)}
                 className={`group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-colors ${
-                  active ? "bg-pos/10 text-pos" : "text-muted-foreground hover:bg-panel-2 hover:text-foreground"
+                  active ? "bg-brand/12 text-brand" : "text-muted-foreground hover:bg-panel-2 hover:text-foreground"
                 }`}
               >
-                {active && <motion.span layoutId="nav-pill" className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-pos" />}
+                {active && <motion.span layoutId="nav-pill" className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-brand" />}
                 <n.icon className="h-[17px] w-[17px]" />
                 {n.label}
                 {n.id === "sentinel" && unread > 0 && (
@@ -144,7 +144,7 @@ export function Terminal() {
 
         {/* sentinel mini status */}
         {visibleSentinelStatus && (
-          <button onClick={() => setView("sentinel")} className="mx-3 mb-3 rounded-xl border border-hairline bg-panel-2 p-3 text-left transition-colors hover:border-pos/30">
+          <button onClick={() => setView("sentinel")} className="mx-3 mb-3 rounded-xl border border-hairline bg-panel-2 p-3 text-left transition-colors hover:border-brand/30">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold tracking-[0.14em] text-muted-foreground">SENTINEL</span>
               <span className={`h-2 w-2 rounded-full ${visibleSentinelStatus.killSwitch ? "bg-neg qe-pulse-dot" : visibleSentinelStatus.state === "ACTIVE" ? "bg-pos qe-pulse-dot" : "bg-warn"}`} />
@@ -283,7 +283,7 @@ export function Terminal() {
                 <button
                   key={id}
                   onClick={() => setView(id)}
-                  className={`relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${active ? "text-pos" : "text-muted-foreground"}`}
+                  className={`relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${active ? "text-brand" : "text-muted-foreground"}`}
                 >
                   <n.icon className="h-[19px] w-[19px]" />
                   {n.label}
@@ -303,7 +303,7 @@ export function Terminal() {
                 <button
                   key={id}
                   onClick={() => setView(n.id)}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-[10px] font-medium ${view === id ? "bg-pos/10 text-pos" : "text-muted-foreground"}`}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-[10px] font-medium ${view === id ? "bg-brand/12 text-brand" : "text-muted-foreground"}`}
                 >
                   <n.icon className="h-3 w-3" />{n.label}
                 </button>

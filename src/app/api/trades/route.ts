@@ -29,7 +29,7 @@ export const POST = withGuard(async (req: NextRequest, { user, account }) => {
 
   const quote = await marketProvider.getQuote(symbol);
   if (quote.dataState === "SIMULATED") {
-    return NextResponse.json({ error: "Market data is degraded — trading is paused until fresh data returns. QuantEdge never fills orders on stale or simulated marks." }, { status: 503 });
+    return NextResponse.json({ error: "Market data is degraded — trading is paused until fresh data returns. DeeYoung never fills orders on stale or simulated marks." }, { status: 503 });
   }
 
   const positions = await db.position.findMany({ where: { userId: user.id } });

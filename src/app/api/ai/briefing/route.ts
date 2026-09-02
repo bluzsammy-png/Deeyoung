@@ -24,7 +24,7 @@ export const POST = withGuard(async (_req, { user, config, account }) => {
   if (simulated) {
     return NextResponse.json({
       ok: false,
-      message: "AI briefing skipped: market data is degraded to simulated marks. QuantEdge will not generate commentary from numbers it cannot verify. Briefings resume automatically when live data returns.",
+      message: "AI briefing skipped: market data is degraded to simulated marks. DeeYoung will not generate commentary from numbers it cannot verify. Briefings resume automatically when live data returns.",
     });
   }
 
@@ -43,7 +43,7 @@ export const POST = withGuard(async (_req, { user, config, account }) => {
         messages: [
           {
             role: "system",
-            content: `You are QuantEdge Pro's market briefing writer. STRICT RULES:
+            content: `You are DeeYoung Pro's market briefing writer. STRICT RULES:
 1. Use ONLY the numbers in the provided JSON snapshot. Never cite any price, percentage, or event not present in it.
 2. If you lack data for a claim, omit the claim. Do not invent news, catalysts, or levels.
 3. No profit guarantees, no "will win" language. Analysis, not advice.

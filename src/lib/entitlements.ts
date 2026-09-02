@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — entitlements (shared client/server, pure functions only).
+// DEEYOUNG PRO — entitlements (shared client/server, pure functions only).
 // Source of truth for what a plan unlocks. Server routes enforce (§34);
 // client uses the same functions for cosmetic gating (lock overlays).
 

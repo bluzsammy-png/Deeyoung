@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Better Auth client (React hooks: useSession, signIn, signUp…)
+// DEEYOUNG PRO — Better Auth client (React hooks: useSession, signIn, signUp…)
 
 import { createAuthClient } from "better-auth/react";
 import { inferAdditionalFields } from "better-auth/client/plugins";

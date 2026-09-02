@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Billing modal. Paystack-backed subscriptions land here;
+// DEEYOUNG PRO — Billing modal. Paystack-backed subscriptions land here;
 // until payment rails go live it collects waitlist demand (audited per account).
 
 import { useState } from "react";
@@ -51,7 +51,7 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
       <DialogContent className="max-w-[440px] border-hairline bg-panel text-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-left">
-            <Sparkles className="h-4 w-4 text-pos" /> Upgrade to Pro
+            <Sparkles className="h-4 w-4 text-brand-hi" /> Upgrade to Pro
           </DialogTitle>
           <DialogDescription className="text-left">
             {plan === "TRIAL" && daysLeft !== null
@@ -73,11 +73,15 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
           <ul className="mt-4 space-y-2">
             {PRO_INCLUDES.map((f) => (
               <li key={f} className="flex items-start gap-2 text-xs leading-relaxed">
-                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pos" />
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
                 {f}
               </li>
             ))}
           </ul>
+            <p className="mt-4 border-t border-hairline pt-3 text-[11px] text-muted-foreground">
+              Questions about Pro?{" "}
+              <a href="mailto:deyongsltd@gmail.com" className="text-brand-hi hover:underline">deyongsltd@gmail.com</a>
+            </p>
         </div>
 
         <div className="flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-3 text-[11px] leading-relaxed text-warn">
@@ -87,14 +91,14 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
         </div>
 
         {plan === "PREMIUM" ? (
-          <button disabled className="w-full rounded-xl bg-pos/20 py-3 text-sm font-bold text-pos">
+          <button disabled className="w-full rounded-xl bg-brand/20 py-3 text-sm font-bold text-brand-hi">
             Pro is active
           </button>
         ) : (
           <button
             onClick={joinWaitlist}
             disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-pos py-3 text-sm font-bold text-[#04110a] transition-all hover:brightness-110 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             Notify me when billing is live

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — SENTINEL orchestrator (§4, §16, §17) + user bootstrap (D1)
+// DEEYOUNG PRO — SENTINEL orchestrator (§4, §16, §17) + user bootstrap (D1)
 // Analytics is the primary brain; SENTINEL is the optional action layer.
 // Observe is the default mode. AI never touches this file. Deterministic only.
 

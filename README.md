@@ -1,4 +1,4 @@
-# Deeyoung · QuantEdge Pro
+# DeeYoung Pro
 
 AI market intelligence & trading terminal — multi-factor signals, portfolio risk,
 and **SENTINEL**, a supervised automation layer, on a paper broker.

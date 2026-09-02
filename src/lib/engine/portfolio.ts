@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Portfolio Intelligence (§15) + Risk analytics
+// DEEYOUNG PRO — Portfolio Intelligence (§15) + Risk analytics
 // Beyond P&L: allocation, concentration, correlation, volatility, scenarios, warnings.
 
 import { correlation, realizedVolPct } from "@/lib/engine/indicators";

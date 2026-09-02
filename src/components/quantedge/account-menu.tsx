@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — header account menu: identity, plan state, billing entry, sign out.
+// DEEYOUNG PRO — header account menu: identity, plan state, billing entry, sign out.
 
 import { useState } from "react";
 import { ChevronDown, CreditCard, LogOut, ShieldCheck } from "lucide-react";
@@ -18,7 +18,7 @@ export function PlanBadge({ user, onClickUpgrade }: { user: SessionUser; onClick
   const base = "rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider";
   if (plan === "TRIAL") {
     return (
-      <span className={`${base} border border-pos/40 bg-pos/10 text-pos`}>
+      <span className={`${base} border border-brand/40 bg-brand/10 text-brand-hi`}>
         TRIAL{daysLeft !== null ? ` · ${daysLeft}D` : ""}
       </span>
     );
@@ -31,7 +31,7 @@ export function PlanBadge({ user, onClickUpgrade }: { user: SessionUser; onClick
   return (
     <button
       onClick={onClickUpgrade}
-      className={`${base} border border-hairline bg-panel-2 text-muted-foreground transition-colors hover:border-pos/40 hover:text-pos`}
+      className={`${base} border border-hairline bg-panel-2 text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand-hi`}
     >
       UPGRADE
     </button>
@@ -49,7 +49,7 @@ export function AccountMenu({ user }: { user: SessionUser }) {
           className="flex items-center gap-1.5 rounded-xl p-1 pr-1.5 transition-colors hover:bg-panel-2"
           aria-label="Account menu"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pos/15 text-[10px] font-bold text-pos">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand/15 text-[10px] font-bold text-brand-hi">
             {initials}
           </span>
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />

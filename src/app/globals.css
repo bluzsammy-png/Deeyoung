@@ -3,15 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ─── QUANTEDGE PRO — Premium Quantitative Terminal Design System ─────────────
-   Dark-first. Semantic color. No neon soup. Serious + intelligent + trustworthy.
-   Numbers: Geist Mono, tabular. Hairline borders. Glow reserved for primary CTA. */
+/* ─── DEEYOUNG PRO — Crimson Luxe Design System ───────────────────────────────
+   Brand: crimson red #DC2626 · pure black #0A0A0A · white.
+   Dark-first, editorial spacing, Space Grotesk display + Geist body + JetBrains Mono numerics.
+   Market semantics stay green/red for DATA (pos/neg). Brand red owns the UI chrome. */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-jetbrains-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,7 +47,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* QuantEdge semantic tokens */
+  /* Market-semantic tokens (data only — never the brand voice) */
   --color-pos: var(--qe-pos);
   --color-pos-dim: var(--qe-pos-dim);
   --color-neg: var(--qe-neg);
@@ -59,42 +60,47 @@
   --color-panel-2: var(--qe-panel-2);
   --color-panel-3: var(--qe-panel-3);
   --color-hairline: var(--qe-hairline);
-  --color-mint: var(--qe-mint);
+  --color-mint: var(--qe-brand-hi);
+
+  /* Brand tokens — the crimson voice of DeeYoung Pro */
+  --color-brand: var(--qe-brand);
+  --color-brand-hi: var(--qe-brand-hi);
+  --color-brand-dim: var(--qe-brand-dim);
 }
 
 :root {
   --radius: 0.75rem;
-  --background: #f7f8fa;
-  --foreground: #10141b;
+  --background: #fafafa;
+  --foreground: #0a0a0a;
   --card: #ffffff;
-  --card-foreground: #10141b;
+  --card-foreground: #0a0a0a;
   --popover: #ffffff;
-  --popover-foreground: #10141b;
-  --primary: #0e9f6e;
+  --popover-foreground: #0a0a0a;
+  --primary: #dc2626;
   --primary-foreground: #ffffff;
-  --secondary: #eef1f5;
-  --secondary-foreground: #1a2230;
-  --muted: #eef1f5;
-  --muted-foreground: #5d6774;
-  --accent: #e8f7f1;
-  --accent-foreground: #0b7a54;
-  --destructive: #e5484d;
-  --border: rgba(16, 20, 27, 0.10);
-  --input: rgba(16, 20, 27, 0.12);
-  --ring: #0e9f6e;
-  --chart-1: #0e9f6e;
-  --chart-2: #e5484d;
-  --chart-3: #f0b90b;
-  --chart-4: #64748b;
-  --chart-5: #8b5cf6;
+  --secondary: #f2f2f2;
+  --secondary-foreground: #171717;
+  --muted: #f2f2f2;
+  --muted-foreground: #6b6b70;
+  --accent: #fef2f2;
+  --accent-foreground: #b91c1c;
+  --destructive: #dc2626;
+  --border: rgba(10, 10, 10, 0.10);
+  --input: rgba(10, 10, 10, 0.12);
+  --ring: #dc2626;
+  --chart-1: #dc2626;
+  --chart-2: #0e9f6e;
+  --chart-3: #171717;
+  --chart-4: #a3a3a3;
+  --chart-5: #f0b90b;
   --sidebar: #ffffff;
-  --sidebar-foreground: #10141b;
-  --sidebar-primary: #0e9f6e;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #dc2626;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef1f5;
-  --sidebar-accent-foreground: #1a2230;
-  --sidebar-border: rgba(16, 20, 27, 0.10);
-  --sidebar-ring: #0e9f6e;
+  --sidebar-accent: #f2f2f2;
+  --sidebar-accent-foreground: #171717;
+  --sidebar-border: rgba(10, 10, 10, 0.10);
+  --sidebar-ring: #dc2626;
   --qe-pos: #0e9f6e;
   --qe-pos-dim: rgba(14, 159, 110, 0.12);
   --qe-neg: #e5484d;
@@ -102,55 +108,59 @@
   --qe-warn: #d97706;
   --qe-info: #64748b;
   --qe-panel: #ffffff;
-  --qe-panel-2: #f1f3f7;
-  --qe-panel-3: #e9edf3;
-  --qe-hairline: rgba(16, 20, 27, 0.08);
-  --qe-mint: #0b7a54;
+  --qe-panel-2: #f5f5f5;
+  --qe-panel-3: #ececec;
+  --qe-hairline: rgba(10, 10, 10, 0.08);
+  --qe-brand: #dc2626;
+  --qe-brand-hi: #ef4444;
+  --qe-brand-dim: rgba(220, 38, 38, 0.12);
 }
 
 .dark {
-  --background: #07090d;
-  --foreground: #e6e9ef;
-  --card: #0c0f15;
-  --card-foreground: #e6e9ef;
-  --popover: #10141c;
-  --popover-foreground: #e6e9ef;
-  --primary: #10b981;
-  --primary-foreground: #04110c;
-  --secondary: #141926;
-  --secondary-foreground: #c7cedb;
-  --muted: #141926;
-  --muted-foreground: #8b93a7;
-  --accent: #0f2019;
-  --accent-foreground: #6ee7b7;
-  --destructive: #f6465d;
-  --border: rgba(148, 163, 184, 0.09);
-  --input: rgba(148, 163, 184, 0.14);
-  --ring: #10b981;
-  --chart-1: #10b981;
-  --chart-2: #f6465d;
-  --chart-3: #f0b90b;
-  --chart-4: #8b93a7;
-  --chart-5: #a78bfa;
-  --sidebar: #0a0d12;
-  --sidebar-foreground: #e6e9ef;
-  --sidebar-primary: #10b981;
-  --sidebar-primary-foreground: #04110c;
-  --sidebar-accent: #141926;
-  --sidebar-accent-foreground: #c7cedb;
-  --sidebar-border: rgba(148, 163, 184, 0.09);
-  --sidebar-ring: #10b981;
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #101010;
+  --card-foreground: #f5f5f5;
+  --popover: #141414;
+  --popover-foreground: #f5f5f5;
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
+  --secondary: #181818;
+  --secondary-foreground: #e5e5e5;
+  --muted: #181818;
+  --muted-foreground: #a3a3a3;
+  --accent: #1c0d0d;
+  --accent-foreground: #f87171;
+  --destructive: #ef4444;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #dc2626;
+  --chart-1: #dc2626;
+  --chart-2: #10b981;
+  --chart-3: #f5f5f5;
+  --chart-4: #a3a3a3;
+  --chart-5: #f0b90b;
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #dc2626;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #181818;
+  --sidebar-accent-foreground: #e5e5e5;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #dc2626;
   --qe-pos: #10b981;
   --qe-pos-dim: rgba(16, 185, 129, 0.12);
   --qe-neg: #f6465d;
   --qe-neg-dim: rgba(246, 70, 93, 0.12);
   --qe-warn: #f0b90b;
-  --qe-info: #8b93a7;
-  --qe-panel: #0c0f15;
-  --qe-panel-2: #11151d;
-  --qe-panel-3: #161b26;
-  --qe-hairline: rgba(148, 163, 184, 0.09);
-  --qe-mint: #6ee7b7;
+  --qe-info: #a3a3a3;
+  --qe-panel: #101010;
+  --qe-panel-2: #151515;
+  --qe-panel-3: #1b1b1b;
+  --qe-hairline: rgba(255, 255, 255, 0.08);
+  --qe-brand: #dc2626;
+  --qe-brand-hi: #ef4444;
+  --qe-brand-dim: rgba(220, 38, 38, 0.14);
 }
 
 @layer base {
@@ -161,13 +171,17 @@
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
   }
+  h1, h2, h3 {
+    font-family: var(--font-space-grotesk), var(--font-geist-sans), ui-sans-serif, sans-serif;
+    letter-spacing: -0.02em;
+  }
   /* Tabular numerals everywhere numbers matter */
   .tnum, .font-mono {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
   ::selection {
-    background: rgba(16, 185, 129, 0.25);
+    background: rgba(220, 38, 38, 0.30);
   }
 }
 
@@ -197,12 +211,19 @@
     mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 78%);
   }
   .qe-glow {
-    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.22), 0 8px 40px -8px rgba(16, 185, 129, 0.28);
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.35), 0 8px 40px -8px rgba(220, 38, 38, 0.45);
+  }
+  .qe-brand-glow {
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.22), 0 24px 80px -24px rgba(220, 38, 38, 0.55);
   }
   .qe-num {
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
+  }
+  .qe-display {
+    font-family: var(--font-space-grotesk), var(--font-geist-sans), ui-sans-serif, sans-serif;
+    letter-spacing: -0.03em;
   }
   .qe-label {
     font-size: 0.6875rem;
@@ -214,13 +235,13 @@
   .qe-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
   .qe-scroll::-webkit-scrollbar-track { background: transparent; }
   .qe-scroll::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.14);
     border-radius: 8px;
   }
-  .qe-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.3); }
+  .qe-scroll::-webkit-scrollbar-thumb:hover { background: rgba(220, 38, 38, 0.45); }
 }
 
-/* Price flash animations — animation communicates state (§40) */
+/* Price flash animations — animation communicates state */
 @keyframes qe-flash-up {
   0% { background-color: rgba(16, 185, 129, 0.18); }
   100% { background-color: transparent; }
@@ -273,7 +294,7 @@
 html { scroll-behavior: smooth; }
 body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
-/* ─── Graphics 2.0 — cinematic layer ────────────────────────────────────────── */
+/* ─── Graphics 3.0 — cinematic crimson layer ─────────────────────────────── */
 
 /* Aurora gradient blobs (landing backdrop) */
 @keyframes qe-aurora-a {
@@ -292,18 +313,18 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   100% { transform: translate(-52px, 30px) scale(1.02); }
 }
 .qe-aurora { filter: blur(92px); will-change: transform; }
-.qe-aurora-a { background: radial-gradient(circle at 38% 38%, rgba(16, 185, 129, 0.17), transparent 66%); animation: qe-aurora-a 26s ease-in-out infinite alternate; }
-.qe-aurora-b { background: radial-gradient(circle at 60% 40%, rgba(110, 231, 183, 0.12), transparent 66%); animation: qe-aurora-b 33s ease-in-out infinite alternate; }
-.qe-aurora-c { background: radial-gradient(circle at 50% 50%, rgba(240, 185, 11, 0.08), transparent 66%); animation: qe-aurora-c 39s ease-in-out infinite alternate; }
+.qe-aurora-a { background: radial-gradient(circle at 38% 38%, rgba(220, 38, 38, 0.20), transparent 66%); animation: qe-aurora-a 26s ease-in-out infinite alternate; }
+.qe-aurora-b { background: radial-gradient(circle at 60% 40%, rgba(255, 255, 255, 0.07), transparent 66%); animation: qe-aurora-b 33s ease-in-out infinite alternate; }
+.qe-aurora-c { background: radial-gradient(circle at 50% 50%, rgba(239, 68, 68, 0.10), transparent 66%); animation: qe-aurora-c 39s ease-in-out infinite alternate; }
 
-/* Animated gradient headline text */
+/* Animated gradient headline text — crimson sweep */
 @keyframes qe-gradient-shift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 .qe-gradient-text {
-  background: linear-gradient(90deg, #10b981, #6ee7b7, #f0b90b, #6ee7b7, #10b981);
+  background: linear-gradient(90deg, #ef4444, #fca5a5, #ffffff, #fca5a5, #ef4444);
   background-size: 240% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -323,14 +344,60 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 /* Hover-glow panel — quiet at rest, alive on approach */
 .qe-panel-hover { transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease; }
 .qe-panel-hover:hover {
-  border-color: rgba(16, 185, 129, 0.30);
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.10), 0 16px 48px -16px rgba(16, 185, 129, 0.22);
+  border-color: rgba(220, 38, 38, 0.35);
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.10), 0 16px 48px -16px rgba(220, 38, 38, 0.35);
 }
 
 /* Soft outer glow used by charts (SVG strokes) */
-.qe-stroke-glow { filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.55)); }
+.qe-stroke-glow { filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.55)); }
 .qe-stroke-glow-neg { filter: drop-shadow(0 0 5px rgba(246, 70, 93, 0.55)); }
 
+/* ─── Graphics 3.0 — 3D & motion additions ──────────────────────────────── */
+
+/* Perspective stage for tilt cards */
+.qe-tilt-stage { perspective: 900px; }
+.qe-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  will-change: transform;
+}
+.qe-tilt-layer { transform: translateZ(28px); transform-style: preserve-3d; }
+
+/* Shine sweep across banners */
+@keyframes qe-shine {
+  0% { transform: translateX(-140%) skewX(-18deg); }
+  100% { transform: translateX(320%) skewX(-18deg); }
+}
+.qe-shine { animation: qe-shine 5.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+
+/* Crimson banner — full-bleed brand band */
+.qe-banner {
+  background:
+    radial-gradient(1200px 400px at 18% -40%, rgba(220, 38, 38, 0.35), transparent 60%),
+    radial-gradient(900px 380px at 85% 130%, rgba(239, 68, 68, 0.22), transparent 62%),
+    linear-gradient(120deg, #140a0a 0%, #0a0a0a 45%, #170d0d 100%);
+  border: 1px solid rgba(220, 38, 38, 0.22);
+}
+
+/* Slow spin for emblem rings */
+@keyframes qe-spin-slow { to { transform: rotate(360deg); } }
+.qe-spin-slow { animation: qe-spin-slow 22s linear infinite; }
+
+/* Float for decorative marks */
+@keyframes qe-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.qe-float { animation: qe-float 7s ease-in-out infinite; }
+
+/* Focus ring in brand red for inputs */
+.qe-focus:focus-visible {
+  outline: 2px solid rgba(220, 38, 38, 0.65);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .qe-aurora-a, .qe-aurora-b, .qe-aurora-c, .qe-beam, .qe-gradient-text, .qe-ticker-track, .qe-breathe { animation: none !important; }
+  .qe-aurora-a, .qe-aurora-b, .qe-aurora-c, .qe-beam, .qe-gradient-text, .qe-ticker-track, .qe-breathe,
+  .qe-shine, .qe-spin-slow, .qe-float { animation: none !important; }
+  .qe-tilt { transform: none !important; }
 }

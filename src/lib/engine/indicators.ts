@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Technical indicators (pure functions, no look-ahead)
+// DEEYOUNG PRO — Technical indicators (pure functions, no look-ahead)
 // All functions operate on arrays ordered oldest → newest and only use data ≤ index i.
 
 export interface Bar { t: number; o: number; h: number; l: number; c: number; v: number }

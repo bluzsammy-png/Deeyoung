@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — signup MX deliverability check (anti-abuse layer 1.5).
+// DEEYOUNG PRO — signup MX deliverability check (anti-abuse layer 1.5).
 // Rejects signups whose email domain cannot receive mail (typo'd domains,
 // lookalike domains with no MX), while never blocking real users on DNS hiccups:
 //   • definitive "no mail here" answers (ENOTFOUND/ENODATA) → reject

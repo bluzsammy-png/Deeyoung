@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Cinematic landing backdrop (Graphics 2.0).
+// DEEYOUNG PRO — Cinematic landing backdrop (Graphics 2.0).
 // Product-native: a live "market constellation" — nodes drift like tickers,
 // connections like correlation edges, cursor acts like a liquidity magnet.
 // Pure canvas 2D, DPR-aware, pauses when the tab is hidden, honors

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — NewsProvider abstraction (§28) with BYOK (§30) and honest failure (§11, §43)
+// DEEYOUNG PRO — NewsProvider abstraction (§28) with BYOK (§30) and honest failure (§11, §43)
 // Free-tier providers require an API key (BYOK). Without a key, we show
 // "NEWS DATA UNAVAILABLE" — we NEVER fabricate news (this was the audit's finding ①).
 
@@ -92,7 +92,7 @@ export async function getNewsFeed(symbols: string[]): Promise<NewsEnvelope> {
     return new FinnhubProvider().getFeed(symbols);
   }
   return unavailable(
-    "The catalyst feed needs a free news API key (BYOK). Until one is connected, QuantEdge will not display or infer any news — fabricated headlines are the #1 trust killer in market tools.",
+    "The catalyst feed needs a free news API key (BYOK). Until one is connected, DeeYoung will not display or infer any news — fabricated headlines are the #1 trust killer in market tools.",
     false
   );
 }

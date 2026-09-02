@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Research: Backtest Lab (§21) + bias warnings (§22)
+// DEEYOUNG PRO — Research: Backtest Lab (§21) + bias warnings (§22)
 // Honest metrics; next-bar fills; walk-forward caveat surfaced by default.
 
 import { useState } from "react";
@@ -66,7 +66,7 @@ export function ResearchView() {
         <div className="flex flex-wrap items-end gap-4">
           <div>
             <label className="qe-label mb-1.5 block">Symbol</label>
-            <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-pos">
+            <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-brand">
               {SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
@@ -75,7 +75,7 @@ export function ResearchView() {
             <div className="flex gap-1">
               {RANGES.map((r) => (
                 <button key={r} onClick={() => setRangeMonths(r)}
-                  className={`rounded-lg px-3 py-2 text-xs font-semibold ${rangeMonths === r ? "bg-pos/12 text-pos" : "bg-panel-2 text-muted-foreground hover:text-foreground"}`}>
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold ${rangeMonths === r ? "bg-brand/12 text-brand" : "bg-panel-2 text-muted-foreground hover:text-foreground"}`}>
                   {r}M
                 </button>
               ))}
@@ -90,7 +90,7 @@ export function ResearchView() {
             <input type="range" min={0.25} max={3} step={0.25} value={risk} onChange={(e) => setRisk(Number(e.target.value))} className="w-40 accent-[#10b981]" />
           </div>
           <button onClick={run} disabled={busy}
-            className="qe-glow inline-flex items-center gap-2 rounded-xl bg-pos px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] disabled:opacity-50">
+            className="qe-glow inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.02] disabled:opacity-50">
             <FlaskConical className="h-4 w-4" />
             {busy ? "Running…" : "Run backtest"}
           </button>

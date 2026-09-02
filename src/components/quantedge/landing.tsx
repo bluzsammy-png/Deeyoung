@@ -1,24 +1,31 @@
 "use client";
 
-// QUANTEDGE PRO — Landing surface (§52 positioning, §70 addendum fixes)
-// Fixes the audit's top marketing findings:
-//   ✓ Real product preview (live, data-driven) instead of text-only pitch
-//   ✓ Delayed-data disclosure surfaced BEFORE the terminal (D4, §50 addendum)
-//   ✓ ToS / Privacy / Refund links visible (§51 addendum)
-//   ✓ Product-native visuals only — no stock photos, no robot art (§37)
+// DEEYOUNG PRO — Landing surface (Crimson Luxe, Graphics 3.0)
+//   ✓ WebGL hero: rotating 3D candlestick market city (static drawn fallback)
+//   ✓ Tilt-reactive feature cards with hand-drawn SVG data sketches
+//   ✓ Full-bleed crimson banners, pricing banner (₦15,000/mo Pro), honest disclosures
+//   ✓ Legal (ToS/Privacy/Refund) + support: deyongsltd@gmail.com
 
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, BarChart3, Bell, CheckCircle2, Gauge, Play, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, Bell, CheckCircle2, Gauge, Mail, Play, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { DataBadge, Price, Pct } from "@/components/quantedge/ui-bits";
 import { SignalRing } from "@/components/quantedge/charts/widgets";
 import { Sparkline } from "@/components/quantedge/charts/core";
 import { AuroraBackdrop } from "@/components/quantedge/charts/aurora";
 import { LegalModal } from "@/components/quantedge/legal";
+import { TiltCard } from "@/components/quantedge/three/tilt-card";
 import type { Quote } from "@/lib/types";
 
+const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"), {
+  ssr: false,
+  loading: () => <div className="qe-banner absolute inset-0" aria-hidden />,
+});
+
 const TICKERS = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "SPY", "QQQ"];
+const SUPPORT_EMAIL = "deyongsltd@gmail.com";
 
 export function Landing() {
   const setEntered = useApp((s) => s.setEntered);
@@ -26,6 +33,7 @@ export function Landing() {
   const legalModal = useApp((s) => s.legalModal);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [signalDemo] = useState({ score: 84 });
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -38,117 +46,127 @@ export function Landing() {
     };
     const t = setTimeout(load, 0);
     const iv = setInterval(load, 45_000);
-    return () => { alive = false; clearInterval(iv); clearTimeout(t); };
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { alive = false; clearInterval(iv); clearTimeout(t); window.removeEventListener("scroll", onScroll); };
   }, []);
 
   return (
     <div className="relative min-h-screen overflow-x-clip">
-      {/* cinematic backdrop — market constellation + aurora (Graphics 2.0) */}
+      {/* cinematic backdrop */}
       <AuroraBackdrop />
       <div className="qe-grid-bg pointer-events-none absolute inset-0 opacity-60" />
 
-      {/* nav */}
-      <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <div className="flex items-center gap-2.5">
-          <EdgeMark />
-          <div className="leading-none">
-            <span className="text-[15px] font-bold tracking-tight">QuantEdge<span className="text-pos"> Pro</span></span>
-            <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Market Intelligence Terminal</span>
+      {/* nav — glass, lifts on scroll */}
+      <header className={`sticky top-0 z-30 transition-all duration-300 ${scrolled ? "qe-glass border-b border-hairline shadow-[0_12px_40px_-20px_rgba(0,0,0,0.8)]" : ""}`}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <EdgeMark />
+            <div className="leading-none">
+              <span className="qe-display text-[15px] font-bold tracking-tight">DeeYoung<span className="text-brand"> Pro</span></span>
+              <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Market Intelligence Terminal</span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setLegalModal("TOS")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Terms</button>
-          <button onClick={() => setLegalModal("PRIVACY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Privacy</button>
-          <button
-            onClick={() => setEntered(true)}
-            className="qe-glow group inline-flex items-center gap-2 rounded-xl bg-pos px-4 py-2.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-[0.98]"
-          >
-            Open Terminal
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setLegalModal("TOS")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Terms</button>
+            <button onClick={() => setLegalModal("PRIVACY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Privacy</button>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground md:block">Support</a>
+            <button
+              onClick={() => setEntered(true)}
+              className="qe-glow group inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[13px] font-semibold text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            >
+              Open Terminal
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* hero */}
-      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-10 pt-10 sm:pt-16">
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-hairline bg-panel/60 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-            <span className="qe-pulse-dot h-1.5 w-1.5 rounded-full bg-pos text-pos" />
-            Unified analytics + SENTINEL action layer — one product
-          </div>
-          <h1 className="max-w-3xl text-4xl font-bold leading-[1.06] tracking-tight sm:text-6xl">
-            Understand the market.
-            <br />
-            <span className="qe-gradient-text">See what matters.</span>
-            <br />
-            Act with supervision.
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            QuantEdge Pro tells you what is happening, why it is happening, and which opportunities and risks exist — with multi-factor signals, catalyst intelligence, and portfolio risk in one terminal. SENTINEL is the optional action layer: it proposes, you approve. Paper execution by default.
-          </p>
-
-          {/* honesty disclosure — surfaced up front (audit D4 / §50 addendum) */}
-          <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-warn/25 bg-warn/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-warn">
-            <ShieldCheck className="h-4 w-4 shrink-0" />
-            <span>
-              <strong className="font-semibold">Data honesty:</strong> quotes are provided on a <strong className="font-semibold">delayed basis per exchange terms</strong> — not real-time. Simulated fallback data is always labeled. Paper trading only.
-            </span>
+      {/* hero — 3D stage */}
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-6 pt-8 sm:pt-14">
+        <div className="relative">
+          {/* WebGL market city behind the headline */}
+          <div className="pointer-events-none absolute -inset-x-10 -top-24 bottom-[-120px] sm:bottom-[-60px]">
+            <HeroScene />
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setEntered(true)}
-              className="qe-glow group inline-flex items-center gap-2.5 rounded-xl bg-pos px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-[0.98]"
-            >
-              <Play className="h-4 w-4 fill-current" />
-              Launch the live terminal
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </button>
-            <span className="text-xs text-muted-foreground">No account needed in this preview · delayed data · paper trading</span>
-          </div>
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className="relative">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.08] px-3 py-1.5 text-[11px] font-medium text-foreground/90">
+              <span className="qe-pulse-dot h-1.5 w-1.5 rounded-full bg-brand text-brand" />
+              Unified analytics + SENTINEL action layer — one product
+            </div>
+            <h1 className="qe-display max-w-3xl text-[42px] font-bold leading-[1.03] tracking-tight sm:text-7xl">
+              Understand the market.
+              <br />
+              <span className="qe-gradient-text">See what matters.</span>
+              <br />
+              Act with supervision.
+            </h1>
+            <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+              DeeYoung Pro tells you what is happening, why it is happening, and which opportunities and risks exist — with multi-factor signals, catalyst intelligence, and portfolio risk in one terminal. SENTINEL is the optional action layer: it proposes, you approve. Paper execution by default.
+            </p>
 
-          {/* honest capability strip (Graphics 2.0) */}
-          <div className="mt-7 flex flex-wrap items-center gap-2">
-            {[
-              { k: "20", v: "symbol liquid universe" },
-              { k: "7", v: "visible signal factors" },
-              { k: "4", v: "SENTINEL safety levels" },
-              { k: "100%", v: "paper execution" },
-            ].map((s, i) => (
-              <motion.span
-                key={s.v}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 + i * 0.08, duration: 0.45 }}
-                className="qe-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground"
+            {/* honesty disclosure — surfaced up front */}
+            <div className="mt-6 inline-flex max-w-xl items-start gap-2 rounded-xl border border-warn/25 bg-warn/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-warn">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong className="font-semibold">Data honesty:</strong> quotes are provided on a <strong className="font-semibold">delayed basis per exchange terms</strong> — not real-time. Simulated fallback data is always labeled. Paper trading only.
+              </span>
+            </div>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setEntered(true)}
+                className="qe-glow group inline-flex items-center gap-2.5 rounded-xl bg-brand px-6 py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
               >
-                <span className="qe-num font-bold text-pos">{s.k}</span>
-                {s.v}
-              </motion.span>
-            ))}
-          </div>
-        </motion.div>
+                <Play className="h-4 w-4 fill-current" />
+                Launch the live terminal
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+              <span className="text-xs text-muted-foreground">No account needed in this preview · delayed data · paper trading</span>
+            </div>
 
-        {/* live product preview — the audit's #1 design fix (§37 addendum) */}
+            {/* honest capability strip */}
+            <div className="mt-8 flex flex-wrap items-center gap-2">
+              {[
+                { k: "20", v: "symbol liquid universe" },
+                { k: "7", v: "visible signal factors" },
+                { k: "4", v: "SENTINEL safety levels" },
+                { k: "100%", v: "paper execution" },
+              ].map((s, i) => (
+                <motion.span
+                  key={s.v}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 + i * 0.08, duration: 0.45 }}
+                  className="qe-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground"
+                >
+                  <span className="qe-num font-bold text-brand">{s.k}</span>
+                  {s.v}
+                </motion.span>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* live product preview — data-driven proof, red beam */}
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="relative mt-12"
+          className="relative mt-14"
         >
-          <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[28px] bg-pos/[0.05] blur-2xl" />
-          <div className="qe-panel relative overflow-hidden shadow-2xl">
-            {/* traveling beam (Graphics 2.0) */}
+          <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[28px] bg-brand/[0.07] blur-2xl" />
+          <div className="qe-brand-glow qe-panel relative overflow-hidden shadow-2xl">
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px overflow-hidden">
               <div className="qe-beam h-px w-1/4 bg-gradient-to-r from-transparent via-mint to-transparent" />
             </div>
-            {/* window chrome */}
             <div className="flex items-center justify-between border-b border-hairline px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-neg/70" />
                 <span className="h-2.5 w-2.5 rounded-full bg-warn/70" />
                 <span className="h-2.5 w-2.5 rounded-full bg-pos/70" />
-                <span className="ml-3 text-[11px] font-medium text-muted-foreground">QuantEdge Pro — Live Preview</span>
+                <span className="ml-3 text-[11px] font-medium text-muted-foreground">DeeYoung Pro — Live Preview</span>
               </div>
               <div className="flex items-center gap-2">
                 <DataBadge state={quotes[0]?.dataState ?? "LIVE"} />
@@ -157,7 +175,6 @@ export function Landing() {
             </div>
 
             <div className="grid gap-3 p-4 sm:grid-cols-[1fr_240px]">
-              {/* live quotes grid */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(quotes.length ? quotes : Array.from({ length: 8 }).fill(null)).slice(0, 8).map((q, i) => (
                   <div key={q?.symbol ?? i} className="qe-panel-2 flex flex-col gap-1.5 rounded-xl p-3">
@@ -179,15 +196,14 @@ export function Landing() {
                 ))}
               </div>
 
-              {/* signal card */}
               <div className="qe-panel-2 hidden flex-col items-center justify-center gap-3 rounded-xl p-4 sm:flex">
                 <SignalRing score={signalDemo.score} />
                 <div className="text-center">
                   <p className="text-xs font-semibold">NVDA · Strong bullish setup</p>
                   <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">EMA +18 · VWAP +15 · MACD +14 · Catalyst +9</p>
                 </div>
-                <div className="mt-1 flex w-full items-center justify-between rounded-lg border border-pos/25 bg-pos/10 px-3 py-2">
-                  <span className="text-[10px] font-bold tracking-wider text-pos">SENTINEL</span>
+                <div className="mt-1 flex w-full items-center justify-between rounded-lg border border-brand/25 bg-brand/10 px-3 py-2">
+                  <span className="text-[10px] font-bold tracking-wider text-brand">SENTINEL</span>
                   <span className="text-[10px] text-foreground/80">Approve mode · 1 pending</span>
                 </div>
               </div>
@@ -196,14 +212,75 @@ export function Landing() {
         </motion.div>
       </section>
 
-      {/* feature strip */}
-      <section className="relative z-10 mx-auto max-w-6xl px-5 py-14">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* brand banner strip */}
+      <section className="relative z-10 mx-auto mt-14 max-w-6xl px-5">
+        <div className="qe-banner relative overflow-hidden rounded-2xl px-6 py-6 sm:px-10">
+          <div className="pointer-events-none absolute inset-y-0 w-1/3 qe-shine bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="qe-label text-brand-hi">The DeeYoung standard</p>
+              <p className="qe-display mt-1.5 text-xl font-bold sm:text-2xl">
+                Institutional-grade analysis. <span className="text-brand-hi">Nigerian</span> hustle pricing.
+              </p>
+            </div>
+            <button
+              onClick={() => setEntered(true)}
+              className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition-transform hover:scale-[1.03]"
+            >
+              Claim your 14-day trial
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* features — tilt cards with drawn sketches */}
+      <section className="relative z-10 mx-auto max-w-6xl px-5 py-16">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: Activity, title: "Multi-factor signals", body: "EMA structure, VWAP, RSI, MACD, volume, catalysts and regime — every score shows its factor contributions. No black boxes." },
-            { icon: BarChart3, title: "Catalyst intelligence", body: "News becomes intelligence: headline, source, sentiment and strength mapped to your tickers. Verified feeds only — never fabricated." },
-            { icon: Gauge, title: "Portfolio risk", body: "Concentration, correlation, scenario shocks and drawdown. QuantEdge warns when three positions are really one trade." },
-            { icon: ShieldCheck, title: "SENTINEL safety", body: "Observe by default. Deterministic risk limits gate every proposal. Emergency stop one tap away. Paper execution, clearly labeled." },
+            {
+              icon: Activity, title: "Multi-factor signals",
+              body: "EMA structure, VWAP, RSI, MACD, volume, catalysts and regime — every score shows its factor contributions. No black boxes.",
+              sketch: (
+                <svg viewBox="0 0 120 36" className="h-9 w-full">
+                  {[14, 30, 22, 38, 26, 34, 18, 30].map((h, i) => (
+                    <rect key={i} x={i * 15 + 2} y={34 - h} width={9} height={h} rx={2} fill={i === 3 ? "#dc2626" : "#3f3f46"} />
+                  ))}
+                </svg>
+              ),
+            },
+            {
+              icon: BarChart3, title: "Catalyst intelligence",
+              body: "News becomes intelligence: headline, source, sentiment and strength mapped to your tickers. Verified feeds only — never fabricated.",
+              sketch: (
+                <svg viewBox="0 0 120 36" className="h-9 w-full">
+                  <path d="M4 28 L24 20 L44 24 L64 10 L84 16 L104 6 L116 12" stroke="#ef4444" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="104" cy="6" r="3.4" fill="#dc2626" />
+                  <circle cx="24" cy="20" r="2.4" fill="#f5f5f5" />
+                </svg>
+              ),
+            },
+            {
+              icon: Gauge, title: "Portfolio risk",
+              body: "Concentration, correlation, scenario shocks and drawdown. DeeYoung Pro warns when three positions are really one trade.",
+              sketch: (
+                <svg viewBox="0 0 120 36" className="h-9 w-full">
+                  <path d="M8 30 A 52 52 0 0 1 112 30" stroke="#3f3f46" strokeWidth="6" fill="none" strokeLinecap="round" />
+                  <path d="M8 30 A 52 52 0 0 1 78 6" stroke="#dc2626" strokeWidth="6" fill="none" strokeLinecap="round" />
+                  <circle cx="78" cy="6" r="4.4" fill="#f5f5f5" />
+                </svg>
+              ),
+            },
+            {
+              icon: ShieldCheck, title: "SENTINEL safety",
+              body: "Observe by default. Deterministic risk limits gate every proposal. Emergency stop one tap away. Paper execution, clearly labeled.",
+              sketch: (
+                <svg viewBox="0 0 120 36" className="h-9 w-full">
+                  <path d="M60 3 L88 12 V22 C88 29 74 34 60 34 C46 34 32 29 32 22 V12 Z" fill="none" stroke="#dc2626" strokeWidth="2.4" strokeLinejoin="round" />
+                  <path d="M50 18 L57 25 L72 11" stroke="#f5f5f5" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ),
+            },
           ].map((f, i) => (
             <motion.div
               key={f.title}
@@ -211,13 +288,17 @@ export function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: i * 0.08, duration: 0.5 }}
-              className="qe-panel qe-panel-hover p-5"
             >
-              <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-pos/10 ring-1 ring-pos/20">
-                <f.icon className="h-5 w-5 text-pos" />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold">{f.title}</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{f.body}</p>
+              <TiltCard>
+                <div className="qe-panel qe-panel-hover flex h-full flex-col p-5">
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand/12 ring-1 ring-brand/30">
+                    <f.icon className="h-5 w-5 text-brand-hi" />
+                  </div>
+                  <h3 className="qe-display mt-3.5 text-[15px] font-bold">{f.title}</h3>
+                  <p className="mt-1.5 flex-1 text-xs leading-relaxed text-muted-foreground">{f.body}</p>
+                  <div className="mt-4 border-t border-hairline pt-3 opacity-80">{f.sketch}</div>
+                </div>
+              </TiltCard>
             </motion.div>
           ))}
         </div>
@@ -227,23 +308,25 @@ export function Landing() {
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="qe-panel mt-3 p-6 sm:p-8"
+          className="qe-panel mt-4 p-6 sm:p-8"
         >
-          <h2 className="text-lg font-semibold tracking-tight">The QuantEdge journey</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Every screen supports one loop: understand → investigate → decide → act → learn.</p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="qe-display text-xl font-bold tracking-tight sm:text-2xl">The DeeYoung loop</h2>
+            <p className="text-sm text-muted-foreground">understand → investigate → decide → act → learn</p>
+          </div>
+          <div className="mt-7 grid gap-5 sm:grid-cols-5">
             {["Understand the regime", "See what matters", "Check the risk", "Decide", "Optionally act with SENTINEL"].map((s, i) => (
               <div key={s} className="relative">
-                <span className="qe-num text-xs font-bold text-pos">0{i + 1}</span>
-                <p className="mt-1.5 text-[13px] font-medium leading-snug">{s}</p>
-                {i < 4 && <ArrowRight className="absolute -right-2 top-0 hidden h-4 w-4 text-muted-foreground/40 sm:block" />}
+                <span className="qe-num inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold text-brand-hi ring-1 ring-brand/25">0{i + 1}</span>
+                <p className="mt-2 text-[13px] font-medium leading-snug">{s}</p>
+                {i < 4 && <ArrowRight className="absolute -right-2.5 top-1 hidden h-4 w-4 text-muted-foreground/40 sm:block" />}
               </div>
             ))}
           </div>
         </motion.div>
 
         {/* levels */}
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { lvl: "Level 1", name: "Analytics", body: "Markets, charts, catalysts, regimes, portfolio risk.", icon: TrendingUp },
             { lvl: "Level 2", name: "Signals", body: "Alerts when something interesting happens on your watchlist.", icon: Bell },
@@ -258,28 +341,91 @@ export function Landing() {
               className="qe-panel-2 qe-panel-hover p-5"
             >
               <div className="flex items-center justify-between">
-                <span className="qe-label text-pos">{l.lvl}</span>
+                <span className="qe-label text-brand-hi">{l.lvl}</span>
                 <l.icon className="h-4 w-4 text-muted-foreground" />
               </div>
-              <h3 className="mt-2 text-sm font-semibold">{l.name}</h3>
+              <h3 className="qe-display mt-2 text-sm font-bold">{l.name}</h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{l.body}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* footer with legal (§70) */}
-      <footer className="relative z-10 border-t border-hairline">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-4">
-            <button onClick={() => setLegalModal("TOS")} className="transition-colors hover:text-foreground">Terms of Service</button>
-            <button onClick={() => setLegalModal("PRIVACY")} className="transition-colors hover:text-foreground">Privacy Policy</button>
-            <button onClick={() => setLegalModal("REFUND")} className="transition-colors hover:text-foreground">Refund & Cancellation</button>
-            <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
+      {/* pricing banner */}
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="qe-brand-glow qe-banner relative overflow-hidden rounded-3xl p-7 sm:p-10"
+        >
+          <div className="pointer-events-none absolute inset-y-0 w-1/3 qe-shine bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
+          <div className="relative grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+            <div>
+              <p className="qe-label text-brand-hi">Pricing</p>
+              <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">Pro plan — everything unlocked.</h2>
+              <ul className="mt-5 space-y-2.5 text-sm text-foreground/85">
+                {[
+                  "Full terminal: analytics, signals, catalysts, risk",
+                  "SENTINEL supervised & delegated automation",
+                  "Backtest Lab + AI Daily Briefing",
+                  "14-day free trial · no card required · cancel anytime",
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-hi" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="qe-panel rounded-2xl p-6 text-center">
+              <p className="qe-label">Pro</p>
+              <p className="qe-display mt-2 text-4xl font-bold">
+                ₦15,000<span className="text-base font-medium text-muted-foreground">/month</span>
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Card payments arrive after our payment provider onboarding completes — start free today, no card needed.
+              </p>
+              <button
+                onClick={() => setEntered(true)}
+                className="qe-glow mt-5 w-full rounded-xl bg-brand py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02]"
+              >
+                Start my free trial
+              </button>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Questions? <a className="text-brand-hi hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+              </p>
+            </div>
           </div>
-          <p className="leading-relaxed">
-            Market data delayed per exchange terms. Simulated execution only — not real brokerage. Nothing here is investment advice.
-          </p>
+        </motion.div>
+      </section>
+
+      {/* footer with legal + support */}
+      <footer className="relative z-10 border-t border-hairline">
+        <div className="mx-auto max-w-6xl px-5 py-10">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-sm">
+              <div className="flex items-center gap-2.5">
+                <EdgeMark size={28} />
+                <span className="qe-display text-sm font-bold">DeeYoung<span className="text-brand"> Pro</span></span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                Market data delayed per exchange terms. Simulated execution only — not real brokerage. Nothing here is investment advice.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:items-end">
+              <div className="flex flex-wrap gap-4 sm:justify-end">
+                <button onClick={() => setLegalModal("TOS")} className="transition-colors hover:text-foreground">Terms of Service</button>
+                <button onClick={() => setLegalModal("PRIVACY")} className="transition-colors hover:text-foreground">Privacy Policy</button>
+                <button onClick={() => setLegalModal("REFUND")} className="transition-colors hover:text-foreground">Refund & Cancellation</button>
+                <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
+              </div>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-1.5 text-foreground/80 transition-colors hover:text-brand-hi">
+                <Mail className="h-3.5 w-3.5" /> {SUPPORT_EMAIL}
+              </a>
+              <p>© {new Date().getFullYear()} DeeYoungs Ltd. All rights reserved.</p>
+            </div>
+          </div>
         </div>
       </footer>
 
@@ -291,10 +437,10 @@ export function Landing() {
 export function EdgeMark({ size = 34 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#0c0f15" stroke="rgba(148,163,184,0.14)" />
-      <path d="M6 22 L12 14 L17 18 L26 7" stroke="#10b981" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="26" cy="7" r="2.6" fill="#10b981" />
-      <path d="M6 27 L26 27" stroke="#10b981" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+      <rect width="32" height="32" rx="8" fill="#0d0d0d" stroke="rgba(220,38,38,0.45)" />
+      <path d="M10 7.5 H17.5 C22 7.5 24.5 10.5 24.5 15.5 C24.5 21 21.5 24.5 16.8 24.5 H10 Z" fill="none" stroke="#f5f5f5" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M6.5 28.5 L25.5 28.5" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="25.5" cy="28.5" r="1.6" fill="#dc2626" />
     </svg>
   );
 }

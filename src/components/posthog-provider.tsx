@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — PostHog product analytics (env-gated: no key → fully disabled).
+// DEEYOUNG PRO — PostHog product analytics (env-gated: no key → fully disabled).
 // Add NEXT_PUBLIC_POSTHOG_KEY in Railway to activate. See DEPLOY.md.
 
 import { useEffect } from "react";

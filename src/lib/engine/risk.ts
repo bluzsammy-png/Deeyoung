@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Deterministic Risk Engine (§4, §16)
+// DEEYOUNG PRO — Deterministic Risk Engine (§4, §16)
 // HARD GATES. The AI may explain and rank but can NEVER bypass these checks. (§5)
 // Every proposal must PASS here before an approval is created or a delegate order executes.
 

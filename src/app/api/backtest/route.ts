@@ -35,12 +35,12 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
   }
   // Honesty gate (§55): never present backtest results computed from simulated marks
   if (series.dataState === "SIMULATED" || benchmark.dataState === "SIMULATED") {
-    return NextResponse.json({ error: "Backtesting is paused: market data is degraded to simulated marks. QuantEdge will not generate performance statistics from numbers it cannot verify. Try again when live data returns." }, { status: 503 });
+    return NextResponse.json({ error: "Backtesting is paused: market data is degraded to simulated marks. DeeYoung will not generate performance statistics from numbers it cannot verify. Try again when live data returns." }, { status: 503 });
   }
 
   const result = runBacktest(series, benchmark, params);
 
-  await db.usageEvent.create({ data: { userId: user.id, provider: "QUANTEDGE", service: "BACKTEST", units: 1, estCostUsd: 0 } });
+  await db.usageEvent.create({ data: { userId: user.id, provider: "DEEYOUNG", service: "BACKTEST", units: 1, estCostUsd: 0 } });
   await db.auditEvent.create({
     data: { userId: user.id, category: "ADMIN", action: "BACKTEST_RUN", detail: JSON.stringify({ symbol, rangeMonths, params }) },
   });

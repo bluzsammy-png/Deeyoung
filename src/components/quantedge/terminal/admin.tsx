@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Admin & Trust: user list, moderation ladder (warn → suspend → ban),
+// DEEYOUNG PRO — Admin & Trust: user list, moderation ladder (warn → suspend → ban),
 // signup-velocity flags. Visible only to role=ADMIN; the API enforces the same.
 
 import { useCallback, useEffect, useState } from "react";

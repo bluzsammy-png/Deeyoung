@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — client state (zustand). Authoritative state lives server-side (§34);
+// DEEYOUNG PRO — client state (zustand). Authoritative state lives server-side (§34);
 // this store holds only view state + cached API payloads (client preferences/cache allowed §34).
 
 import { create } from "zustand";

@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — MarketDataProvider abstraction (§28) with shared cache (§27)
+// DEEYOUNG PRO — MarketDataProvider abstraction (§28) with shared cache (§27)
 // YahooChartProvider: free delayed data ("delayed per exchange terms" — D4 honesty).
 // SimulatedProvider: clearly labeled SIMULATED fallback when upstream is rate-limited/unreachable.
 // 1,000 users watching NVDA → 1 shared upstream request, not 1,000. (§27)
@@ -10,7 +10,7 @@ import type { Candle, CandleSeries, DataState, Quote } from "@/lib/types";
 const UA_POOL = [
   "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0",
   "Mozilla/5.0",
-  "QuantEdgePro-Research/2.0 (market-data; delayed per exchange terms)",
+  "DeeYoungPro-Research/2.0 (market-data; delayed per exchange terms)",
 ];
 let uaIdx = 0;
 function nextUA(): string {
@@ -282,7 +282,7 @@ function seeded(symbol: string, i: number): number {
 }
 
 export class SimulatedProvider implements MarketDataProvider {
-  name = "QUANTEDGE_SIM";
+  name = "DEEYOUNG_SIM";
 
   private basePrice(symbol: string): number {
     const bases: Record<string, number> = {
@@ -383,7 +383,7 @@ export const marketProvider = {
         else quotes.push((await sim.getQuote(symbols[i])) as Quote);
       }
     }
-    return { quotes, provider: degraded ? "YAHOO_CHART+QUANTEDGE_SIM" : "YAHOO_CHART" };
+    return { quotes, provider: degraded ? "YAHOO_CHART+DEEYOUNG_SIM" : "YAHOO_CHART" };
   },
 
   async getCandles(symbol: string, tf: keyof typeof RANGE_MAP): Promise<CandleSeries> {

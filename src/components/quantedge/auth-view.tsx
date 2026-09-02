@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Auth gate: sign in / create account, shown before the terminal opens.
+// DEEYOUNG PRO — Auth gate: sign in / create account, shown before the terminal opens.
 // Carries the anti-abuse messaging: temp-mail rejection, one-per-person policy.
 
 import { useEffect, useRef, useState } from "react";
@@ -159,7 +159,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           <div className="flex items-center gap-3">
             <EdgeMark size={34} />
             <div>
-              <p className="text-sm font-bold tracking-tight">QuantEdge<span className="text-pos"> Pro</span></p>
+              <p className="text-sm font-bold tracking-tight">DeeYoung<span className="text-pos"> Pro</span></p>
               <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Intelligence Terminal</p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                 key={m}
                 onClick={() => switchMode(m)}
                 className={`relative rounded-lg py-2 text-xs font-semibold transition-colors ${
-                  mode === m ? "bg-pos/15 text-pos" : "text-muted-foreground hover:text-foreground"
+                  mode === m ? "bg-brand/15 text-brand" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {m === "signup" ? "Create account" : "Sign in"}
@@ -197,7 +197,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                   autoComplete="name"
                   required
                   minLength={2}
-                  className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                  className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-brand/50"
                 />
               </div>
             )}
@@ -211,7 +211,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                 placeholder="you@example.com"
                 autoComplete="email"
                 required={mode !== "reset"}
-                className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-brand/50"
               />
             </div>
             <div className={mode === "forgot" || mode === "reset" ? "hidden" : "block"}>
@@ -225,7 +225,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 required={mode === "signin" || mode === "signup"}
                 minLength={mode === "signup" ? 8 : undefined}
-                className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-brand/50"
               />
             </div>
             {mode === "reset" && (
@@ -241,7 +241,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                     autoComplete="new-password"
                     required
                     minLength={8}
-                    className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                    className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-brand/50"
                   />
                 </div>
                 <div>
@@ -255,7 +255,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
                     autoComplete="new-password"
                     required
                     minLength={8}
-                    className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-pos/50"
+                    className="w-full rounded-xl border border-hairline bg-panel-2 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-brand/50"
                   />
                 </div>
               </>
@@ -271,7 +271,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
             )}
 
             {notice && (
-              <p className="flex items-start gap-2 rounded-xl border border-pos/30 bg-pos/10 px-3.5 py-2.5 text-xs leading-snug text-pos" role="status">
+              <p className="flex items-start gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3.5 py-2.5 text-xs leading-snug text-brand-hi" role="status">
                 <MailCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 {notice}
               </p>
@@ -291,7 +291,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
             <button
               type="submit"
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-pos py-3 text-sm font-bold text-[#04110a] transition-all hover:brightness-110 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
               {mode === "signup"
@@ -323,7 +323,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
 
           <div className="mt-5 space-y-2 border-t border-hairline pt-4">
             <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 text-pos" />
+              <ShieldCheck className="h-3.5 w-3.5 text-brand" />
               14-day free trial · no card required · cancel anytime
             </p>
             <p className="text-[11px] leading-relaxed text-muted-foreground/70">

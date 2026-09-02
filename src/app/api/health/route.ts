@@ -32,7 +32,7 @@ export async function GET() {
     sources.DATABASE = { state: "DOWN", detail: "Database unreachable" };
   }
 
-  sources.BROKER = { state: "HEALTHY", detail: "QuantEdge Simulated paper broker active; Alpaca awaits BYOK keys" };
+  sources.BROKER = { state: "HEALTHY", detail: "DeeYoung Simulated paper broker active; Alpaca awaits BYOK keys" };
   sources.NOTIFICATIONS = { state: "HEALTHY", detail: "Web channel active" };
 
   const overall = Object.values(sources).some((s) => s.state === "DOWN")

@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — SENTINEL center (§16, §17, §18, §45)
+// DEEYOUNG PRO — SENTINEL center (§16, §17, §18, §45)
 // Modes: Observe (default) → Approve → Delegate. Deterministic risk checks shown
 // verbatim. Emergency Stop one tap away. Everything audited.
 
@@ -125,8 +125,8 @@ export function SentinelView() {
       <SectionHead
         title="SENTINEL"
         sub="The optional action layer — it proposes, disposes nothing without permission"
-        right={<button onClick={runTick} disabled={ticking} className="inline-flex items-center gap-2 rounded-xl bg-pos/10 px-4 py-2 text-xs font-semibold text-pos transition-colors hover:bg-pos/20 disabled:opacity-50">
-          {ticking ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-pos border-t-transparent" /> : <Play className="h-3.5 w-3.5" />}
+        right={<button onClick={runTick} disabled={ticking} className="inline-flex items-center gap-2 rounded-xl bg-brand/12 px-4 py-2 text-xs font-semibold text-brand-hi transition-colors hover:bg-brand/20 disabled:opacity-50">
+          {ticking ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand border-t-transparent" /> : <Play className="h-3.5 w-3.5" />}
           Run scan now
         </button>}
       />
@@ -175,7 +175,7 @@ export function SentinelView() {
                     ? toast({
                         title: "Confirm Delegate mode",
                         description: "Automatic execution will place real paper orders inside your limits without per-trade approval. Enable it?",
-                        action: <button className="rounded-lg bg-pos px-3 py-1.5 text-xs font-bold text-white" onClick={() => setMode("DELEGATE", true)}>Confirm Delegate</button>,
+                        action: <button className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-white" onClick={() => setMode("DELEGATE", true)}>Confirm Delegate</button>,
                       })
                     : setMode(key))}
                   className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
@@ -419,7 +419,7 @@ function ApprovalCard({ approval, onDecided }: { approval: Approval; onDecided: 
         <button
           onClick={() => decide("APPROVE")}
           disabled={busy !== null || secsLeft === 0}
-          className="flex-1 rounded-xl bg-pos py-2.5 text-xs font-bold text-primary-foreground transition-transform hover:scale-[1.01] disabled:opacity-40"
+          className="flex-1 rounded-xl bg-brand py-2.5 text-xs font-bold text-white transition-transform hover:scale-[1.01] disabled:opacity-40"
         >
           {busy === "APPROVE" ? "Routing…" : "Approve"}
         </button>
@@ -504,7 +504,7 @@ function RiskLimitsEditor({ config, onSaved }: { config: SentinelStatePayload["c
           <ShieldCheck className="h-3.5 w-3.5 text-pos" />
           These limits gate SENTINEL deterministically. The AI cannot change or bypass them — architecturally.
         </p>
-        <button onClick={save} disabled={saving} className="rounded-xl bg-pos px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">
+        <button onClick={save} disabled={saving} className="rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
           {saving ? "Saving…" : "Save & audit"}
         </button>
       </div>

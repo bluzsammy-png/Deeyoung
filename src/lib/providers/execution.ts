@@ -1,7 +1,7 @@
-// QUANTEDGE PRO — ExecutionProvider abstraction (§19) + realistic paper fills (§20)
-// QuantEdgePaperProvider: modeled slippage, spread, latency, partial fills, rejects.
+// DEEYOUNG PRO — ExecutionProvider abstraction (§19) + realistic paper fills (§20)
+// DeeYoungPaperProvider: modeled slippage, spread, latency, partial fills, rejects.
 // AlpacaPaperProvider: stub requiring BYOK keys — never pretends to be connected.
-// Clearly labeled: "QuantEdge Simulated" vs "Alpaca Paper". Never implies real execution.
+// Clearly labeled: "DeeYoung Simulated" vs "Alpaca Paper". Never implies real execution.
 
 import { randomUUID } from "crypto";
 import type { Quote } from "@/lib/types";
@@ -16,7 +16,7 @@ export interface ExecutionResult {
   fills: FillRecord[];
   rejectReason?: string;
   latencyMs: number;
-  brokerLabel: string; // "QuantEdge Simulated" | "Alpaca Paper"
+  brokerLabel: string; // "DeeYoung Simulated" | "Alpaca Paper"
 }
 
 export interface OrderRequest {
@@ -44,9 +44,9 @@ function spreadBps(quote: Quote): number {
   return Math.max(1, Math.min(40, est));
 }
 
-export class QuantEdgePaperProvider implements ExecutionProvider {
-  name = "QUANTEDGE_SIM";
-  label = "QuantEdge Simulated";
+export class DeeYoungPaperProvider implements ExecutionProvider {
+  name = "DEEYOUNG_SIM";
+  label = "DeeYoung Simulated";
 
   async execute(req: OrderRequest): Promise<ExecutionResult> {
     const t0 = Date.now();
@@ -125,14 +125,14 @@ export class AlpacaPaperProvider implements ExecutionProvider {
     // BYOK keys not configured in this environment → honest refusal, never fake fills (§55)
     return {
       ok: false, status: "REJECTED", filledQty: 0, avgFillPrice: null, fills: [],
-      rejectReason: "Alpaca Paper requires your API keys (BYOK). Connect keys in Settings → Broker to enable. QuantEdge will never simulate Alpaca fills without a live connection.",
+      rejectReason: "Alpaca Paper requires your API keys (BYOK). Connect keys in Settings → Broker to enable. DeeYoung will never simulate Alpaca fills without a live connection.",
       latencyMs: 0, brokerLabel: this.label,
     };
   }
 }
 
 export function getExecutionProvider(broker: string): ExecutionProvider {
-  return broker === "ALPACA_PAPER" ? new AlpacaPaperProvider() : new QuantEdgePaperProvider();
+  return broker === "ALPACA_PAPER" ? new AlpacaPaperProvider() : new DeeYoungPaperProvider();
 }
 
 export function newRequestId(): string {

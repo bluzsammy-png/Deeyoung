@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Core chart graphics (custom SVG, product-native §37)
+// DEEYOUNG PRO — Core chart graphics (custom SVG, product-native §37)
 // Graphics 2.0: gradient candle bodies, last-price glow tag on the axis,
 // full crosshair with price/time tags, gradient volume, animated overlays,
 // drawn-in equity curve. Still pure SVG — no chart libraries.

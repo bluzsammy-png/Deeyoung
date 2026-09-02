@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — Multi-Factor Signal Engine (§14) + Catalyst Intelligence (§12)
+// DEEYOUNG PRO — Multi-Factor Signal Engine (§14) + Catalyst Intelligence (§12)
 // Deterministic. AI may explain/rank/summarize but NEVER overrides scoring. (§5)
 
 import { atr, bollinger, ema, lastDefined, macd, relativeVolume, roc, rsi, vwap } from "@/lib/engine/indicators";
@@ -159,7 +159,7 @@ export function computeSignal(input: EngineInput): SignalResult | null {
     .join(", ");
 
   const explanation = direction === "NEUTRAL"
-    ? `No trade-worthy alignment on ${candles.symbol}: factor signals conflict (bull ${bullScore.toFixed(0)} vs bear ${bearScore.toFixed(0)}). QuantEdge stays flat and rescans.`
+    ? `No trade-worthy alignment on ${candles.symbol}: factor signals conflict (bull ${bullScore.toFixed(0)} vs bear ${bearScore.toFixed(0)}). DeeYoung stays flat and rescans.`
     : `${direction === "LONG" ? "Bullish" : "Bearish"} setup on ${candles.symbol} scoring ${score}/100, driven mainly by ${topFactors}. ${input.catalystScore > 0 ? "A verified catalyst adds confluence. " : ""}Setup respects a ${stopMult}× ATR stop at ${stop.toFixed(2)} with target ${target.toFixed(2)} (R:R ${rr.toFixed(1)}). This is analysis, not a guarantee — a ${score}% signal score is NOT a ${score}% win probability.`;
 
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Root application shell: landing ↔ auth ↔ terminal.
+// DEEYOUNG PRO — Root application shell: landing ↔ auth ↔ terminal.
 // Single-page product (per platform constraint): all navigation is in-app.
 
 import { useEffect } from "react";
@@ -23,7 +23,7 @@ function AuthSplash() {
   );
 }
 
-export function QuantEdgeApp() {
+export function DeeYoungApp() {
   const entered = useApp((s) => s.entered);
   const setEntered = useApp((s) => s.setEntered);
   const { data: session, isPending } = authClient.useSession();

@@ -1,6 +1,6 @@
 "use client";
 
-// QUANTEDGE PRO — Unified Dashboard (§53): one screen, one product.
+// DEEYOUNG PRO — Unified Dashboard (§53): one screen, one product.
 // Understand → Investigate → Decide → Act. Analytics primary; SENTINEL integrated.
 
 import { useCallback, useEffect, useState } from "react";
@@ -71,21 +71,21 @@ export function DashboardView() {
       {/* ── Header: greeting + regime + portfolio ── */}
       <div className="grid gap-3 lg:grid-cols-[1.35fr_1fr]">
         <div className="qe-panel relative overflow-hidden p-5">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-pos/[0.07] blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand/[0.09] blur-3xl" />
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[13px] text-muted-foreground">{greeting}</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight">Your market, decoded<span className="text-pos">.</span></h1>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight">Your market, decoded<span className="text-brand">.</span></h1>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-hairline bg-panel-2 px-3 py-1.5 text-xs">
-                  <Bot className="h-3.5 w-3.5 text-pos" />
+                  <Bot className="h-3.5 w-3.5 text-brand-hi" />
                   SENTINEL:
                   <span className="font-semibold">{data?.sentinel.mode ?? "…"}</span>
                   {data?.sentinel.killSwitch && <span className="font-bold text-neg">· EMERGENCY STOP</span>}
                 </span>
                 <button
                   onClick={() => setView("sentinel")}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-pos/10 px-3 py-1.5 text-xs font-semibold text-pos transition-colors hover:bg-pos/20"
+                  className="group inline-flex items-center gap-1.5 rounded-full bg-brand/12 px-3 py-1.5 text-xs font-semibold text-brand-hi transition-colors hover:bg-brand/20"
                 >
                   Review opportunities
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -100,7 +100,7 @@ export function DashboardView() {
             <div className="mt-4 border-t border-hairline pt-3">
               <p className="text-xs leading-relaxed text-muted-foreground">
                 <InfoTip title="Market Regime">
-                  The regime is QuantEdge&apos;s read of overall market conditions — trend, volatility, and breadth combined. It adjusts signal thresholds, position sizing, and stop distances so behavior fits the environment.
+                  The regime is DeeYoung&apos;s read of overall market conditions — trend, volatility, and breadth combined. It adjusts signal thresholds, position sizing, and stop distances so behavior fits the environment.
                 </InfoTip>{" "}
                 {data.regime.explanation}
               </p>
@@ -145,7 +145,7 @@ export function DashboardView() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => { setFocused(q.symbol); setView("markets"); }}
-              className="qe-panel cursor-pointer p-3 text-left transition-colors hover:border-pos/30"
+              className="qe-panel cursor-pointer p-3 text-left transition-colors hover:border-brand/30"
             >
               <div className="flex items-baseline justify-between">
                 <span className="text-xs font-bold">{q.symbol}</span>
@@ -169,7 +169,7 @@ export function DashboardView() {
             title="Top opportunities"
             sub="Multi-factor signal scan across the liquid universe"
             right={
-              <button onClick={() => setView("markets")} className="group inline-flex items-center gap-1 text-xs font-semibold text-pos">
+              <button onClick={() => setView("markets")} className="group inline-flex items-center gap-1 text-xs font-semibold text-brand-hi">
                 All markets <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </button>
             }
@@ -182,7 +182,7 @@ export function DashboardView() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.06 }}
                 onClick={() => { setFocused(s.symbol); setView("markets"); }}
-                className="qe-panel group flex w-full items-center gap-4 p-4 text-left transition-colors hover:border-pos/30"
+                className="qe-panel group flex w-full items-center gap-4 p-4 text-left transition-colors hover:border-brand/30"
               >
                 <SignalRing score={s.score} size={64} />
                 <div className="min-w-0 flex-1">
@@ -200,12 +200,12 @@ export function DashboardView() {
                     Entry {fmtPrice(s.entry)} · Stop {fmtPrice(s.stop)} · Target {fmtPrice(s.target)} · R:R {s.rr.toFixed(1)}
                   </p>
                 </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-pos" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-brand-hi" />
               </motion.button>
             ))}
             {!opportunities.length && !loading && (
               <div className="qe-panel-2 rounded-xl p-5 text-sm text-muted-foreground">
-                No setups above the 55 display threshold right now. The scan continues — QuantEdge stays flat when factors conflict. That is by design.
+                No setups above the 55 display threshold right now. The scan continues — DeeYoung stays flat when factors conflict. That is by design.
               </div>
             )}
             {loading && Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[88px] animate-pulse rounded-xl bg-panel-2" />)}
@@ -222,7 +222,7 @@ export function DashboardView() {
               </div>
               <FactorBars factors={opportunities[0].factors} />
               <p className="mt-3 border-t border-hairline pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
-                <Sparkles className="mr-1 inline h-3 w-3 text-pos" />
+                <Sparkles className="mr-1 inline h-3 w-3 text-brand-hi" />
                 {opportunities[0].explanation}
               </p>
             </div>
@@ -236,7 +236,7 @@ export function DashboardView() {
             <div className="mb-2 flex items-center justify-between">
               <span className="qe-label">AI Morning Briefing</span>
               <InfoTip title="Grounded AI">
-                The briefing writer receives only verified numbers from QuantEdge&apos;s data providers and is forbidden from citing anything else. If data degrades, the briefing pauses rather than inventing content.
+                The briefing writer receives only verified numbers from DeeYoung&apos;s data providers and is forbidden from citing anything else. If data degrades, the briefing pauses rather than inventing content.
               </InfoTip>
             </div>
             {briefing?.ok ? (
@@ -268,7 +268,7 @@ export function DashboardView() {
                   {news?.message ?? "Waiting for provider…"}
                 </p>
                 <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  QuantEdge never displays invented news. Volume-based catalysts continue to feed signals from real market data.
+                  DeeYoung never displays invented news. Volume-based catalysts continue to feed signals from real market data.
                 </p>
               </div>
             )}

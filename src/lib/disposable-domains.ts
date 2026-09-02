@@ -1,4 +1,4 @@
-// QUANTEDGE PRO — disposable / temporary email domain blocklist (signup anti-abuse layer 1).
+// DEEYOUNG PRO — disposable / temporary email domain blocklist (signup anti-abuse layer 1).
 // Curated core list of the most-abused throwaway providers. Extend weekly from
 // https://github.com/disposable-email-domains/disposable-email-domains (see DEPLOY.md).
 
