@@ -1,0 +1,274 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── QUANTEDGE PRO — Premium Quantitative Terminal Design System ─────────────
+   Dark-first. Semantic color. No neon soup. Serious + intelligent + trustworthy.
+   Numbers: Geist Mono, tabular. Hairline borders. Glow reserved for primary CTA. */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* QuantEdge semantic tokens */
+  --color-pos: var(--qe-pos);
+  --color-pos-dim: var(--qe-pos-dim);
+  --color-neg: var(--qe-neg);
+  --color-neg-dim: var(--qe-neg-dim);
+  --color-warn: var(--qe-warn);
+  --color-info: var(--qe-info);
+  --color-up: var(--qe-pos);
+  --color-down: var(--qe-neg);
+  --color-panel: var(--qe-panel);
+  --color-panel-2: var(--qe-panel-2);
+  --color-panel-3: var(--qe-panel-3);
+  --color-hairline: var(--qe-hairline);
+  --color-mint: var(--qe-mint);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #f7f8fa;
+  --foreground: #10141b;
+  --card: #ffffff;
+  --card-foreground: #10141b;
+  --popover: #ffffff;
+  --popover-foreground: #10141b;
+  --primary: #0e9f6e;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1f5;
+  --secondary-foreground: #1a2230;
+  --muted: #eef1f5;
+  --muted-foreground: #5d6774;
+  --accent: #e8f7f1;
+  --accent-foreground: #0b7a54;
+  --destructive: #e5484d;
+  --border: rgba(16, 20, 27, 0.10);
+  --input: rgba(16, 20, 27, 0.12);
+  --ring: #0e9f6e;
+  --chart-1: #0e9f6e;
+  --chart-2: #e5484d;
+  --chart-3: #f0b90b;
+  --chart-4: #64748b;
+  --chart-5: #8b5cf6;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #10141b;
+  --sidebar-primary: #0e9f6e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef1f5;
+  --sidebar-accent-foreground: #1a2230;
+  --sidebar-border: rgba(16, 20, 27, 0.10);
+  --sidebar-ring: #0e9f6e;
+  --qe-pos: #0e9f6e;
+  --qe-pos-dim: rgba(14, 159, 110, 0.12);
+  --qe-neg: #e5484d;
+  --qe-neg-dim: rgba(229, 72, 77, 0.10);
+  --qe-warn: #d97706;
+  --qe-info: #64748b;
+  --qe-panel: #ffffff;
+  --qe-panel-2: #f1f3f7;
+  --qe-panel-3: #e9edf3;
+  --qe-hairline: rgba(16, 20, 27, 0.08);
+  --qe-mint: #0b7a54;
+}
+
+.dark {
+  --background: #07090d;
+  --foreground: #e6e9ef;
+  --card: #0c0f15;
+  --card-foreground: #e6e9ef;
+  --popover: #10141c;
+  --popover-foreground: #e6e9ef;
+  --primary: #10b981;
+  --primary-foreground: #04110c;
+  --secondary: #141926;
+  --secondary-foreground: #c7cedb;
+  --muted: #141926;
+  --muted-foreground: #8b93a7;
+  --accent: #0f2019;
+  --accent-foreground: #6ee7b7;
+  --destructive: #f6465d;
+  --border: rgba(148, 163, 184, 0.09);
+  --input: rgba(148, 163, 184, 0.14);
+  --ring: #10b981;
+  --chart-1: #10b981;
+  --chart-2: #f6465d;
+  --chart-3: #f0b90b;
+  --chart-4: #8b93a7;
+  --chart-5: #a78bfa;
+  --sidebar: #0a0d12;
+  --sidebar-foreground: #e6e9ef;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #04110c;
+  --sidebar-accent: #141926;
+  --sidebar-accent-foreground: #c7cedb;
+  --sidebar-border: rgba(148, 163, 184, 0.09);
+  --sidebar-ring: #10b981;
+  --qe-pos: #10b981;
+  --qe-pos-dim: rgba(16, 185, 129, 0.12);
+  --qe-neg: #f6465d;
+  --qe-neg-dim: rgba(246, 70, 93, 0.12);
+  --qe-warn: #f0b90b;
+  --qe-info: #8b93a7;
+  --qe-panel: #0c0f15;
+  --qe-panel-2: #11151d;
+  --qe-panel-3: #161b26;
+  --qe-hairline: rgba(148, 163, 184, 0.09);
+  --qe-mint: #6ee7b7;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Tabular numerals everywhere numbers matter */
+  .tnum, .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  ::selection {
+    background: rgba(16, 185, 129, 0.25);
+  }
+}
+
+@layer utilities {
+  /* Hairline panel — the core terminal surface */
+  .qe-panel {
+    background: var(--qe-panel);
+    border: 1px solid var(--qe-hairline);
+    border-radius: var(--radius);
+  }
+  .qe-panel-2 {
+    background: var(--qe-panel-2);
+    border: 1px solid var(--qe-hairline);
+    border-radius: var(--radius);
+  }
+  .qe-glass {
+    background: color-mix(in srgb, var(--qe-panel) 72%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--qe-hairline);
+  }
+  .qe-grid-bg {
+    background-image:
+      linear-gradient(var(--qe-hairline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--qe-hairline) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 78%);
+  }
+  .qe-glow {
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.22), 0 8px 40px -8px rgba(16, 185, 129, 0.28);
+  }
+  .qe-num {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .qe-label {
+    font-size: 0.6875rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    font-weight: 600;
+  }
+  .qe-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .qe-scroll::-webkit-scrollbar-track { background: transparent; }
+  .qe-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+  }
+  .qe-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.3); }
+}
+
+/* Price flash animations — animation communicates state (§40) */
+@keyframes qe-flash-up {
+  0% { background-color: rgba(16, 185, 129, 0.18); }
+  100% { background-color: transparent; }
+}
+@keyframes qe-flash-down {
+  0% { background-color: rgba(246, 70, 93, 0.18); }
+  100% { background-color: transparent; }
+}
+.qe-flash-up { animation: qe-flash-up 0.9s ease-out; border-radius: 4px; }
+.qe-flash-down { animation: qe-flash-down 0.9s ease-out; border-radius: 4px; }
+
+/* Ticker tape */
+@keyframes qe-ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.qe-ticker-track {
+  animation: qe-ticker 60s linear infinite;
+}
+.qe-ticker-track:hover { animation-play-state: paused; }
+
+/* Regime orb breathing */
+@keyframes qe-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+.qe-breathe { animation: qe-breathe 3.2s ease-in-out infinite; }
+
+/* Pulse dot for live states */
+@keyframes qe-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50% { box-shadow: 0 0 0 5px transparent; opacity: 0.75; }
+}
+.qe-pulse-dot { animation: qe-pulse-dot 2s ease-in-out infinite; }
+
+/* Kill switch urgency */
+@keyframes qe-alarm {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(246, 70, 93, 0.5), 0 0 24px -4px rgba(246, 70, 93, 0.45); }
+  50% { box-shadow: 0 0 0 1px rgba(246, 70, 93, 0.8), 0 0 44px -2px rgba(246, 70, 93, 0.65); }
+}
+.qe-alarm { animation: qe-alarm 1.6s ease-in-out infinite; }
+
+/* Scanline sweep for scanning states */
+@keyframes qe-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+.qe-sweep { animation: qe-sweep 1.8s ease-in-out infinite; }
+
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }

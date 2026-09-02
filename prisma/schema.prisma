@@ -1,0 +1,306 @@
+// QUANTEDGE PRO — Core Data Model (Phase 1 Foundation)
+// SQLite for sandbox parity; schema is portable to PostgreSQL (Supabase/Neon) per audit decision D8.
+// JSON fields are stored as strings for SQLite portability.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Identity & Tenancy ───────────────────────────────────────────────────────
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String?
+  role             String   @default("USER") // USER | SUPPORT | ANALYST | ADMIN | SUPER_ADMIN
+  experience       String   @default("BEGINNER") // BEGINNER | INTERMEDIATE | ADVANCED
+  interests        String   @default("[]") // JSON: ["STOCKS","ETFS","CRYPTO"]
+  goals            String   @default("[]") // JSON: ["LEARN","ANALYZE","OPPORTUNITIES","PAPER_TRADE","AUTOMATE"]
+  onboarded        Boolean  @default(false)
+  presentationMode String   @default("SIMPLE") // SIMPLE | ADVANCED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  account         PaperAccount?
+  positions       Position[]
+  orders          Order[]
+  signals         SignalRecord[]
+  sentinelConfig  SentinelConfig?
+  approvals       Approval[]
+  watchlist       WatchlistItem[]
+  strategies      Strategy[]
+  backtests       BacktestRun[]
+  notifications   NotificationRecord[]
+  auditEvents     AuditEvent[]
+  usageEvents     UsageEvent[]
+  sessions        UserSession[]
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  userAgent String?
+  createdAt DateTime @default(now())
+  lastSeen  DateTime @default(now())
+  revoked   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Paper Brokerage ──────────────────────────────────────────────────────────
+
+model PaperAccount {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  broker          String   @default("QUANTEDGE_SIM") // QUANTEDGE_SIM | ALPACA_PAPER
+  cash            Float    @default(100000)
+  startingCash    Float    @default(100000)
+  equitySnapshot  String   @default("[]") // JSON: [{t, equity}]
+  realizedPnl     Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Position {
+  id         String   @id @default(cuid())
+  userId     String
+  symbol     String
+  assetClass String   @default("EQUITY") // EQUITY | ETF | CRYPTO (schema-ready per D6)
+  sector     String   @default("UNKNOWN")
+  qty        Float
+  avgPrice   Float
+  stop       Float?
+  target     Float?
+  openedAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, symbol])
+}
+
+model Order {
+  id           String    @id @default(cuid())
+  userId       String
+  requestId    String    @unique // idempotency key (§59)
+  symbol       String
+  assetClass   String    @default("EQUITY")
+  side         String // BUY | SELL
+  type         String    @default("MARKET") // MARKET | LIMIT | STOP
+  qty          Float
+  limitPrice   Float?
+  stopPrice    Float?
+  status       String    @default("PENDING") // PENDING | FILLED | PARTIAL | REJECTED | CANCELLED
+  filledQty    Float     @default(0)
+  avgFillPrice Float?
+  rejectReason String?
+  source       String    @default("MANUAL") // MANUAL | SENTINEL
+  approvalId   String?
+  fills        String    @default("[]") // JSON: [{t, qty, price, slippageBps}]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  filledAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+// ─── Signal & Research ────────────────────────────────────────────────────────
+
+model SignalRecord {
+  id              String    @id @default(cuid())
+  userId          String? // null = platform-wide signal
+  symbol          String
+  assetClass      String    @default("EQUITY")
+  direction       String // LONG | SHORT
+  score           Float
+  factors         String // JSON: [{name, contribution, max, detail}]
+  entry           Float
+  stop            Float
+  target          Float
+  rr              Float
+  regime          String
+  catalystScore   Float     @default(0)
+  status          String    @default("OPEN") // OPEN | TARGET_HIT | STOP_HIT | EXPIRED | CANCELLED
+  resultPct       Float?
+  openedAt        DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([symbol, status])
+  @@index([userId, openedAt])
+}
+
+// ─── SENTINEL ─────────────────────────────────────────────────────────────────
+
+model SentinelConfig {
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  mode                     String   @default("OBSERVE") // OBSERVE | APPROVE | DELEGATE (default Observe §7/§16)
+  state                    String   @default("ACTIVE") // ACTIVE PAUSED WAITING_FOR_APPROVAL RISK_LOCKED BROKER_DISCONNECTED DATA_UNAVAILABLE NEWS_PROVIDER_UNAVAILABLE SYSTEM_DEGRADED EMERGENCY_STOP (§17)
+  riskPerTradePct          Float    @default(1.0)
+  maxPositionPct           Float    @default(20)
+  maxNotionalUsd           Float    @default(25000)
+  maxOpenPositions         Int      @default(8)
+  maxDailyLossPct          Float    @default(3)
+  maxWeeklyLossPct         Float    @default(8)
+  maxDailyTrades           Int      @default(10)
+  minRR                    Float    @default(1.5)
+  minSignalScore           Float    @default(70)
+  minLiquidityUsd          Float    @default(5000000)
+  maxSpreadBps             Float    @default(15)
+  maxCorrelatedExposurePct Float    @default(35)
+  maxPortfolioDrawdownPct  Float    @default(15)
+  allowedAssets            String   @default("[\"EQUITY\",\"ETF\"]")
+  allowedStrategies        String   @default("[\"MOMENTUM_BREAKOUT\",\"TREND_PULLBACK\"]")
+  allowedSessions          String   @default("[\"REGULAR\"]") // REGULAR | PRE | POST
+  autoPauseOnDataStale     Boolean  @default(true)
+  killSwitch               Boolean  @default(false)
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id         String    @id @default(cuid())
+  userId     String
+  symbol     String
+  side       String
+  qty        Float
+  entry      Float
+  stop       Float
+  target     Float
+  riskUsd    Float
+  rr         Float
+  score      Float
+  regime     String
+  catalyst   String?
+  riskChecks String // JSON: [{name, pass, detail}]
+  proposal   String    @default("{}")
+  status     String    @default("PENDING") // PENDING | APPROVED | REJECTED | EXPIRED
+  expiresAt  DateTime // time-limited (§16)
+  decidedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+// ─── Watchlist / Notifications / Audit / Usage ────────────────────────────────
+
+model WatchlistItem {
+  id         String   @id @default(cuid())
+  userId     String
+  symbol     String
+  assetClass String   @default("EQUITY")
+  addedAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+}
+
+model NotificationRecord {
+  id          String    @id @default(cuid())
+  userId      String
+  event       String // SIGNAL_HIGH_CONFIDENCE | SENTINEL_APPROVAL_REQUEST | TRADE_EXECUTED | STOP_HIT | TARGET_HIT | RISK_LIMIT | BROKER_DISCONNECTED | MAJOR_CATALYST | SYSTEM_DEGRADED | ACCOUNT_SECURITY (§25)
+  title       String
+  body        String
+  importance  String    @default("NORMAL") // LOW | NORMAL | HIGH | CRITICAL
+  channels    String    @default("[\"WEB\"]")
+  status      String    @default("QUEUED") // QUEUED | SENT | DELIVERED | OPENED | FAILED
+  attempts    Int       @default(0)
+  deepLink    String? // in-app deep link (§25)
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+  openedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  category  String // AUTH | SETTINGS | RISK | SENTINEL | APPROVAL | ORDER | FILL | BROKER | API_KEY | SUBSCRIPTION | EMERGENCY_STOP | ADMIN (§45)
+  action    String
+  detail    String   @default("{}")
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([category, createdAt])
+}
+
+model UsageEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  provider   String // YAHOO | FINNHUB | ALPACA | ZAI_AI (§31)
+  service    String // MARKET_DATA | NEWS | AI_CALL | BACKTEST | NOTIFICATION
+  units      Float    @default(1)
+  estCostUsd Float    @default(0)
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([provider, createdAt])
+}
+
+// ─── Strategy Lab ─────────────────────────────────────────────────────────────
+
+model Strategy {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String   @default("")
+  kind        String   @default("MOMENTUM_BREAKOUT")
+  params      String   @default("{}")
+  version     Int      @default(1)
+  parentStrategyId String?
+  active      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BacktestRun {
+  id          String   @id @default(cuid())
+  userId      String
+  strategyId  String?
+  symbol      String
+  timeframe   String   @default("1d")
+  rangeMonths Int      @default(12)
+  params      String   @default("{}")
+  metrics     String   @default("{}") // JSON metrics block (§21)
+  equityCurve String   @default("[]")
+  trades      String   @default("[]")
+  warnings    String   @default("[]") // bias warnings surfaced to user
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── System Health ────────────────────────────────────────────────────────────
+
+model SystemEvent {
+  id        String   @id @default(cuid())
+  level     String   @default("INFO") // INFO | WARN | ERROR
+  source    String // MARKET_DATA | NEWS | AI | DATABASE | BROKER | NOTIFICATIONS | WORKER
+  message   String
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([source, createdAt])
+}

@@ -1,0 +1,195 @@
+// QUANTEDGE PRO — Multi-Factor Signal Engine (§14) + Catalyst Intelligence (§12)
+// Deterministic. AI may explain/rank/summarize but NEVER overrides scoring. (§5)
+
+import { atr, bollinger, ema, lastDefined, macd, relativeVolume, roc, rsi, vwap } from "@/lib/engine/indicators";
+import type { Bar } from "@/lib/engine/indicators";
+import type { CandleSeries, DataState, FactorContribution, SignalResult } from "@/lib/types";
+
+// Factor weights — technical factors sum to 100 with catalyst/regime as modifiers (§14 example)
+const W = {
+  EMA_STRUCTURE: 18,
+  VWAP: 15,
+  RSI: 12,
+  MACD: 14,
+  BOLLINGER: 8,
+  ROC: 8,
+  VOLUME: 11,
+  CATALYST: 9,
+  REGIME: 5,
+};
+
+export interface EngineInput {
+  candles: CandleSeries;
+  dayCandles?: CandleSeries;   // for VWAP anchoring on intraday
+  relVolume: number;           // relative volume
+  regimePrimary: string;
+  catalystScore: number;       // 0–9 from catalyst engine (0 when no verified catalysts)
+  avgVolume: number;
+  minLiquidityUsd: number;
+}
+
+function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
+
+export function computeSignal(input: EngineInput): SignalResult | null {
+  const { candles } = input;
+  const bars: Bar[] = candles.candles;
+  if (bars.length < 60) return null;
+  const closes = bars.map((b) => b.c);
+  const i = bars.length - 1;
+  const price = closes[i];
+
+  const ema20 = lastDefined(ema(closes, 20));
+  const ema50 = lastDefined(ema(closes, 50));
+  const emaSeries20 = ema(closes, 20);
+  const r = rsi(closes, 14);
+  const rsiVal = lastDefined(r) ?? 50;
+  const m = macd(closes);
+  const macdHist = lastDefined(m.histogram) ?? 0;
+  const macdHistPrev = i >= 1 ? (m.histogram[i - 1] ?? 0) : 0;
+  const bb = bollinger(closes);
+  const bbUpper = lastDefined(bb.upper);
+  const bbLower = lastDefined(bb.lower);
+  const bbWidth = lastDefined(bb.widthPct) ?? 0;
+  const bbWidthSeries = bb.widthPct.map((v) => v ?? 0);
+  const bbWidthAvg = bbWidthSeries.slice(-60).reduce((a, b) => a + b, 0) / Math.min(60, bbWidthSeries.length);
+  const rocVal = lastDefined(roc(closes, 10)) ?? 0;
+  const atr14 = lastDefined(atr(bars, 14));
+  const vwapSession = lastDefined(input.dayCandles ? vwap(input.dayCandles.candles.map((c) => c)) : vwap(bars.slice(-78)));
+
+  const factors: FactorContribution[] = [];
+  let bullScore = 0, bearScore = 0;
+
+  const add = (key: string, name: string, contribution: number, detail: string) => {
+    const c = { name, key, contribution: Math.round(contribution * 10) / 10, max: (W as Record<string, number>)[key] ?? 0, detail };
+    factors.push(c);
+    if (contribution >= 0) bullScore += contribution; else bearScore += -contribution;
+  };
+
+  // 1. EMA structure — trend alignment (max 18)
+  if (ema20 != null && ema50 != null) {
+    const above = price > ema20 && ema20 > ema50;
+    const below = price < ema20 && ema20 < ema50;
+    const spread = Math.abs(price - ema20) / (atr14 || price) ;
+    const strength = clamp(spread / 1.2, 0.3, 1);
+    if (above) add("EMA_STRUCTURE", "EMA Structure", W.EMA_STRUCTURE * strength, `Price above rising 20/50 EMA stack (+${(strength * 100).toFixed(0)}% alignment)`);
+    else if (below) add("EMA_STRUCTURE", "EMA Structure", -W.EMA_STRUCTURE * strength, "Price below falling 20/50 EMA stack");
+    else add("EMA_STRUCTURE", "EMA Structure", (price > ema50 ? 2 : -2), "EMA stack compressed — mixed trend");
+  }
+
+  // 2. VWAP position (max 15)
+  if (vwapSession != null) {
+    const dist = (price - vwapSession) / price;
+    const s = clamp(Math.abs(dist) / 0.02, 0.25, 1);
+    if (dist > 0.002) add("VWAP", "VWAP", W.VWAP * s, `Trading ${ (dist * 100).toFixed(2) }% above session VWAP — buyers in control`);
+    else if (dist < -0.002) add("VWAP", "VWAP", -W.VWAP * s, `Trading ${ (Math.abs(dist) * 100).toFixed(2) }% below session VWAP — sellers in control`);
+    else add("VWAP", "VWAP", 0, "Pinned at VWAP — balanced");
+  }
+
+  // 3. RSI momentum (max 12)
+  {
+    if (rsiVal >= 55 && rsiVal <= 72) add("RSI", "RSI Momentum", W.RSI * clamp((rsiVal - 55) / 15, 0.4, 1), `RSI ${rsiVal.toFixed(0)} — healthy bullish momentum band`);
+    else if (rsiVal > 72) add("RSI", "RSI Momentum", W.RSI * 0.25, `RSI ${rsiVal.toFixed(0)} — overbought, follow-through risk`);
+    else if (rsiVal <= 45 && rsiVal >= 28) add("RSI", "RSI Momentum", -W.RSI * clamp((45 - rsiVal) / 15, 0.4, 1), `RSI ${rsiVal.toFixed(0)} — bearish momentum`);
+    else if (rsiVal < 28) add("RSI", "RSI Momentum", -W.RSI * 0.2, `RSI ${rsiVal.toFixed(0)} — oversold bounce watch`);
+    else add("RSI", "RSI Momentum", 0, `RSI ${rsiVal.toFixed(0)} — neutral`);
+  }
+
+  // 4. MACD expansion (max 14)
+  {
+    const expanding = Math.abs(macdHist) > Math.abs(macdHistPrev);
+    if (macdHist > 0) add("MACD", "MACD", W.MACD * (expanding ? 1 : 0.55), `Histogram +${macdHist.toFixed(3)} — ${expanding ? "bullish momentum expanding" : "bullish but decelerating"}`);
+    else add("MACD", "MACD", -W.MACD * (expanding ? 1 : 0.55), `Histogram ${macdHist.toFixed(3)} — ${expanding ? "bearish momentum expanding" : "bearish but decelerating"}`);
+  }
+
+  // 5. Bollinger stretch (max 8)
+  if (bbUpper != null && bbLower != null) {
+    const pos = (price - bbLower) / ((bbUpper - bbLower) || 1);
+    if (pos > 0.9) add("BOLLINGER", "Bollinger Stretch", -W.BOLLINGER * 0.5, "Pressing upper band — stretched");
+    else if (pos > 0.55) add("BOLLINGER", "Bollinger Stretch", W.BOLLINGER * clamp((pos - 0.55) / 0.35, 0.3, 1), `Band position ${(pos * 100).toFixed(0)}% — upper-half strength`);
+    else if (pos < 0.1) add("BOLLINGER", "Bollinger Stretch", W.BOLLINGER * 0.4, "Pressing lower band — mean-reversion watch");
+    else add("BOLLINGER", "Bollinger Stretch", 0, "Mid-band — no edge");
+  }
+
+  // 6. Rate of change (max 8)
+  add("ROC", "Rate of Change", clamp(rocVal / 4, -1, 1) * W.ROC, `10-period ROC ${rocVal.toFixed(2)}%`);
+
+  // 7. Relative volume (max 11)
+  {
+    const rv = input.relVolume;
+    if (rv >= 1.5) add("VOLUME", "Volume", W.VOLUME * clamp(rv / 3, 0.5, 1), `Relative volume ${rv.toFixed(2)}× — participation confirms move`);
+    else if (rv >= 1.05) add("VOLUME", "Volume", W.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — slightly elevated`);
+    else if (rv < 0.6) add("VOLUME", "Volume", -W.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — thin participation, breakouts suspect`);
+    else add("VOLUME", "Volume", 0, `Relative volume ${rv.toFixed(2)}× — average`);
+  }
+
+  // 8. Catalyst confirmation (max 9) — 0 when no verified catalysts (never fabricated §11)
+  if (input.catalystScore > 0) add("CATALYST", "Catalyst", W.CATALYST * (input.catalystScore / 9), `Verified catalyst strength ${input.catalystScore}/9`);
+  else factors.push({ name: "Catalyst", key: "CATALYST", contribution: 0, max: W.CATALYST, detail: "No verified catalyst — technical-only signal" });
+
+  // 9. Regime modifier (max 5)
+  const regimeBull = ["RISK_ON", "MOMENTUM"].includes(input.regimePrimary);
+  const regimeBear = ["RISK_OFF", "LIQUIDITY_STRESS", "HIGH_VOLATILITY"].includes(input.regimePrimary);
+  if (regimeBull) add("REGIME", "Regime", W.REGIME, `Risk-favorable regime (${input.regimePrimary}) supports long setups`);
+  else if (regimeBear) add("REGIME", "Regime", -W.REGIME, `Risk-unfavorable regime (${input.regimePrimary}) penalizes long setups`);
+  else factors.push({ name: "Regime", key: "REGIME", contribution: 0, max: W.REGIME, detail: "Neutral regime — no modifier" });
+
+  const direction = bullScore >= bearScore ? (bullScore - bearScore > 12 ? "LONG" : "NEUTRAL") : (bearScore - bullScore > 12 ? "SHORT" : "NEUTRAL");
+  const score = Math.round(clamp(Math.max(bullScore, bearScore), 0, 100));
+
+  // Stops/targets from ATR
+  const atrVal = atr14 ?? price * 0.02;
+  const stopMult = input.regimePrimary === "HIGH_VOLATILITY" ? 2.2 : 1.6;   // regime-aware stop distance (§13)
+  const targetMult = 2.4;
+  const entry = price;
+  const stop = direction === "SHORT" ? entry + atrVal * stopMult : entry - atrVal * stopMult;
+  const target = direction === "SHORT" ? entry - atrVal * targetMult : entry + atrVal * targetMult;
+  const rr = Math.round(Math.abs((target - entry) / (entry - stop || 1)) * 100) / 100;
+
+  const liquidityOk = input.avgVolume * entry >= input.minLiquidityUsd;
+
+  // Spread proxy calibrated from daily ATR% — liquid mega-caps typically 1-5bps.
+  // (atrPct of ~2% ⇒ ~2.4bps; capped honestly at 40bps for thin names.)
+  const spreadBps = Math.max(1, Math.min(40, Math.round((atrVal / price) * 120)));
+
+  const topFactors = [...factors]
+    .filter((f) => f.contribution !== 0)
+    .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+    .slice(0, 3)
+    .map((f) => `${f.name} (${f.contribution > 0 ? "+" : ""}${f.contribution})`)
+    .join(", ");
+
+  const explanation = direction === "NEUTRAL"
+    ? `No trade-worthy alignment on ${candles.symbol}: factor signals conflict (bull ${bullScore.toFixed(0)} vs bear ${bearScore.toFixed(0)}). QuantEdge stays flat and rescans.`
+    : `${direction === "LONG" ? "Bullish" : "Bearish"} setup on ${candles.symbol} scoring ${score}/100, driven mainly by ${topFactors}. ${input.catalystScore > 0 ? "A verified catalyst adds confluence. " : ""}Setup respects a ${stopMult}× ATR stop at ${stop.toFixed(2)} with target ${target.toFixed(2)} (R:R ${rr.toFixed(1)}). This is analysis, not a guarantee — a ${score}% signal score is NOT a ${score}% win probability.`;
+
+  return {
+    symbol: candles.symbol,
+    direction,
+    score,
+    factors,
+    entry, stop, target, rr,
+    atr: atrVal,
+    regime: input.regimePrimary,
+    catalystScore: input.catalystScore,
+    liquidityOk,
+    spreadBps,
+    generatedAt: Date.now(),
+    dataState: candles.dataState as DataState,
+    explanation,
+  };
+}
+
+/** Catalyst score derived ONLY from verified data (unusual volume is real, news requires provider). */
+export function catalystScoreFromData(relVolume: number, hasVerifiedNews: boolean, newsSentiment: number): number {
+  let s = 0;
+  if (relVolume >= 2.5) s += 4; else if (relVolume >= 1.8) s += 3; else if (relVolume >= 1.3) s += 1.5;
+  if (hasVerifiedNews) s += Math.max(0, newsSentiment) * 5;
+  return Math.min(9, Math.round(s * 10) / 10);
+}
+
+export function bbWidthPercentile(current: number, series: number[]): number {
+  const window = series.filter((v) => v > 0).slice(-120);
+  if (!window.length) return 50;
+  const below = window.filter((v) => v <= current).length;
+  return Math.round((below / window.length) * 100);
+}
