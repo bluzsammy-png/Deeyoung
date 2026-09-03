@@ -2,9 +2,11 @@ import { NextRequest } from "next/server";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-// Media Kit delivery: streams launch-kit files from the download dir with
+// Media Kit delivery: streams launch-kit files from the media dir with
 // HTTP Range support (so <video> seeking works) and strict name validation.
-const DIR = path.join(process.cwd(), "download");
+// NOTE: media lives OUTSIDE the project tree (/home/z/media-kit) so the
+// platform's preview/deploy packaging never has to carry 200MB of assets.
+const DIR = process.env.MEDIA_KIT_DIR || "/home/z/media-kit";
 
 function contentType(name: string): string {
   const ext = name.slice(name.lastIndexOf(".") + 1).toLowerCase();
