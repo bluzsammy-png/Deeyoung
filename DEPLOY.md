@@ -198,6 +198,10 @@ database is unreachable or `DATABASE_URL` is missing, the server still boots and
 booleans, never values) and the per-source `sources` states.
 
 - **502 with no server logs** → the deploy predates `deploy/start.sh`; hit Redeploy.
+- **"Application failed to respond" + deploy logs showing `getaddrinfo ENOTFOUND <container-id>`**
+  → fixed by `deploy/start.sh` (`HOSTNAME=0.0.0.0`). Next.js standalone binds to
+  `process.env.HOSTNAME`, and Railway containers set HOSTNAME to the container ID,
+  which doesn't resolve — the server exited at boot and crash-looped.
 - **`overall: DOWN` + `DATABASE: DOWN`** → `DATABASE_URL` missing/unreachable. Fix the
   Supabase pooler URL (Section 2) — host must be `*.pooler.supabase.com` (IPv4), not
   the direct `db.<ref>.supabase.co` host (IPv6-only on Railway).
