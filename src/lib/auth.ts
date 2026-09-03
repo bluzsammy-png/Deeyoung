@@ -5,7 +5,7 @@
 //   2. Cloudflare Turnstile (env-gated)
 //   3. signup velocity per HMAC-hashed IP (no raw IPs stored, GDPR-safe)
 //   4. 2-day analytics trial, no card (Pro systems lock until they subscribe)
-//   5. email verification REQUIRED in production (Resend configured); auto-verified locally
+//   5. email verification REQUIRED in production (Resend/AgentMail configured); auto-verified locally
 
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";

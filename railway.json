@@ -5,7 +5,7 @@
     "buildCommand": "prisma generate --schema prisma/schema.postgres.prisma && next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/"
   },
   "deploy": {
-    "startCommand": "prisma db push --accept-data-loss --schema prisma/schema.postgres.prisma && node .next/standalone/server.js",
+    "startCommand": "sh deploy/start.sh",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

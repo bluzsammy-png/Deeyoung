@@ -99,6 +99,8 @@ bypasses RLS — exactly what we want.)
 | `BETTER_AUTH_URL` | ✅ | `https://<your-railway-domain>` (or custom domain) |
 | `APP_SECRET` | ✅ | Separate salt for IP hashing |
 | `ADMIN_EMAILS` | ✅ | Comma-separated admin emails |
+| `AGENTMAIL_API_KEY` | launch | Outbound mail (verification + password reset) via agentmail.to. Get a key at agentmail.to → API Keys. Until set, auth links print to the server console (dry mode) |
+| `AGENTMAIL_INBOX` | optional | Sending inbox, e.g. `deeyoungsltd@agentmail.to`. Defaults to your org's first inbox |
 | `RESEND_API_KEY` | launch | When set, **email verification becomes required** + reset mails work. Get a free key at resend.com |
 | `EMAIL_FROM` | launch | `"DeeYoung <no-reply@yourdomain.com>"` after verifying your domain in Resend |
 | `NEXT_PUBLIC_POSTHOG_KEY` | recommended | PostHog project key |
@@ -161,13 +163,47 @@ Everything already has a home:
    Paystack popup checkout (Plan code = ₦15,000/mo Pro).
 4. Add a 3-day grace dunning email before locking a lapsed subscription.
 
-## 8. Email (Resend) — recommended before launch
+## 8. Email (Resend / AgentMail) — recommended before launch
 
+Outbound mail uses a transport chain — the first configured option wins:
+
+1. **Resend** (`RESEND_API_KEY`) — preferred in production; branded mail from your
+   verified domain (SPF/DKIM).
+2. **AgentMail** (`AGENTMAIL_API_KEY`) — agentmail.to org inbox, e.g.
+   `deeyoungsltd@agentmail.to`. Set the key at agentmail.to → API Keys; optionally
+   pin the sender with `AGENTMAIL_INBOX`. Free tier adds a "Sent via AgentMail"
+   footer; upgrade removes it.
+3. **Dry mode** (neither set) — verification is skipped and action links print to
+   the server console, so the whole auth flow stays testable without outbound mail.
+
+Whichever real transport is configured, **email verification becomes required**
+automatically — accounts can't sign in until they confirm their address.
+
+AgentMail setup:
+1. agentmail.to → API Keys → copy a key into `AGENTMAIL_API_KEY` on Railway.
+2. (Optional) `AGENTMAIL_INBOX="deeyoungsltd@agentmail.to"` to pin the sender.
+3. Redeploy. `/api/health` will show `MAIL: HEALTHY (agentmail)`.
+
+Resend setup (when you want your own domain instead):
 1. Create a free account at resend.com → **API Keys** → copy into `RESEND_API_KEY`.
 2. **Domains → Add domain** → add the SPF/DKIM DNS records Resend shows you, then set
    `EMAIL_FROM="DeeYoung <no-reply@yourdomain.com>"`.
-3. Done — from that moment, signup requires email verification and password reset is live.
-   Verification + reset mails use the branded dark template in `src/lib/email.ts`.
+3. Done — verification + reset mails use the branded dark template in `src/lib/email.ts`.
+
+## 8.1 Troubleshooting — Railway 502 Bad Gateway
+
+The boot sequence is **resilient by design** (`deploy/start.sh`): even if the
+database is unreachable or `DATABASE_URL` is missing, the server still boots and
+`GET /api/health` reports exactly what's wrong — check the `env` block (presence
+booleans, never values) and the per-source `sources` states.
+
+- **502 with no server logs** → the deploy predates `deploy/start.sh`; hit Redeploy.
+- **`overall: DOWN` + `DATABASE: DOWN`** → `DATABASE_URL` missing/unreachable. Fix the
+  Supabase pooler URL (Section 2) — host must be `*.pooler.supabase.com` (IPv4), not
+  the direct `db.<ref>.supabase.co` host (IPv6-only on Railway).
+- **`env.BETTER_AUTH_SECRET: false`** → generate one: `openssl rand -base64 32`.
+- **Signup returns 500** → check Deploy Logs for `[email]` lines: with dry mode the
+  verification link is printed to the console instead of emailed.
 
 ## 9. Optional next steps
 

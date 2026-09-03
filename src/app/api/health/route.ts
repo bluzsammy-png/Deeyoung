@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { cacheStats, upstreamHealth } from "@/lib/providers/market";
 import { db } from "@/lib/db";
+import { mailTransport } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/health — visible internal health system (§60) */
+/** GET /api/health — visible internal health system (§60) + boot diagnostics.
+ *  The `env` block exposes PRESENCE booleans only (never values) so a failed
+ *  Railway deploy can be diagnosed from the outside without shell access. */
 export async function GET() {
   const sources: Record<string, { state: string; detail: string }> = {};
 
@@ -32,6 +35,13 @@ export async function GET() {
     sources.DATABASE = { state: "DOWN", detail: "Database unreachable" };
   }
 
+  // Outbound mail
+  const transport = mailTransport();
+  sources.MAIL =
+    transport === "dry"
+      ? { state: "DEGRADED", detail: "No mail transport configured — auth links print to server console (dry mode)" }
+      : { state: "HEALTHY", detail: `Outbound mail via ${transport}` };
+
   sources.BROKER = { state: "HEALTHY", detail: "DeeYoung Simulated paper broker active; Alpaca awaits BYOK keys" };
   sources.NOTIFICATIONS = { state: "HEALTHY", detail: "Web channel active" };
 
@@ -41,5 +51,15 @@ export async function GET() {
       ? "DEGRADED"
       : "HEALTHY";
 
-  return NextResponse.json({ overall, sources, cache: cacheStats(), asOf: Date.now() });
+  const env = {
+    DATABASE_URL: Boolean(process.env.DATABASE_URL),
+    BETTER_AUTH_SECRET: Boolean(process.env.BETTER_AUTH_SECRET),
+    BETTER_AUTH_URL: Boolean(process.env.BETTER_AUTH_URL),
+    APP_SECRET: Boolean(process.env.APP_SECRET),
+    ADMIN_EMAILS: Boolean(process.env.ADMIN_EMAILS),
+    MAIL_TRANSPORT: transport,
+    MEDIA_KIT: process.env.NEXT_PUBLIC_MEDIA_KIT === "on",
+  };
+
+  return NextResponse.json({ overall, sources, env, cache: cacheStats(), asOf: Date.now() });
 }
