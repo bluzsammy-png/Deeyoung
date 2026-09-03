@@ -18,7 +18,7 @@ export function MarketsView() {
   const focused = useApp((s) => s.focusedSymbol);
   const setFocused = useApp((s) => s.setFocusedSymbol);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [filter, setFilter] = useState<"ALL" | "EQUITY" | "ETF" | "FX" | "METAL">("ALL");
+  const [filter, setFilter] = useState<"ALL" | "EQUITY" | "ETF" | "FX" | "METAL" | "CRYPTO" | "INDEX" | "ENERGY" | "AGRICULTURE">("ALL");
 
   useEffect(() => {
     let alive = true;
@@ -26,11 +26,13 @@ export function MarketsView() {
     const iv = setInterval(load, 45_000);
     return () => { alive = false; clearInterval(iv); clearTimeout(t); };
     async function load() {
-      const res = await fetch("/api/market/quotes");
+      // ALL → curated majors mix; a class tab → that whole asset class (server-filtered).
+      const url = filter === "ALL" ? "/api/market/quotes" : `/api/market/quotes?class=${filter}`;
+      const res = await fetch(url);
       const json = await res.json();
       if (alive && json.quotes) setQuotes(json.quotes);
     }
-  }, []);
+  }, [filter]);
 
   const filtered = useMemo(() =>
     quotes.filter((q) => filter === "ALL" || q.assetClass === filter),
@@ -62,7 +64,7 @@ export function MarketsView() {
         {/* quote table */}
         <div className="qe-panel overflow-hidden">
           <div className="flex items-center gap-1.5 border-b border-hairline px-3 py-2.5">
-            {(["ALL", "EQUITY", "ETF", "FX", "METAL"] as const).map((f) => (
+            {(["ALL", "EQUITY", "ETF", "FX", "METAL", "ENERGY", "AGRICULTURE", "INDEX", "CRYPTO"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}

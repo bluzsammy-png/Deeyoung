@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight, Bot, Loader2, Minus, RefreshCw, Send, ShieldAlert } from "lucide-react";
 import { DataBadge, SectionHead } from "@/components/quantedge/ui-bits";
+import { SymbolSearch } from "@/components/quantedge/symbol-search";
 import { fmtInstrument } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 
@@ -61,6 +62,18 @@ export function TradeDeskView() {
       .catch(() => undefined);
   }, []);
 
+  /** Pull the quote for ANY searched symbol (outside the default universe) into state. */
+  const ensureQuote = useCallback(async (sym: string) => {
+    if (quotes.some((q) => q.symbol === sym)) return;
+    try {
+      const res = await fetch(`/api/market/quotes?symbols=${encodeURIComponent(sym)}`);
+      const json = await res.json();
+      if (Array.isArray(json.quotes) && json.quotes[0]) {
+        setQuotes((prev) => [...prev.filter((q) => q.symbol !== sym), json.quotes[0] as Quote]);
+      }
+    } catch { /* quote appears when the next refresh lands */ }
+  }, [quotes]);
+
   const active = useMemo(() => quotes.find((q) => q.symbol === symbol) ?? null, [quotes, symbol]);
 
   const ask = useCallback(async (q?: string) => {
@@ -103,7 +116,9 @@ export function TradeDeskView() {
       <div className="qe-panel p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1">
-            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Market</span>
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Search any market</span>
+            <SymbolSearch onPick={(h) => { setSymbol(h.symbol); setResult(null); void ensureQuote(h.symbol); }} placeholder="Type a ticker or company…" />
+            <span className="mb-1.5 mt-3 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Market</span>
             <select
               value={symbol}
               onChange={(e) => { setSymbol(e.target.value); setResult(null); }}

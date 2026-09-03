@@ -408,6 +408,7 @@ model BrokerLink {
   credTag        String   // GCM auth tag (hex)
   mode           String   @default("INVESTOR") // INVESTOR (read-only) | FULL
   status         String   @default("PENDING_BRIDGE") // PENDING_BRIDGE | CONNECTED | ERROR
+  bridgeAccountId String?  // MetaApi cloud account id once provisioned
   statusDetail   String   @default("")
   currency       String   @default("USD")
   balance        Float?   // last known balance via bridge

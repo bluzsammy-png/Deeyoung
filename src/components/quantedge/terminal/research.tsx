@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { FlaskConical, TriangleAlert } from "lucide-react";
 import { fmtPct } from "@/lib/format";
 import { SectionHead, InfoTip, Pct } from "@/components/quantedge/ui-bits";
+import { SymbolSearch } from "@/components/quantedge/symbol-search";
 import { EquityCurve } from "@/components/quantedge/charts/core";
 import type { BacktestMetrics } from "@/lib/types";
 
@@ -64,10 +65,12 @@ export function ResearchView() {
       {/* controls */}
       <div className="qe-panel p-4">
         <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <label className="qe-label mb-1.5 block">Symbol</label>
-            <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-brand">
+          <div className="min-w-56">
+            <label className="qe-label mb-1.5 block">Symbol — search anything worldwide</label>
+            <SymbolSearch onPick={(h) => setSymbol(h.symbol)} placeholder="e.g. TM, 7203.T, BTC-USD, EURGBP…" />
+            <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="mt-2 w-full rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-brand">
               {SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
+              {!SYMBOLS.includes(symbol) && <option value={symbol}>{symbol} — searched</option>}
             </select>
           </div>
           <div>

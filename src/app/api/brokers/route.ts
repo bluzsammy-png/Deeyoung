@@ -2,25 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { encryptSecret } from "@/lib/crypto";
-import { bridgeConfigured, testAccount } from "@/lib/brokers/metaapi";
+import { bridgeConfigured, provisionAccount, accountInformation } from "@/lib/brokers/metaapi";
 
 export const dynamic = "force-dynamic";
 
 const PLATFORMS = ["MT4", "MT5"];
 const MODES = ["INVESTOR", "FULL"];
 
-/** GET /api/brokers — list the user's linked MetaTrader accounts (never returns secrets). */
+/** GET /api/brokers — list the user's linked MetaTrader accounts (never returns secrets).
+ *  When the bridge is configured, refreshes live balance/equity for up to 3
+ *  links per request (bounded latency; rows update in place). */
 export const GET = withGuard(async (_req, { user }) => {
   const links = await db.brokerLink.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true, platform: true, label: true, server: true, login: true, mode: true,
-      status: true, statusDetail: true, currency: true, balance: true, equity: true,
-      lastCheckedAt: true, createdAt: true,
-    },
   });
-  return NextResponse.json({ links, bridgeConfigured: bridgeConfigured() });
+
+  if (bridgeConfigured()) {
+    const refreshable = links.filter((l) => l.bridgeAccountId).slice(0, 3);
+    await Promise.all(refreshable.map(async (l) => {
+      const info = await accountInformation(l.bridgeAccountId as string);
+      if (!info) return;
+      await db.brokerLink.update({
+        where: { id: l.id },
+        data: {
+          balance: info.balance, equity: info.equity, currency: info.currency,
+          status: "CONNECTED", statusDetail: "Live via bridge sync.", lastCheckedAt: new Date(),
+        },
+      });
+      l.balance = info.balance; l.equity = info.equity; l.status = "CONNECTED";
+    }));
+  }
+
+  return NextResponse.json({
+    links: links.map((l) => ({
+      id: l.id, platform: l.platform, label: l.label, server: l.server, login: l.login,
+      mode: l.mode, status: l.status, statusDetail: l.statusDetail,
+      currency: l.currency, balance: l.balance, equity: l.equity,
+      lastCheckedAt: l.lastCheckedAt, createdAt: l.createdAt,
+    })),
+    bridgeConfigured: bridgeConfigured(),
+  });
 }, { minPlan: "TRIAL" });
 
 /** POST /api/brokers — link an MT4/MT5 account. Password is AES-256-GCM encrypted
@@ -47,7 +69,7 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
   }
 
   const creds = { platform: platform as "MT4" | "MT5", server, login, password, mode: mode as "INVESTOR" | "FULL" };
-  const bridge = await testAccount(creds);
+  const bridge = await provisionAccount(creds);
   const { cipher, iv, tag } = encryptSecret(password);
 
   const link = await db.brokerLink.create({
@@ -58,6 +80,7 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
       mode,
       status: bridge.status,
       statusDetail: bridge.detail.slice(0, 300),
+      bridgeAccountId: bridge.bridgeAccountId ?? null,
       currency: bridge.currency ?? "USD",
       balance: bridge.balance ?? null,
       equity: bridge.equity ?? null,

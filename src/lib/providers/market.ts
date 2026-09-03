@@ -119,14 +119,94 @@ function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
 const UPSTREAM_DEADLINE_MS = 2600;
 
 // ─── Universe metadata (static names/sectors; prices always live) ─────────────
+// Curated default catalog. Anything outside it remains quotable via the
+// /api/market/search discovery flow (Yahoo carries ~100k symbols).
 
 export const UNIVERSE: Record<string, { name: string; assetClass: Quote["assetClass"]; sector: string }> = {
+  // ── Metals ──
   XAUUSD: { name: "Gold — XAU/USD (COMEX front-month proxy)", assetClass: "METAL", sector: "Metals" },
+  XAGUSD: { name: "Silver — XAG/USD (COMEX proxy)", assetClass: "METAL", sector: "Metals" },
+  XPTUSD: { name: "Platinum (NYMEX proxy)", assetClass: "METAL", sector: "Metals" },
+  COPPER: { name: "Copper (COMEX HG)", assetClass: "METAL", sector: "Metals" },
+  // ── Energy ──
+  WTI: { name: "WTI Crude Oil (NYMEX CL)", assetClass: "ENERGY", sector: "Energy" },
+  BRENT: { name: "Brent Crude Oil (ICE BZ)", assetClass: "ENERGY", sector: "Energy" },
+  NATGAS: { name: "Natural Gas (NYMEX NG)", assetClass: "ENERGY", sector: "Energy" },
+  // ── Agriculture ──
+  WHEAT: { name: "Wheat (CBOT ZW)", assetClass: "AGRICULTURE", sector: "Agriculture" },
+  CORN: { name: "Corn (CBOT ZC)", assetClass: "AGRICULTURE", sector: "Agriculture" },
+  SOYBEAN: { name: "Soybeans (CBOT ZS)", assetClass: "AGRICULTURE", sector: "Agriculture" },
+  COFFEE: { name: "Coffee Arabica (ICE KC)", assetClass: "AGRICULTURE", sector: "Agriculture" },
+  SUGAR: { name: "Sugar No.11 (ICE SB)", assetClass: "AGRICULTURE", sector: "Agriculture" },
+  COCOA: { name: "Cocoa (ICE CC)", assetClass: "AGRICULTURE", sector: "Agriculture" },
+  // ── FX majors ──
   EURUSD: { name: "Euro / US Dollar", assetClass: "FX", sector: "FX Majors" },
   GBPUSD: { name: "British Pound / US Dollar", assetClass: "FX", sector: "FX Majors" },
   USDJPY: { name: "US Dollar / Japanese Yen", assetClass: "FX", sector: "FX Majors" },
   AUDUSD: { name: "Australian Dollar / US Dollar", assetClass: "FX", sector: "FX Majors" },
   USDCAD: { name: "US Dollar / Canadian Dollar", assetClass: "FX", sector: "FX Majors" },
+  USDCHF: { name: "US Dollar / Swiss Franc", assetClass: "FX", sector: "FX Majors" },
+  NZDUSD: { name: "New Zealand Dollar / US Dollar", assetClass: "FX", sector: "FX Majors" },
+  // ── FX crosses & minors ──
+  EURGBP: { name: "Euro / British Pound", assetClass: "FX", sector: "FX Crosses" },
+  EURJPY: { name: "Euro / Japanese Yen", assetClass: "FX", sector: "FX Crosses" },
+  EURCHF: { name: "Euro / Swiss Franc", assetClass: "FX", sector: "FX Crosses" },
+  EURAUD: { name: "Euro / Australian Dollar", assetClass: "FX", sector: "FX Crosses" },
+  GBPJPY: { name: "British Pound / Japanese Yen", assetClass: "FX", sector: "FX Crosses" },
+  AUDJPY: { name: "Australian Dollar / Japanese Yen", assetClass: "FX", sector: "FX Crosses" },
+  // ── FX emerging ──
+  USDCNY: { name: "US Dollar / Chinese Yuan", assetClass: "FX", sector: "FX Emerging" },
+  USDSGD: { name: "US Dollar / Singapore Dollar", assetClass: "FX", sector: "FX Emerging" },
+  USDMXN: { name: "US Dollar / Mexican Peso", assetClass: "FX", sector: "FX Emerging" },
+  USDZAR: { name: "US Dollar / South African Rand", assetClass: "FX", sector: "FX Emerging" },
+  USDINR: { name: "US Dollar / Indian Rupee", assetClass: "FX", sector: "FX Emerging" },
+  // ── Crypto ──
+  BTCUSD: { name: "Bitcoin / US Dollar", assetClass: "CRYPTO", sector: "Crypto Majors" },
+  ETHUSD: { name: "Ethereum / US Dollar", assetClass: "CRYPTO", sector: "Crypto Majors" },
+  SOLUSD: { name: "Solana / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  XRPUSD: { name: "XRP / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  DOGEUSD: { name: "Dogecoin / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  ADAUSD: { name: "Cardano / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  BNBUSD: { name: "BNB / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  AVAXUSD: { name: "Avalanche / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  LINKUSD: { name: "Chainlink / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  DOTUSD: { name: "Polkadot / US Dollar", assetClass: "CRYPTO", sector: "Crypto" },
+  // ── Indices ──
+  SPX: { name: "S&P 500 Index", assetClass: "INDEX", sector: "US Indices" },
+  NDX100: { name: "Nasdaq-100 Index", assetClass: "INDEX", sector: "US Indices" },
+  DJI: { name: "Dow Jones Industrial Average", assetClass: "INDEX", sector: "US Indices" },
+  RUT: { name: "Russell 2000 Index", assetClass: "INDEX", sector: "US Indices" },
+  VIX: { name: "CBOE Volatility Index", assetClass: "INDEX", sector: "Volatility" },
+  DAX: { name: "DAX (Germany)", assetClass: "INDEX", sector: "Global Indices" },
+  FTSE: { name: "FTSE 100 (UK)", assetClass: "INDEX", sector: "Global Indices" },
+  NIKKEI: { name: "Nikkei 225 (Japan)", assetClass: "INDEX", sector: "Global Indices" },
+  HSI: { name: "Hang Seng (Hong Kong)", assetClass: "INDEX", sector: "Global Indices" },
+  // ── ETFs ──
+  SPY: { name: "SPDR S&P 500 ETF", assetClass: "ETF", sector: "Broad Index" },
+  QQQ: { name: "Invesco QQQ Trust", assetClass: "ETF", sector: "Broad Index" },
+  IWM: { name: "iShares Russell 2000 ETF", assetClass: "ETF", sector: "Small Cap" },
+  SMH: { name: "VanEck Semiconductor ETF", assetClass: "ETF", sector: "Semiconductors" },
+  VOO: { name: "Vanguard S&P 500 ETF", assetClass: "ETF", sector: "Broad Index" },
+  VTI: { name: "Vanguard Total Stock Market ETF", assetClass: "ETF", sector: "Broad Index" },
+  VEA: { name: "Vanguard Developed Markets ETF", assetClass: "ETF", sector: "International" },
+  VWO: { name: "Vanguard Emerging Markets ETF", assetClass: "ETF", sector: "Emerging" },
+  EEM: { name: "iShares MSCI Emerging Markets ETF", assetClass: "ETF", sector: "Emerging" },
+  GLD: { name: "SPDR Gold Shares ETF", assetClass: "ETF", sector: "Metals" },
+  SLV: { name: "iShares Silver Trust ETF", assetClass: "ETF", sector: "Metals" },
+  TLT: { name: "iShares 20+ Year Treasury ETF", assetClass: "ETF", sector: "Bonds" },
+  HYG: { name: "iShares High Yield Corporate Bond ETF", assetClass: "ETF", sector: "Bonds" },
+  XLF: { name: "Financial Select Sector SPDR", assetClass: "ETF", sector: "Financials" },
+  XLV: { name: "Health Care Select Sector SPDR", assetClass: "ETF", sector: "Healthcare" },
+  XLE: { name: "Energy Select Sector SPDR", assetClass: "ETF", sector: "Energy" },
+  XLK: { name: "Technology Select Sector SPDR", assetClass: "ETF", sector: "Technology" },
+  XLI: { name: "Industrial Select Sector SPDR", assetClass: "ETF", sector: "Industrials" },
+  XLY: { name: "Consumer Discretionary SPDR", assetClass: "ETF", sector: "Consumer" },
+  XLP: { name: "Consumer Staples SPDR", assetClass: "ETF", sector: "Consumer" },
+  XLU: { name: "Utilities Select Sector SPDR", assetClass: "ETF", sector: "Utilities" },
+  XLB: { name: "Materials Select Sector SPDR", assetClass: "ETF", sector: "Materials" },
+  ARKK: { name: "ARK Innovation ETF", assetClass: "ETF", sector: "Innovation" },
+  IBB: { name: "iShares Biotechnology ETF", assetClass: "ETF", sector: "Biotech" },
+  // ── Mega-cap & AI/Tech equities ──
   NVDA: { name: "NVIDIA Corp", assetClass: "EQUITY", sector: "Semiconductors" },
   AAPL: { name: "Apple Inc", assetClass: "EQUITY", sector: "Consumer Tech" },
   MSFT: { name: "Microsoft Corp", assetClass: "EQUITY", sector: "Software" },
@@ -135,34 +215,163 @@ export const UNIVERSE: Record<string, { name: string; assetClass: Quote["assetCl
   GOOGL: { name: "Alphabet Inc", assetClass: "EQUITY", sector: "Internet" },
   META: { name: "Meta Platforms", assetClass: "EQUITY", sector: "Internet" },
   AMD: { name: "Advanced Micro Devices", assetClass: "EQUITY", sector: "Semiconductors" },
-  SMH: { name: "VanEck Semiconductor ETF", assetClass: "ETF", sector: "Semiconductors" },
-  QQQ: { name: "Invesco QQQ Trust", assetClass: "ETF", sector: "Broad Index" },
-  SPY: { name: "SPDR S&P 500 ETF", assetClass: "ETF", sector: "Broad Index" },
-  IWM: { name: "iShares Russell 2000 ETF", assetClass: "ETF", sector: "Small Cap" },
-  XLF: { name: "Financial Select Sector SPDR", assetClass: "ETF", sector: "Financials" },
-  XLV: { name: "Health Care Select Sector SPDR", assetClass: "ETF", sector: "Healthcare" },
-  XLE: { name: "Energy Select Sector SPDR", assetClass: "ETF", sector: "Energy" },
   PLTR: { name: "Palantir Technologies", assetClass: "EQUITY", sector: "Software" },
   COIN: { name: "Coinbase Global", assetClass: "EQUITY", sector: "Financials" },
   MSTR: { name: "MicroStrategy Inc", assetClass: "EQUITY", sector: "Software" },
+  AVGO: { name: "Broadcom Inc", assetClass: "EQUITY", sector: "Semiconductors" },
+  ORCL: { name: "Oracle Corp", assetClass: "EQUITY", sector: "Software" },
+  CRM: { name: "Salesforce Inc", assetClass: "EQUITY", sector: "Software" },
+  ADBE: { name: "Adobe Inc", assetClass: "EQUITY", sector: "Software" },
+  NFLX: { name: "Netflix Inc", assetClass: "EQUITY", sector: "Streaming" },
+  CSCO: { name: "Cisco Systems", assetClass: "EQUITY", sector: "Networking" },
+  IBM: { name: "International Business Machines", assetClass: "EQUITY", sector: "IT Services" },
+  INTC: { name: "Intel Corp", assetClass: "EQUITY", sector: "Semiconductors" },
+  MU: { name: "Micron Technology", assetClass: "EQUITY", sector: "Semiconductors" },
+  QCOM: { name: "Qualcomm Inc", assetClass: "EQUITY", sector: "Semiconductors" },
+  TXN: { name: "Texas Instruments", assetClass: "EQUITY", sector: "Semiconductors" },
+  AMAT: { name: "Applied Materials", assetClass: "EQUITY", sector: "Semiconductors" },
+  LRCX: { name: "Lam Research", assetClass: "EQUITY", sector: "Semiconductors" },
+  KLAC: { name: "KLA Corp", assetClass: "EQUITY", sector: "Semiconductors" },
+  MRVL: { name: "Marvell Technology", assetClass: "EQUITY", sector: "Semiconductors" },
+  ON: { name: "ON Semiconductor", assetClass: "EQUITY", sector: "Semiconductors" },
+  SMCI: { name: "Super Micro Computer", assetClass: "EQUITY", sector: "Hardware" },
+  ARM: { name: "Arm Holdings plc", assetClass: "EQUITY", sector: "Semiconductors" },
+  SNOW: { name: "Snowflake Inc", assetClass: "EQUITY", sector: "Software" },
+  MDB: { name: "MongoDB Inc", assetClass: "EQUITY", sector: "Software" },
+  DDOG: { name: "Datadog Inc", assetClass: "EQUITY", sector: "Software" },
+  CRWD: { name: "CrowdStrike Holdings", assetClass: "EQUITY", sector: "Cybersecurity" },
+  ZS: { name: "Zscaler Inc", assetClass: "EQUITY", sector: "Cybersecurity" },
+  PANW: { name: "Palo Alto Networks", assetClass: "EQUITY", sector: "Cybersecurity" },
+  NET: { name: "Cloudflare Inc", assetClass: "EQUITY", sector: "Internet Infrastructure" },
+  SHOP: { name: "Shopify Inc", assetClass: "EQUITY", sector: "E-Commerce" },
+  ABNB: { name: "Airbnb Inc", assetClass: "EQUITY", sector: "Travel Tech" },
+  UBER: { name: "Uber Technologies", assetClass: "EQUITY", sector: "Mobility" },
+  DASH: { name: "DoorDash Inc", assetClass: "EQUITY", sector: "Delivery" },
+  LYFT: { name: "Lyft Inc", assetClass: "EQUITY", sector: "Mobility" },
+  HOOD: { name: "Robinhood Markets", assetClass: "EQUITY", sector: "Financials" },
+  SOFI: { name: "SoFi Technologies", assetClass: "EQUITY", sector: "Financials" },
+  // ── Financials ──
   JPM: { name: "JPMorgan Chase & Co", assetClass: "EQUITY", sector: "Financials" },
+  BAC: { name: "Bank of America Corp", assetClass: "EQUITY", sector: "Financials" },
+  WFC: { name: "Wells Fargo & Co", assetClass: "EQUITY", sector: "Financials" },
+  C: { name: "Citigroup Inc", assetClass: "EQUITY", sector: "Financials" },
+  GS: { name: "Goldman Sachs Group", assetClass: "EQUITY", sector: "Financials" },
+  MS: { name: "Morgan Stanley", assetClass: "EQUITY", sector: "Financials" },
+  BLK: { name: "BlackRock Inc", assetClass: "EQUITY", sector: "Financials" },
+  SCHW: { name: "Charles Schwab Corp", assetClass: "EQUITY", sector: "Financials" },
+  V: { name: "Visa Inc", assetClass: "EQUITY", sector: "Payments" },
+  MA: { name: "Mastercard Inc", assetClass: "EQUITY", sector: "Payments" },
+  PYPL: { name: "PayPal Holdings", assetClass: "EQUITY", sector: "Payments" },
+  AXP: { name: "American Express Co", assetClass: "EQUITY", sector: "Payments" },
+  // ── Healthcare ──
   UNH: { name: "UnitedHealth Group", assetClass: "EQUITY", sector: "Healthcare" },
+  JNJ: { name: "Johnson & Johnson", assetClass: "EQUITY", sector: "Healthcare" },
+  PFE: { name: "Pfizer Inc", assetClass: "EQUITY", sector: "Pharma" },
+  MRK: { name: "Merck & Co", assetClass: "EQUITY", sector: "Pharma" },
+  ABBV: { name: "AbbVie Inc", assetClass: "EQUITY", sector: "Pharma" },
+  LLY: { name: "Eli Lilly & Co", assetClass: "EQUITY", sector: "Pharma" },
+  TMO: { name: "Thermo Fisher Scientific", assetClass: "EQUITY", sector: "Life Sciences" },
+  ABT: { name: "Abbott Laboratories", assetClass: "EQUITY", sector: "Medical Devices" },
+  DHR: { name: "Danaher Corp", assetClass: "EQUITY", sector: "Life Sciences" },
+  AMGN: { name: "Amgen Inc", assetClass: "EQUITY", sector: "Biotech" },
+  GILD: { name: "Gilead Sciences", assetClass: "EQUITY", sector: "Biotech" },
+  // ── Consumer, retail, industrials ──
+  KO: { name: "The Coca-Cola Company", assetClass: "EQUITY", sector: "Beverages" },
+  PEP: { name: "PepsiCo Inc", assetClass: "EQUITY", sector: "Beverages" },
+  NKE: { name: "Nike Inc", assetClass: "EQUITY", sector: "Apparel" },
+  MCD: { name: "McDonald's Corp", assetClass: "EQUITY", sector: "Restaurants" },
+  SBUX: { name: "Starbucks Corp", assetClass: "EQUITY", sector: "Restaurants" },
+  CMG: { name: "Chipotle Mexican Grill", assetClass: "EQUITY", sector: "Restaurants" },
+  WMT: { name: "Walmart Inc", assetClass: "EQUITY", sector: "Retail" },
+  COST: { name: "Costco Wholesale", assetClass: "EQUITY", sector: "Retail" },
+  TGT: { name: "Target Corp", assetClass: "EQUITY", sector: "Retail" },
+  HD: { name: "The Home Depot Inc", assetClass: "EQUITY", sector: "Home Improvement" },
+  LOW: { name: "Lowe's Companies", assetClass: "EQUITY", sector: "Home Improvement" },
+  TJX: { name: "TJX Companies", assetClass: "EQUITY", sector: "Retail" },
+  DIS: { name: "The Walt Disney Company", assetClass: "EQUITY", sector: "Entertainment" },
+  BA: { name: "The Boeing Company", assetClass: "EQUITY", sector: "Aerospace" },
+  CAT: { name: "Caterpillar Inc", assetClass: "EQUITY", sector: "Machinery" },
+  DE: { name: "Deere & Co", assetClass: "EQUITY", sector: "Machinery" },
+  LMT: { name: "Lockheed Martin Corp", assetClass: "EQUITY", sector: "Defense" },
+  RTX: { name: "RTX Corp", assetClass: "EQUITY", sector: "Defense" },
+  GE: { name: "GE Aerospace", assetClass: "EQUITY", sector: "Aerospace" },
+  F: { name: "Ford Motor Company", assetClass: "EQUITY", sector: "Automotive" },
+  GM: { name: "General Motors Co", assetClass: "EQUITY", sector: "Automotive" },
+  RIVN: { name: "Rivian Automotive", assetClass: "EQUITY", sector: "Automotive" },
+  LCID: { name: "Lucid Group", assetClass: "EQUITY", sector: "Automotive" },
+  NIO: { name: "NIO Inc", assetClass: "EQUITY", sector: "Automotive" },
+  // ── Energy & materials equities ──
+  XOM: { name: "Exxon Mobil Corp", assetClass: "EQUITY", sector: "Oil & Gas" },
+  CVX: { name: "Chevron Corp", assetClass: "EQUITY", sector: "Oil & Gas" },
+  COP: { name: "ConocoPhillips", assetClass: "EQUITY", sector: "Oil & Gas" },
+  SLB: { name: "Schlumberger (SLB)", assetClass: "EQUITY", sector: "Oil Services" },
+  OXY: { name: "Occidental Petroleum", assetClass: "EQUITY", sector: "Oil & Gas" },
+  HAL: { name: "Halliburton Co", assetClass: "EQUITY", sector: "Oil Services" },
+  BHP: { name: "BHP Group (ADR)", assetClass: "EQUITY", sector: "Mining" },
+  RIO: { name: "Rio Tinto Group (ADR)", assetClass: "EQUITY", sector: "Mining" },
+  VALE: { name: "Vale S.A. (ADR)", assetClass: "EQUITY", sector: "Mining" },
+  FCX: { name: "Freeport-McMoRan", assetClass: "EQUITY", sector: "Mining" },
+  NEM: { name: "Newmont Corp", assetClass: "EQUITY", sector: "Gold Mining" },
+  // ── Telecom, media, international ──
+  T: { name: "AT&T Inc", assetClass: "EQUITY", sector: "Telecom" },
+  VZ: { name: "Verizon Communications", assetClass: "EQUITY", sector: "Telecom" },
+  TMUS: { name: "T-Mobile US", assetClass: "EQUITY", sector: "Telecom" },
+  CMCSA: { name: "Comcast Corp", assetClass: "EQUITY", sector: "Media" },
+  WBD: { name: "Warner Bros. Discovery", assetClass: "EQUITY", sector: "Media" },
+  SPOT: { name: "Spotify Technology", assetClass: "EQUITY", sector: "Streaming" },
+  SONY: { name: "Sony Group Corp (ADR)", assetClass: "EQUITY", sector: "Electronics" },
+  TM: { name: "Toyota Motor Corp (ADR)", assetClass: "EQUITY", sector: "Automotive" },
+  BABA: { name: "Alibaba Group (ADR)", assetClass: "EQUITY", sector: "E-Commerce" },
+  JD: { name: "JD.com Inc (ADR)", assetClass: "EQUITY", sector: "E-Commerce" },
+  PDD: { name: "PDD Holdings (ADR)", assetClass: "EQUITY", sector: "E-Commerce" },
+  BIDU: { name: "Baidu Inc (ADR)", assetClass: "EQUITY", sector: "Internet" },
+  NVO: { name: "Novo Nordisk (ADR)", assetClass: "EQUITY", sector: "Pharma" },
+  ASML: { name: "ASML Holding (ADR)", assetClass: "EQUITY", sector: "Semiconductors" },
+  SAP: { name: "SAP SE (ADR)", assetClass: "EQUITY", sector: "Software" },
+  SHEL: { name: "Shell plc (ADR)", assetClass: "EQUITY", sector: "Oil & Gas" },
 };
 
 export function universeSymbols(): string[] { return Object.keys(UNIVERSE); }
 
-/** App symbol -> upstream Yahoo symbol. Spot gold doesn't exist on Yahoo, so
- *  XAUUSD is proxied by the COMEX front month (labeled in UNIVERSE.name). */
+/** ISO-4217-ish currency set — a 6-letter alpha symbol is treated as an FX spot
+ *  pair only when BOTH halves are known currencies. Prevents misrouting rare
+ *  6-letter equity tickers to Yahoo's =X namespace. */
+const CURRENCIES = new Set([
+  "USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD", "CNY", "HKD", "SGD",
+  "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "TRY", "MXN", "BRL", "ZAR", "INR",
+  "KRW", "THB", "IDR", "PHP", "MYR", "ILS", "SAR", "AED", "RUB", "CLP", "COP",
+]);
+export function isFxPair(symbol: string): boolean {
+  if (!/^[A-Z]{6}$/.test(symbol)) return false;
+  return CURRENCIES.has(symbol.slice(0, 3)) && CURRENCIES.has(symbol.slice(3));
+}
+
+/** App symbol -> upstream Yahoo symbol.
+ * - Spot metals/energy/agri don't exist as spot on Yahoo → proxied by the liquid
+ *   COMEX/NYMEX/CBOT/ICE front month (labeled in UNIVERSE.name).
+ * - FX spot pairs need the "=X" suffix (EURUSD → EURUSD=X).
+ * - Crypto uses Yahoo's "-USD" namespace (BTCUSD → BTC-USD).
+ * - Everything else passes through untouched (equities, ETFs, ^indices). */
 const YAHOO_SYMBOL: Record<string, string> = {
-  XAUUSD: "GC=F",
+  XAUUSD: "GC=F", XAGUSD: "SI=F", XPTUSD: "PL=F", COPPER: "HG=F",
+  WTI: "CL=F", BRENT: "BZ=F", NATGAS: "NG=F",
+  WHEAT: "ZW=F", CORN: "ZC=F", SOYBEAN: "ZS=F", COFFEE: "KC=F", SUGAR: "SB=F", COCOA: "CC=F",
+  SPX: "^GSPC", NDX100: "^NDX", DJI: "^DJI", RUT: "^RUT", VIX: "^VIX",
+  DAX: "^GDAXI", FTSE: "^FTSE", NIKKEI: "^N225", HSI: "^HSI",
+  BTCUSD: "BTC-USD", ETHUSD: "ETH-USD", SOLUSD: "SOL-USD", XRPUSD: "XRP-USD",
+  DOGEUSD: "DOGE-USD", ADAUSD: "ADA-USD", BNBUSD: "BNB-USD", AVAXUSD: "AVAX-USD",
+  LINKUSD: "LINK-USD", DOTUSD: "DOT-USD",
 };
 export function toYahooSymbol(symbol: string): string {
-  return YAHOO_SYMBOL[symbol] ?? symbol;
+  const mapped = YAHOO_SYMBOL[symbol];
+  if (mapped) return mapped;
+  if (isFxPair(symbol)) return `${symbol}=X`;
+  return symbol;
 }
-/** Symbols where Yahoo reports no meaningful volume (FX spot, metals proxy). */
+/** Symbols where Yahoo reports no meaningful volume (FX spot, metals/energy proxies). */
 export function isVolumeBlind(symbol: string): boolean {
   const ac = UNIVERSE[symbol]?.assetClass;
-  return ac === "FX" || ac === "METAL";
+  return ac === "FX" || ac === "METAL" || ac === "ENERGY" || ac === "AGRICULTURE" || ac === "INDEX";
 }
 
 // ─── Yahoo provider ───────────────────────────────────────────────────────────
@@ -211,6 +420,65 @@ interface YahooMeta {
   previousClose?: number; regularMarketDayHigh?: number; regularMarketDayLow?: number;
   regularMarketVolume?: number; longName?: string; shortName?: string; marketState?: string;
   regularMarketTime?: number; fiftyTwoWeekHigh?: number; fiftyTwoWeekLow?: number;
+  instrumentType?: string; fullExchangeName?: string;
+}
+
+/** Asset-class inference for symbols OUTSIDE the curated UNIVERSE (search results),
+ *  derived from Yahoo's instrumentType + display name. */
+function inferAssetClass(instrumentType: string | undefined, longName: string | undefined): Quote["assetClass"] {
+  const t = (instrumentType ?? "").toUpperCase();
+  if (t === "CURRENCY") return "FX";
+  if (t === "CRYPTOCURRENCY") return "CRYPTO";
+  if (t === "INDEX") return "INDEX";
+  if (t === "ETF" || t === "MUTUALFUND") return "ETF";
+  if (t === "FUTURE") {
+    const n = (longName ?? "").toLowerCase();
+    if (/(oil|gas|brent|wti|heating|ethanol)/.test(n)) return "ENERGY";
+    if (/(wheat|corn|soy|coffee|sugar|cocoa|cotton|rice|livestock|cattle|hog|orange)/.test(n)) return "AGRICULTURE";
+    return "METAL";
+  }
+  return "EQUITY";
+}
+
+// ─── Symbol discovery: Yahoo search proxy (§28) ───────────────────────────────
+
+export interface SymbolSearchHit {
+  symbol: string;      // app symbol (what the quote path accepts)
+  name: string;
+  exchange: string;
+  assetClass: Quote["assetClass"];
+}
+
+const SEARCH_CACHE_TTL = 10 * 60_000;
+
+/** Search ANY tradable symbol (Yahoo carries ~100k: US + international equities,
+ *  ETFs, FX, crypto, indices, futures, mutual funds). Paced + cached like quotes. */
+export async function searchSymbols(query: string): Promise<SymbolSearchHit[]> {
+  const q = query.trim().slice(0, 40);
+  if (q.length < 1) return [];
+  const key = `search:${q.toLowerCase()}`;
+  const hit = cacheGet<SymbolSearchHit[]>(key);
+  if (hit) return hit;
+  const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=14&newsCount=0&listsCount=0&enableFuzzyQuery=false`;
+  try {
+    const res = await paced(() => fetchWithRetry(url));
+    if (!res || !res.ok) { noteUpstreamError(); return []; }
+    const json = await res.json();
+    const rows = Array.isArray(json?.quotes) ? json.quotes : [];
+    const out: SymbolSearchHit[] = [];
+    for (const r of rows) {
+      const sym = String(r.symbol ?? "");
+      if (!sym || r.quoteType === "OPTION") continue;
+      const longName = String(r.longname ?? r.shortname ?? r.symbol);
+      const ac = inferAssetClass(String(r.quoteType ?? ""), longName);
+      out.push({ symbol: sym, name: longName, exchange: String(r.exchDisp ?? r.exchange ?? ""), assetClass: ac });
+    }
+    cacheSet(key, out, SEARCH_CACHE_TTL);
+    return out;
+  } catch {
+    noteUpstreamError();
+    return [];
+  }
 }
 
 export class YahooProvider implements MarketDataProvider {
@@ -232,9 +500,9 @@ export class YahooProvider implements MarketDataProvider {
     const avgVol = cachedAvg ?? Math.round((meta.regularMarketVolume ?? candles.reduce((a, c) => a + c.v, 0)) * 0.92);
     const quote: Quote = {
       symbol,
-      name: UNIVERSE[symbol]?.name ?? meta.shortName ?? meta.longName ?? symbol,
-      assetClass: UNIVERSE[symbol]?.assetClass ?? "EQUITY",
-      sector: UNIVERSE[symbol]?.sector ?? "UNKNOWN",
+      name: UNIVERSE[symbol]?.name ?? meta.longName ?? meta.shortName ?? symbol,
+      assetClass: UNIVERSE[symbol]?.assetClass ?? inferAssetClass(meta.instrumentType, meta.longName ?? meta.shortName),
+      sector: UNIVERSE[symbol]?.sector ?? (meta.fullExchangeName ?? "UNKNOWN"),
       price,
       change: price - prevClose,
       changePct: prevClose ? (price - prevClose) / prevClose * 100 : 0,
