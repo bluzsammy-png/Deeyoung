@@ -76,3 +76,6 @@ verify-*.png
 /dev.log
 /server.log
 verify-*.png
+
+# large media served from public (kit files live in download/)
+public/*.mp4
