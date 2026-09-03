@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Bot, Lock, Newspaper, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { useApp } from "@/lib/store";
-import { fmtMoney, fmtPct, fmtPrice, fmtAgo } from "@/lib/format";
+import { fmtInstrument, fmtMoney, fmtPct, fmtAgo } from "@/lib/format";
 import { authClient, type SessionUser } from "@/lib/auth-client";
 import { effectivePlan, hasFeature } from "@/lib/entitlements";
 import { DataBadge, InfoTip, Pct, Price, SectionHead, StatTile } from "@/components/quantedge/ui-bits";
@@ -197,7 +197,7 @@ export function DashboardView() {
                 <span className="text-xs font-bold">{q.symbol}</span>
                 <Pct value={q.changePct} className="text-[11px]" />
               </div>
-              <Price value={q.price} className="qe-num mt-1 block text-sm font-semibold" />
+              <Price value={q.price} symbol={q.symbol} className="qe-num mt-1 block text-sm font-semibold" />
               <div className="mt-1.5">
                 <Sparkline data={[q.prevClose, q.dayLow, q.open, (q.dayLow + q.dayHigh) / 2, q.dayHigh, q.price]} width={130} height={22} />
               </div>
@@ -247,7 +247,7 @@ export function DashboardView() {
                     {s.score >= 75 ? "Strong" : "Building"} {s.direction === "LONG" ? "bullish" : "bearish"} setup · {s.factors.filter((f) => f.contribution !== 0).length} factors aligned
                   </p>
                   <p className="qe-num mt-1 text-[10.5px] text-muted-foreground">
-                    Entry {fmtPrice(s.entry)} · Stop {fmtPrice(s.stop)} · Target {fmtPrice(s.target)} · R:R {s.rr.toFixed(1)}
+                    Entry {fmtInstrument(s.entry, s.symbol)} · Stop {fmtInstrument(s.stop, s.symbol)} · Target {fmtInstrument(s.target, s.symbol)} · R:R {s.rr.toFixed(1)}
                   </p>
                 </div>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-brand-hi" />

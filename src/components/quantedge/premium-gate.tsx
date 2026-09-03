@@ -5,7 +5,7 @@
 
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Bot, FlaskConical, Lock, Newspaper, TrendingUp, Wallet } from "lucide-react";
+import { Bot, FlaskConical, Lock, MessagesSquare, Newspaper, TrendingUp, Wallet } from "lucide-react";
 import { authClient, type SessionUser } from "@/lib/auth-client";
 import { effectivePlan, hasFeature, FEATURE_MIN_RANK, PREMIUM_FEATURES, type GatedFeature } from "@/lib/entitlements";
 import { BillingModal } from "@/components/quantedge/billing-modal";
@@ -38,6 +38,13 @@ const FEATURE_META: Record<GatedFeature, { icon: typeof Bot; title: string; blur
     blurb:
       "Validate a strategy against years of candles with bias guards on every result. Stop guessing whether your edge is real — measure win rate, drawdown, and R-multiples before you risk money. Part of Pro.",
     tier: "Pro",
+  },
+  desk: {
+    icon: MessagesSquare,
+    title: "Trade Desk AI",
+    blurb:
+      "Ask for a short, disciplined trade plan on gold, FX majors or equities — grounded in live prices and the signal engine's factor math, never invented. Part of every paid plan.",
+    tier: "Starter",
   },
   briefing: {
     icon: Newspaper,

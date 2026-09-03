@@ -121,6 +121,10 @@ const UPSTREAM_DEADLINE_MS = 2600;
 // ─── Universe metadata (static names/sectors; prices always live) ─────────────
 
 export const UNIVERSE: Record<string, { name: string; assetClass: Quote["assetClass"]; sector: string }> = {
+  XAUUSD: { name: "Gold — XAU/USD (COMEX front-month proxy)", assetClass: "METAL", sector: "Metals" },
+  EURUSD: { name: "Euro / US Dollar", assetClass: "FX", sector: "FX Majors" },
+  GBPUSD: { name: "British Pound / US Dollar", assetClass: "FX", sector: "FX Majors" },
+  USDJPY: { name: "US Dollar / Japanese Yen", assetClass: "FX", sector: "FX Majors" },
   NVDA: { name: "NVIDIA Corp", assetClass: "EQUITY", sector: "Semiconductors" },
   AAPL: { name: "Apple Inc", assetClass: "EQUITY", sector: "Consumer Tech" },
   MSFT: { name: "Microsoft Corp", assetClass: "EQUITY", sector: "Software" },
@@ -145,6 +149,20 @@ export const UNIVERSE: Record<string, { name: string; assetClass: Quote["assetCl
 
 export function universeSymbols(): string[] { return Object.keys(UNIVERSE); }
 
+/** App symbol -> upstream Yahoo symbol. Spot gold doesn't exist on Yahoo, so
+ *  XAUUSD is proxied by the COMEX front month (labeled in UNIVERSE.name). */
+const YAHOO_SYMBOL: Record<string, string> = {
+  XAUUSD: "GC=F",
+};
+export function toYahooSymbol(symbol: string): string {
+  return YAHOO_SYMBOL[symbol] ?? symbol;
+}
+/** Symbols where Yahoo reports no meaningful volume (FX spot, metals proxy). */
+export function isVolumeBlind(symbol: string): boolean {
+  const ac = UNIVERSE[symbol]?.assetClass;
+  return ac === "FX" || ac === "METAL";
+}
+
 // ─── Yahoo provider ───────────────────────────────────────────────────────────
 
 const RANGE_MAP: Record<string, { range: string; interval: string }> = {
@@ -158,7 +176,7 @@ const RANGE_MAP: Record<string, { range: string; interval: string }> = {
 async function yahooChart(symbol: string, range: string, interval: string): Promise<{
   meta: YahooMeta; candles: Candle[]; dataState: DataState;
 } | null> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(toYahooSymbol(symbol))}?range=${range}&interval=${interval}&includePrePost=false`;
   try {
     const res = await paced(() => fetchWithRetry(url));
     if (!res || !res.ok) { noteUpstreamError(); return null; }
@@ -286,6 +304,7 @@ export class SimulatedProvider implements MarketDataProvider {
 
   private basePrice(symbol: string): number {
     const bases: Record<string, number> = {
+      XAUUSD: 4428, EURUSD: 1.159, GBPUSD: 1.348, USDJPY: 158.7,
       NVDA: 178, AAPL: 254, MSFT: 512, TSLA: 342, AMZN: 246, GOOGL: 232, META: 742,
       AMD: 218, SMH: 312, QQQ: 601, SPY: 652, IWM: 238, XLF: 52, XLV: 41, XLE: 96,
       PLTR: 62, COIN: 288, MSTR: 344, JPM: 312, UNH: 318,

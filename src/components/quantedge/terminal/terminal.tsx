@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Activity, Bell, BookOpen, Bot, FlaskConical, Gauge, LayoutDashboard, LineChart,
+  Activity, Bell, BookOpen, Bot, FlaskConical, Gauge, LayoutDashboard, LineChart, MessagesSquare,
   PauseCircle, Play, Settings, ShieldCheck, Wallet, X,
 } from "lucide-react";
 import { useApp, type TerminalView } from "@/lib/store";
@@ -23,6 +23,7 @@ import { PortfolioView } from "@/components/quantedge/terminal/portfolio";
 import { SentinelView } from "@/components/quantedge/terminal/sentinel-view";
 import { ResearchView } from "@/components/quantedge/terminal/research";
 import { SignalsView } from "@/components/quantedge/terminal/signals-view";
+import { TradeDeskView } from "@/components/quantedge/terminal/trade-desk";
 import { LearnView } from "@/components/quantedge/terminal/learn";
 import { SettingsView } from "@/components/quantedge/terminal/settings";
 import { AdminView } from "@/components/quantedge/terminal/admin";
@@ -30,6 +31,7 @@ import { fmtPct, fmtPrice } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 
 const NAV: { id: TerminalView; label: string; icon: typeof LayoutDashboard }[] = [
+  { id: "desk", label: "Trade Desk", icon: MessagesSquare },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "markets", label: "Markets", icon: LineChart },
   { id: "signals", label: "Signals", icon: Activity },
@@ -262,6 +264,7 @@ export function Terminal() {
             >
               {view === "dashboard" && <DashboardView />}
               {view === "markets" && <MarketsView />}
+              {view === "desk" && <PremiumGate feature="desk"><TradeDeskView /></PremiumGate>}
               {view === "signals" && <PremiumGate feature="signals"><SignalsView /></PremiumGate>}
               {view === "portfolio" && <PremiumGate feature="portfolio"><PortfolioView /></PremiumGate>}
               {view === "sentinel" && <PremiumGate feature="sentinel"><SentinelView /></PremiumGate>}

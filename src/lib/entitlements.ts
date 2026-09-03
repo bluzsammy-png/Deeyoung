@@ -36,6 +36,7 @@ export const PLAN_RANK: Record<Plan, number> = {
  *  server routes both read from this one map so they can never drift apart. */
 export const FEATURE_MIN_RANK = {
   signals: 1, // multi-factor signal scores
+  desk: 1, // Trade Desk AI analyst
   portfolio: 1, // portfolio risk analytics
   sentinel: 3, // SENTINEL incl. Approve mode
   research: 3, // Backtest Lab
@@ -111,5 +112,6 @@ export const PREMIUM_FEATURES = {
   sentinel: "SENTINEL automation — supervised execution",
   research: "Backtest Lab — bias-guarded strategy validation",
   briefing: "AI Daily Briefing — the morning edge",
+  desk: "Trade Desk AI — grounded trade plans on gold, FX and equities",
   delegate: "SENTINEL Delegate — automation inside hard limits",
 } as const;

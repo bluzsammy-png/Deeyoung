@@ -106,6 +106,8 @@ bypasses RLS — exactly what we want.)
 | `TURNSTILE_SECRET_KEY` | launch | Free bot protection — get keys at dash.cloudflare.com |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | launch | Pairs with the secret |
 | `NEXT_PUBLIC_APP_URL` | optional | Canonical URL for metadata |
+| `TRUSTED_ORIGINS` | recommended | Comma-separated extra origins allowed to POST auth requests (preview proxies, custom domains). Wildcards OK: `https://*.example.com` |
+| `METAAPI_TOKEN` | optional | Enables live MT4/MT5 account verification via MetaApi.cloud (§10). Without it links save encrypted + queue as `PENDING_BRIDGE` |
 
 > Changing `NEXT_PUBLIC_*` variables requires a redeploy (they are baked into the client bundle).
 
@@ -171,3 +173,21 @@ Everything already has a home:
 
 - Error tracking: add Sentry (`bun add @sentry/nextjs`).
 - Extend the disposable-domain list weekly (see `src/lib/disposable-domains.ts`).
+
+
+## §10 — MT4 / MT5 connectivity (MetaApi bridge)
+
+Users can link MetaTrader accounts from **Settings → MetaTrader**. Credentials are
+AES-256-GCM encrypted with `APP_SECRET` before storage; the plaintext password never
+touches the database or logs. **Investor (read-only) passwords are the recommended
+mode** — DeeYoung can watch the account, never trade it.
+
+1. Create an account at app.metaapi.cloud (free tier available) → copy the token.
+2. Set `METAAPI_TOKEN` in Railway env vars and redeploy.
+3. Existing links move from `PENDING_BRIDGE` to verified on the next save/test;
+   users can re-save to trigger verification immediately.
+
+Honest-state guarantees:
+- Without `METAAPI_TOKEN` links save and queue — the UI says "Bridge pending", never "Connected".
+- `FULL` (trade-capable) mode exists in the schema but order routing is not built;
+  execution stays paper-only per the product's disclosures.

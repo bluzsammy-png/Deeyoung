@@ -58,3 +58,27 @@ export function dirColor(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v) || v === 0) return "text-muted-foreground";
   return v > 0 ? "text-pos" : "text-neg";
 }
+
+// ─── Instrument-aware price formatting ────────────────────────────────────────
+// FX majors quote as rates (1.1592 / 158.702), not dollar values — "$1.1592" is
+// misleading. Everything else keeps the dollar prefix.
+
+const FX_RATE_SYMBOLS = new Set(["EURUSD", "GBPUSD", "AUDUSD", "USDCHF", "USDCAD", "NZDUSD"]);
+const JPY_RATE_SYMBOLS = new Set(["USDJPY", "EURJPY", "GBPJPY"]);
+
+export function isFxRateSymbol(symbol: string): boolean {
+  return FX_RATE_SYMBOLS.has(symbol) || JPY_RATE_SYMBOLS.has(symbol);
+}
+
+/** Formats a price for the instrument's convention: FX rates lose the "$" and
+ *  use pip-precision digits; gold/equities stay dollar-formatted. */
+export function fmtInstrument(v: number | null | undefined, symbol = ""): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  if (JPY_RATE_SYMBOLS.has(symbol)) {
+    return v.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  }
+  if (FX_RATE_SYMBOLS.has(symbol)) {
+    return v.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  }
+  return fmtPrice(v);
+}

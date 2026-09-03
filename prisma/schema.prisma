@@ -51,6 +51,7 @@ model User {
   authSessions    Session[]
   authAccounts    Account[]
   warnings        Warning[]
+  links        BrokerLink[]
 }
 
 // ─── Better Auth (better-auth.com) ───────────────────────────────────────────
@@ -388,4 +389,33 @@ model SystemEvent {
   createdAt DateTime @default(now())
 
   @@index([source, createdAt])
+}
+
+// ─── Broker Links (MT4/MT5 connectivity, §60) ─────────────────────────────────
+// Credentials are stored AES-256-GCM encrypted with APP_SECRET. INVESTOR mode
+// (read-only) is the recommended link type; live order routing stays gated
+// behind the broker bridge and is never enabled by this schema alone.
+
+model BrokerLink {
+  id             String   @id @default(cuid())
+  userId         String
+  platform       String   // MT4 | MT5
+  label          String   // user-friendly name, e.g. "IC Markets MT5"
+  server         String   // broker server name as shown in the terminal
+  login          String   // account number (not a secret by itself)
+  credCipher     String   // AES-256-GCM ciphertext of the account password
+  credIV         String   // GCM initialization vector (hex)
+  credTag        String   // GCM auth tag (hex)
+  mode           String   @default("INVESTOR") // INVESTOR (read-only) | FULL
+  status         String   @default("PENDING_BRIDGE") // PENDING_BRIDGE | CONNECTED | ERROR
+  statusDetail   String   @default("")
+  currency       String   @default("USD")
+  balance        Float?   // last known balance via bridge
+  equity         Float?   // last known equity via bridge
+  lastCheckedAt  DateTime?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

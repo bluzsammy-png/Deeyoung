@@ -6,7 +6,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Info, ChevronDown } from "lucide-react";
-import { fmtPct } from "@/lib/format";
+import { fmtInstrument, fmtPct, isFxRateSymbol } from "@/lib/format";
 
 // ─── Data honesty badge (LIVE / DELAYED / SIMULATED / STALE) — §50 ────────────
 
@@ -29,7 +29,7 @@ export function DataBadge({ state, className = "" }: { state: string; className?
 
 // ─── Price with directional flash on change ───────────────────────────────────
 
-export function Price({ value, className = "", prefix = "$" }: { value: number; className?: string; prefix?: string }) {
+export function Price({ value, className = "", prefix = "$", symbol = "" }: { value: number; className?: string; prefix?: string; symbol?: string }) {
   const prev = useRef(value);
   const [flash, setFlash] = useState<"" | "qe-flash-up" | "qe-flash-down">("");
   useEffect(() => {
@@ -41,9 +41,15 @@ export function Price({ value, className = "", prefix = "$" }: { value: number; 
     const clear = setTimeout(() => setFlash(""), 950);
     return () => { clearTimeout(t); clearTimeout(clear); };
   }, [value]);
+  // FX majors render as rates (no dollar prefix, pip precision); everything else
+  // keeps the dollar convention.
+  const isRate = isFxRateSymbol(symbol);
+  const text = isRate
+    ? fmtInstrument(value, symbol)
+    : value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <span className={`inline-block rounded px-1 ${flash} ${className}`}>
-      {prefix}{value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      {isRate ? "" : prefix}{text}
     </span>
   );
 }

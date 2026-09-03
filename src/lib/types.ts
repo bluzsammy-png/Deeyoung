@@ -6,7 +6,7 @@ export type DataState = "LIVE" | "DELAYED" | "STALE" | "SIMULATED" | "UNAVAILABL
 export interface Quote {
   symbol: string;
   name: string;
-  assetClass: "EQUITY" | "ETF" | "CRYPTO";
+  assetClass: "EQUITY" | "ETF" | "CRYPTO" | "FX" | "METAL";
   sector: string;
   price: number;
   change: number;        // absolute vs prior close

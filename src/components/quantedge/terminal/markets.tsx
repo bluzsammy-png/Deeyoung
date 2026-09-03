@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useApp } from "@/lib/store";
-import { fmtPct, fmtPrice } from "@/lib/format";
+import { fmtInstrument, fmtPct, fmtPrice } from "@/lib/format";
 import { DataBadge, InfoTip, Pct, Price, SectionHead } from "@/components/quantedge/ui-bits";
 import { CandleChart } from "@/components/quantedge/charts/core";
 import { FactorBars, MarketHeatmap, SignalRing } from "@/components/quantedge/charts/widgets";
@@ -97,7 +97,7 @@ export function MarketsView() {
                         <div className="font-bold">{q.symbol}</div>
                         <div className="max-w-[140px] truncate text-[10px] text-muted-foreground">{q.name}</div>
                       </td>
-                      <td className="px-3 py-2.5 text-right"><Price value={q.price} className="text-[11.5px] font-semibold" /></td>
+                      <td className="px-3 py-2.5 text-right"><Price value={q.price} symbol={q.symbol} className="text-[11.5px] font-semibold" /></td>
                       <td className="px-3 py-2.5 text-right"><Pct value={q.changePct} /></td>
                       <td className="qe-num hidden px-3 py-2.5 text-right md:table-cell">
                         <span className={(q.volume / Math.max(1, q.avgVolume)) >= 1.5 ? "font-semibold text-warn" : "text-muted-foreground"}>
@@ -161,7 +161,7 @@ function AssetDetail({ symbol }: { symbol: string }) {
           <div>
             <h3 className="text-lg font-bold tracking-tight">{symbol}</h3>
             <p className="text-xs text-muted-foreground">{signal?.name ?? candles?.provider ?? ""}</p>
-            <Price value={candles?.candles.at(-1)?.c ?? 0} className="qe-num mt-2 block text-2xl font-semibold" />
+            <Price value={candles?.candles.at(-1)?.c ?? 0} symbol={symbol} className="qe-num mt-2 block text-2xl font-semibold" />
           </div>
           {signal && <SignalRing score={signal.score} size={72} />}
         </div>
@@ -201,9 +201,9 @@ function AssetDetail({ symbol }: { symbol: string }) {
           </div>
           <FactorBars factors={signal.factors} />
           <div className="qe-num mt-4 grid grid-cols-3 gap-2 border-t border-hairline pt-3 text-center text-[11px]">
-            <div><span className="block text-muted-foreground">Entry</span>{fmtPrice(signal.entry)}</div>
-            <div><span className="block text-muted-foreground">Stop</span><span className="text-neg">{fmtPrice(signal.stop)}</span></div>
-            <div><span className="block text-muted-foreground">Target</span><span className="text-pos">{fmtPrice(signal.target)}</span></div>
+            <div><span className="block text-muted-foreground">Entry</span>{fmtInstrument(signal.entry, signal.symbol)}</div>
+            <div><span className="block text-muted-foreground">Stop</span><span className="text-neg">{fmtInstrument(signal.stop, signal.symbol)}</span></div>
+            <div><span className="block text-muted-foreground">Target</span><span className="text-pos">{fmtInstrument(signal.target, signal.symbol)}</span></div>
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">{signal.explanation}</p>
         </div>

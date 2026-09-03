@@ -28,6 +28,19 @@ const dbProvider = process.env.DATABASE_URL?.startsWith("postgres") ? "postgresq
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: dbProvider }),
   secret: process.env.BETTER_AUTH_SECRET || "dev-only-secret-change-me-0123456789abcdef",
+  // CSRF: auth POSTs from the chat/preview gateway arrive with a foreign Origin header
+  // (the browser page is served from *.space-z.ai while the server listens locally).
+  // Trust that infra by wildcard, plus any ops-configured domains. Production
+  // same-origin requests need no entry at all.
+  trustedOrigins: [
+    "https://*.space-z.ai",
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+    ...(process.env.TRUSTED_ORIGINS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
