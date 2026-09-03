@@ -92,7 +92,7 @@ export async function sendVerificationEmail(to: string, name: string, token: str
     "Verify your email — DeeYoung Pro",
     shell(
       `Welcome aboard, ${first}.`,
-      "Confirm this address to activate your 14-day free trial of the full terminal — real-time analytics, multi-factor signals, and SENTINEL. No card required, one account per person.",
+      "Confirm this address to activate your 2-day free trial of the full analytics terminal — live markets, multi-factor signals, and portfolio risk. One account per person; subscribe anytime to keep it.",
       "Verify my email & start my trial",
       verificationLink(token),
     ),

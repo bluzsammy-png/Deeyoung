@@ -109,4 +109,4 @@ export const POST = withGuard(async (req: NextRequest, { user, account }) => {
   }
 
   return NextResponse.json({ ok: exec.ok, order, execution: exec });
-});
+}, { minPlan: "TRIAL" });

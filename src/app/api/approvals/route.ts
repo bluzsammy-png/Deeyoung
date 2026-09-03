@@ -121,4 +121,4 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
   });
 
   return NextResponse.json({ ok: true, decision: "APPROVED", execution: exec });
-}, { premium: true });
+}, { minPlan: "PRO" });

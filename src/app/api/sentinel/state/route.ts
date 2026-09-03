@@ -35,4 +35,4 @@ export const GET = withGuard(async (_req, { user, config, account }) => {
     auditEvents,
     openSignals,
   });
-}, { premium: true });
+}, { minPlan: "PRO" });

@@ -46,7 +46,7 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
   });
 
   return NextResponse.json({ symbol, rangeMonths, params, ...result });
-}, { premium: true });
+}, { minPlan: "PRO" });
 
 function clampNum(v: unknown, min: number, max: number, dflt: number): number {
   const n = typeof v === "number" ? v : Number(v);

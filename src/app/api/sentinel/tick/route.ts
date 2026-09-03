@@ -9,4 +9,4 @@ export const maxDuration = 60;
 export const POST = withGuard(async (_req, { user }) => {
   const result = await sentinelTick(user.id);
   return NextResponse.json(result);
-}, { premium: true });
+}, { minPlan: "PRO" });

@@ -24,4 +24,4 @@ export const GET = withGuard(async (_req, { user, account }) => {
       fills: parse<unknown[]>(o.fills, []),
     })),
   });
-});
+}, { minPlan: "TRIAL" });

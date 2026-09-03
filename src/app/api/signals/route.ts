@@ -52,4 +52,4 @@ export const GET = withGuard(async (_req, { user, config, account }) => {
     sentinel: { mode: config.mode, state: effectiveState(config, false), killSwitch: config.killSwitch },
     asOf: Date.now(),
   });
-});
+}, { minPlan: "TRIAL" });

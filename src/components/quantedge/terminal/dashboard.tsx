@@ -5,12 +5,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Bot, Newspaper, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Bot, Lock, Newspaper, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { fmtMoney, fmtPct, fmtPrice, fmtAgo } from "@/lib/format";
+import { authClient, type SessionUser } from "@/lib/auth-client";
+import { effectivePlan, hasFeature } from "@/lib/entitlements";
 import { DataBadge, InfoTip, Pct, Price, SectionHead, StatTile } from "@/components/quantedge/ui-bits";
 import { CatalystTimeline, FactorBars, RegimeOrb, SignalRing } from "@/components/quantedge/charts/widgets";
 import { Sparkline } from "@/components/quantedge/charts/core";
+import { BillingModal } from "@/components/quantedge/billing-modal";
 import type { Catalyst, NewsEnvelope, PortfolioIntelligence, Quote, RegimeState, SignalResult } from "@/lib/types";
 
 interface SignalsPayload {
@@ -23,6 +26,12 @@ interface SignalsPayload {
 export function DashboardView() {
   const setView = useApp((s) => s.setView);
   const setFocused = useApp((s) => s.setFocusedSymbol);
+  const { data: session } = authClient.useSession();
+  const user = session?.user as SessionUser | undefined;
+  const plan = user ? effectivePlan(user) : "FREE";
+  const canSignals = user ? hasFeature(user, "signals") : false;
+  const canBriefing = user ? hasFeature(user, "briefing") : false;
+  const [billingOpen, setBillingOpen] = useState(false);
   const [data, setData] = useState<SignalsPayload | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [news, setNews] = useState<NewsEnvelope | null>(null);
@@ -32,26 +41,33 @@ export function DashboardView() {
 
   const load = useCallback(async () => {
     try {
-      const [sRes, qRes, nRes, pRes] = await Promise.all([
-        fetch("/api/signals"),
+      const [qRes, nRes, sRes, pRes] = await Promise.all([
         fetch("/api/market/quotes?symbols=SPY,QQQ,IWM,SMH,XLE,XLF"),
         fetch("/api/news"),
-        fetch("/api/portfolio"),
+        canSignals ? fetch("/api/signals") : Promise.resolve(null),
+        canSignals ? fetch("/api/portfolio") : Promise.resolve(null),
       ]);
-      const [s, q, n, p] = await Promise.all([sRes.json(), qRes.json(), nRes.json(), pRes.json()]);
-      setData(s); setQuotes(q.quotes ?? []); setNews(n); setPortfolio(p.intel ?? null);
+      const q = await qRes.json();
+      const n = await nRes.json();
+      let s = sRes ? await sRes.json() : null;
+      let p = pRes ? await pRes.json() : null;
+      if (s?.error) s = null;
+      if (p?.error) p = null;
+      setData(s); setQuotes(q.quotes ?? []); setNews(n); setPortfolio(p?.intel ?? null);
     } catch { /* keep last good frame */ }
     setLoading(false);
-  }, []);
+  }, [canSignals]);
 
   const loadBriefing = useCallback(async () => {
+    if (!canBriefing) return;
     try {
       const b = await (await fetch("/api/ai/briefing", { method: "POST" })).json();
+      if (b?.error) { setBriefing(null); return; }
       setBriefing(b);
     } catch {
       setBriefing({ ok: false, message: "AI briefing is temporarily unavailable. Market data and signals continue to work." });
     }
-  }, []);
+  }, [canBriefing]);
 
   useEffect(() => {
     const t = setTimeout(load, 0);
@@ -65,6 +81,24 @@ export function DashboardView() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const opportunities = (data?.signals ?? []).filter((s) => s.direction !== "NEUTRAL" && s.score >= 55).slice(0, 4);
+
+  const lockedPanel = (title: string, blurb: string) => (
+    <div className="qe-panel-2 flex items-center gap-3 rounded-xl p-5">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/12 ring-1 ring-brand/25">
+        <Lock className="h-4 w-4 text-brand-hi" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{blurb}</p>
+      </div>
+      <button
+        onClick={() => setBillingOpen(true)}
+        className="shrink-0 rounded-lg bg-brand px-3.5 py-2 text-xs font-bold text-white transition-all hover:brightness-110"
+      >
+        Subscribe
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -80,16 +114,24 @@ export function DashboardView() {
                 <span className="inline-flex items-center gap-2 rounded-full border border-hairline bg-panel-2 px-3 py-1.5 text-xs">
                   <Bot className="h-3.5 w-3.5 text-brand-hi" />
                   SENTINEL:
-                  <span className="font-semibold">{data?.sentinel.mode ?? "…"}</span>
-                  {data?.sentinel.killSwitch && <span className="font-bold text-neg">· EMERGENCY STOP</span>}
+                  {user && hasFeature(user, "sentinel") ? (
+                    <>
+                      <span className="font-semibold">{data?.sentinel.mode ?? "…"}</span>
+                      {data?.sentinel.killSwitch && <span className="font-bold text-neg">· EMERGENCY STOP</span>}
+                    </>
+                  ) : (
+                    <span className="font-semibold text-muted-foreground">Pro</span>
+                  )}
                 </span>
-                <button
-                  onClick={() => setView("sentinel")}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-brand/12 px-3 py-1.5 text-xs font-semibold text-brand-hi transition-colors hover:bg-brand/20"
-                >
-                  Review opportunities
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </button>
+                {plan !== "FREE" && (
+                  <button
+                    onClick={() => setView("sentinel")}
+                    className="group inline-flex items-center gap-1.5 rounded-full bg-brand/12 px-3 py-1.5 text-xs font-semibold text-brand-hi transition-colors hover:bg-brand/20"
+                  >
+                    Review opportunities
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                )}
               </div>
             </div>
             <RegimeOrb regime={data?.regime ?? null} size={128} />
@@ -109,29 +151,33 @@ export function DashboardView() {
         </div>
 
         {/* portfolio strip */}
-        <StatTile
-          label="Your Portfolio (Paper)"
-          value={portfolio ? fmtMoney(portfolio.equity, 0) : "—"}
-          sub={portfolio ? (
-            <span className="flex items-center gap-2">
-              <Pct value={portfolio.totalPnlPct} />
-              <span className={portfolio.totalPnl >= 0 ? "text-pos" : "text-neg"}>{fmtMoney(portfolio.totalPnl, 0, true)} total</span>
-              <span>·</span>
-              <Pct value={portfolio.dayPnlPct} className="!text-[11px]" />
-              <span className="text-[11px]">today</span>
-            </span>
-          ) : "loading…"}
-          tip="This is your paper brokerage equity: cash plus positions at delayed market prices. It is simulated money — always."
-        >
-          {portfolio && portfolio.warnings.length > 0 && (
-            <div className="mt-3 rounded-lg border border-warn/25 bg-warn/[0.07] px-3 py-2">
-              <p className="flex items-start gap-1.5 text-[11px] leading-snug text-warn">
-                <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {portfolio.warnings[0]}
-              </p>
-            </div>
-          )}
-        </StatTile>
+        {canSignals ? (
+          <StatTile
+            label="Your Portfolio (Paper)"
+            value={portfolio ? fmtMoney(portfolio.equity, 0) : "—"}
+            sub={portfolio ? (
+              <span className="flex items-center gap-2">
+                <Pct value={portfolio.totalPnlPct} />
+                <span className={portfolio.totalPnl >= 0 ? "text-pos" : "text-neg"}>{fmtMoney(portfolio.totalPnl, 0, true)} total</span>
+                <span>·</span>
+                <Pct value={portfolio.dayPnlPct} className="!text-[11px]" />
+                <span className="text-[11px]">today</span>
+              </span>
+            ) : "loading…"}
+            tip="This is your paper brokerage equity: cash plus positions at delayed market prices. It is simulated money — always."
+          >
+            {portfolio && portfolio.warnings.length > 0 && (
+              <div className="mt-3 rounded-lg border border-warn/25 bg-warn/[0.07] px-3 py-2">
+                <p className="flex items-start gap-1.5 text-[11px] leading-snug text-warn">
+                  <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {portfolio.warnings[0]}
+                </p>
+              </div>
+            )}
+          </StatTile>
+        ) : (
+          lockedPanel("Portfolio risk is part of every paid plan", "Equity, P&L, concentration and correlation — included with every plan, starting at Starter.")
+        )}
       </div>
 
       {/* ── Market overview ── */}
@@ -175,7 +221,11 @@ export function DashboardView() {
             }
           />
           <div className="space-y-2">
-            {opportunities.map((s, i) => (
+            {!canSignals ? (
+              lockedPanel("Multi-factor signals are part of every paid plan", "Seven factors, visible math, entry/stop/target on every setup — included with every plan, starting at Starter.")
+            ) : (
+              <>
+                {opportunities.map((s, i) => (
               <motion.button
                 key={s.symbol}
                 initial={{ opacity: 0, x: -10 }}
@@ -209,6 +259,8 @@ export function DashboardView() {
               </div>
             )}
             {loading && Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[88px] animate-pulse rounded-xl bg-panel-2" />)}
+              </>
+            )}
           </div>
 
           {/* factor breakdown of top signal (§14 visual) */}
@@ -239,7 +291,17 @@ export function DashboardView() {
                 The briefing writer receives only verified numbers from DeeYoung&apos;s data providers and is forbidden from citing anything else. If data degrades, the briefing pauses rather than inventing content.
               </InfoTip>
             </div>
-            {briefing?.ok ? (
+            {!canBriefing ? (
+              <div className="flex items-center gap-3">
+                <Lock className="h-4 w-4 shrink-0 text-brand-hi" />
+                <p className="flex-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                  A grounded morning read of regime, names and risk — part of Pro.
+                </p>
+                <button onClick={() => setBillingOpen(true)} className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-white transition-all hover:brightness-110">
+                  Subscribe
+                </button>
+              </div>
+            ) : briefing?.ok ? (
               <p className="text-[12.5px] leading-relaxed text-foreground/85">{briefing.briefing}</p>
             ) : (
               <p className="text-[12.5px] leading-relaxed text-muted-foreground">
@@ -297,6 +359,8 @@ export function DashboardView() {
 
       {/* ── Recent activity ── */}
       <ActivityStrip />
+
+      <BillingModal open={billingOpen} onOpenChange={setBillingOpen} />
     </div>
   );
 }

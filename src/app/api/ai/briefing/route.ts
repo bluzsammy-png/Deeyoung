@@ -67,4 +67,4 @@ export const POST = withGuard(async (_req, { user, config, account }) => {
       message: "AI briefing is temporarily unavailable. Market data and signals continue to work — the briefing writer will return shortly.",
     });
   }
-}, { premium: true });
+}, { minPlan: "PRO" });

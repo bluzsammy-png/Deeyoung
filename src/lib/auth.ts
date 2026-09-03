@@ -4,7 +4,7 @@
 //   1.5 MX deliverability check (rejects typo'd / dead domains, fails open on DNS hiccups)
 //   2. Cloudflare Turnstile (env-gated)
 //   3. signup velocity per HMAC-hashed IP (no raw IPs stored, GDPR-safe)
-//   4. 14-day full-access trial, no card required (abuse cost capped by usage limits)
+//   4. 2-day analytics trial, no card (Pro systems lock until they subscribe)
 //   5. email verification REQUIRED in production (Resend configured); auto-verified locally
 
 import { betterAuth } from "better-auth";

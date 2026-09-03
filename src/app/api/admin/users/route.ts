@@ -52,7 +52,7 @@ export async function GET() {
       banned: users.filter((u) => u.status === "BANNED").length,
       suspended: users.filter((u) => u.status === "SUSPENDED").length,
       trial: users.filter((u) => u.plan === "TRIAL").length,
-      premium: users.filter((u) => u.plan === "PREMIUM").length,
+      paid: users.filter((u) => ["STARTER", "PRO", "ELITE", "PREMIUM"].includes(u.plan)).length,
     },
   });
 }

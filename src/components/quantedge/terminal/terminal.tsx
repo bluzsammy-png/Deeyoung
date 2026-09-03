@@ -262,8 +262,8 @@ export function Terminal() {
             >
               {view === "dashboard" && <DashboardView />}
               {view === "markets" && <MarketsView />}
-              {view === "signals" && <SignalsView />}
-              {view === "portfolio" && <PortfolioView />}
+              {view === "signals" && <PremiumGate feature="signals"><SignalsView /></PremiumGate>}
+              {view === "portfolio" && <PremiumGate feature="portfolio"><PortfolioView /></PremiumGate>}
               {view === "sentinel" && <PremiumGate feature="sentinel"><SentinelView /></PremiumGate>}
               {view === "research" && <PremiumGate feature="research"><ResearchView /></PremiumGate>}
               {view === "learn" && <LearnView />}

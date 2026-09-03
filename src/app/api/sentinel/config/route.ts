@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withGuard } from "@/lib/guard";
+import { withGuard, GuardError } from "@/lib/guard";
+import { planRank } from "@/lib/entitlements";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
   const changes: string[] = [];
 
   if (body.mode && MODES.includes(body.mode) && body.mode !== config.mode) {
+    // Delegate is Elite-only — automation is the top-tier capability.
+    if (body.mode === "DELEGATE" && planRank(user) < 4) {
+      throw new GuardError(402, "PREMIUM_REQUIRED", "DELEGATE mode is part of Elite. Upgrade to automate execution inside your hard limits.");
+    }
     // Delegate requires explicit confirmation flag (never silently enable §7/§69.6)
     if (body.mode === "DELEGATE" && body.confirmDelegate !== true) {
       return NextResponse.json({ error: "DELEGATE mode requires confirmDelegate=true — automatic execution is never enabled silently." }, { status: 422 });
@@ -59,4 +64,4 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
     data: { userId: user.id, category: "RISK", action: "SENTINEL_CONFIG_UPDATED", detail: JSON.stringify({ changes }) },
   });
   return NextResponse.json({ ok: true, config: updated, changes });
-}, { premium: true });
+}, { minPlan: "PRO" });

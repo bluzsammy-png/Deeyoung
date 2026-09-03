@@ -9,23 +9,23 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient, type SessionUser } from "@/lib/auth-client";
-import { effectivePlan, trialDaysLeft } from "@/lib/entitlements";
+import { effectivePlan, trialTimeLeftLabel } from "@/lib/entitlements";
 import { BillingModal } from "@/components/quantedge/billing-modal";
 
 export function PlanBadge({ user, onClickUpgrade }: { user: SessionUser; onClickUpgrade?: () => void }) {
   const plan = effectivePlan(user);
-  const daysLeft = trialDaysLeft(user);
+  const trialLabel = trialTimeLeftLabel(user);
   const base = "rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider";
   if (plan === "TRIAL") {
     return (
       <span className={`${base} border border-brand/40 bg-brand/10 text-brand-hi`}>
-        TRIAL{daysLeft !== null ? ` · ${daysLeft}D` : ""}
+        TRIAL{trialLabel ? ` · ${trialLabel}` : ""}
       </span>
     );
   }
-  if (plan === "PREMIUM") {
+  if (plan === "PRO" || plan === "ELITE" || plan === "STARTER") {
     return (
-      <span className={`${base} border border-warn/40 bg-warn/10 text-warn`}>PRO</span>
+      <span className={`${base} border border-warn/40 bg-warn/10 text-warn`}>{plan}</span>
     );
   }
   return (

@@ -17,6 +17,7 @@ import { Sparkline } from "@/components/quantedge/charts/core";
 import { AuroraBackdrop } from "@/components/quantedge/charts/aurora";
 import { LegalModal } from "@/components/quantedge/legal";
 import { TiltCard } from "@/components/quantedge/three/tilt-card";
+import { TIERS, CURRENCY_SYMBOL, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
 import type { Quote } from "@/lib/types";
 
 const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"), {
@@ -27,6 +28,25 @@ const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"
 const TICKERS = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "SPY", "QQQ"];
 const SUPPORT_EMAIL = "deyongsltd@gmail.com";
 
+/** Location-aware pricing currency: auto-detected, manually overridable, persisted.
+ *  Set inside a rAF (not the effect body) to stay hydration-safe: server renders
+ *  the USD default, then the detected currency swaps in on the first frame. */
+function usePricingCurrency() {
+  const [ccy, setCcy] = useState<CurrencyCode>("USD");
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      let initial = detectCurrencyFromBrowser();
+      try {
+        const saved = localStorage.getItem("dyp-ccy") as CurrencyCode | null;
+        if (saved && saved in CURRENCY_SYMBOL) initial = saved;
+      } catch { /* private mode */ }
+      setCcy(initial);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return [ccy, setCcy] as const;
+}
+
 export function Landing() {
   const setEntered = useApp((s) => s.setEntered);
   const setLegalModal = useApp((s) => s.setLegalModal);
@@ -34,6 +54,7 @@ export function Landing() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [signalDemo] = useState({ score: 84 });
   const [scrolled, setScrolled] = useState(false);
+  const [ccy, setCcy] = usePricingCurrency();
 
   useEffect(() => {
     let alive = true;
@@ -93,7 +114,7 @@ export function Landing() {
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className="relative">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.08] px-3 py-1.5 text-[11px] font-medium text-foreground/90">
               <span className="qe-pulse-dot h-1.5 w-1.5 rounded-full bg-brand text-brand" />
-              Built in Lagos. Tuned for global markets.
+              Serious tools for serious traders — priced for real life
             </div>
             <h1 className="qe-display max-w-3xl text-[42px] font-bold leading-[1.03] tracking-tight sm:text-7xl">
               See what&rsquo;s moving.
@@ -220,14 +241,14 @@ export function Landing() {
             <div>
               <p className="qe-label text-brand-hi">Why DeeYoung exists</p>
               <p className="qe-display mt-1.5 text-xl font-bold sm:text-2xl">
-                Wall Street tools. <span className="text-brand-hi">Lagos</span> price tag.
+                Wall Street tools. <span className="text-brand-hi">A price that makes sense.</span>
               </p>
             </div>
             <button
               onClick={() => setEntered(true)}
               className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition-transform hover:scale-[1.03]"
             >
-              Try it free for 14 days
+              Try it free for 2 days
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
@@ -328,10 +349,10 @@ export function Landing() {
         {/* levels */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { lvl: "Level 1", name: "Analytics", body: "Charts, catalysts, regime calls and portfolio risk — one view.", icon: TrendingUp },
-            { lvl: "Level 2", name: "Signals", body: "Alerts when something interesting happens on your watchlist.", icon: Bell },
-            { lvl: "Level 3", name: "SENTINEL Approve", body: "SENTINEL proposes. You approve or reject — every time.", icon: CheckCircle2 },
-            { lvl: "Level 4", name: "SENTINEL Delegate", body: "Automatic execution inside your hard limits. Off by default.", icon: Sparkles },
+            { lvl: "Level 1", name: "Analytics", body: "Charts, catalysts, regime calls and portfolio risk — one view.", icon: TrendingUp, plan: "Starter" },
+            { lvl: "Level 2", name: "Signals", body: "Alerts when something interesting happens on your watchlist.", icon: Bell, plan: "Starter" },
+            { lvl: "Level 3", name: "SENTINEL Approve", body: "SENTINEL proposes. You approve or reject — every time.", icon: CheckCircle2, plan: "Pro" },
+            { lvl: "Level 4", name: "SENTINEL Delegate", body: "Automatic execution inside your hard limits. Off by default.", icon: Sparkles, plan: "Elite" },
           ].map((l) => (
             <motion.div
               key={l.lvl}
@@ -346,56 +367,98 @@ export function Landing() {
               </div>
               <h3 className="qe-display mt-2 text-sm font-bold">{l.name}</h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{l.body}</p>
+              <span className="mt-3 inline-block rounded-md border border-brand/25 bg-brand/[0.08] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-hi">
+                {l.plan}
+              </span>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* pricing banner */}
+      {/* pricing — three tiers, location-aware currency */}
       <section className="relative z-10 mx-auto max-w-6xl px-5 pb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="qe-brand-glow qe-banner relative overflow-hidden rounded-3xl p-7 sm:p-10"
+          className="qe-panel relative overflow-hidden rounded-3xl p-7 sm:p-9"
         >
-          <div className="pointer-events-none absolute inset-y-0 w-1/3 qe-shine bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
-          <div className="relative grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
-            <div>
-              <p className="qe-label text-brand-hi">Pricing</p>
-              <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">One plan. The whole terminal.</h2>
-              <ul className="mt-5 space-y-2.5 text-sm text-foreground/85">
-                {[
-                  "Everything: analytics, signals, catalysts, risk",
-                  "SENTINEL supervised & delegated automation",
-                  "Backtest Lab + AI Daily Briefing",
-                  "14 days free · no card · cancel anytime",
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-2.5">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-hi" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
+          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-brand/[0.07] blur-3xl" />
+          <div className="relative">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="qe-label text-brand-hi">Pricing</p>
+                <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">Three plans. No mystery tiers.</h2>
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                  Every plan starts with a 2-day trial — full analytics, no card. Card details only when you subscribe,
+                  charged when your plan renews, cancel anytime.
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                Currency
+                <select
+                  value={ccy}
+                  onChange={(e) => { setCcy(e.target.value as CurrencyCode); try { localStorage.setItem("dyp-ccy", e.target.value); } catch { /* private mode */ } }}
+                  className="rounded-lg border border-hairline bg-panel-2 px-2.5 py-1.5 text-xs font-semibold text-foreground outline-none focus:border-brand/50"
+                >
+                  {(Object.keys(CURRENCY_SYMBOL) as CurrencyCode[]).map((code) => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-            <div className="qe-panel rounded-2xl p-6 text-center">
-              <p className="qe-label">Pro</p>
-              <p className="qe-display mt-2 text-4xl font-bold">
-                ₦15,000<span className="text-base font-medium text-muted-foreground">/month</span>
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                Cards aren&rsquo;t live yet — payment-provider onboarding is in progress. Start free now: no card, no charges, no surprises.
-              </p>
-              <button
-                onClick={() => setEntered(true)}
-                className="qe-glow mt-5 w-full rounded-xl bg-brand py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02]"
-              >
-                Start my 14-day trial
-              </button>
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                Questions? <a className="text-brand-hi hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-              </p>
+
+            <div className="mt-7 grid gap-4 lg:grid-cols-3">
+              {TIERS.map((tier) => (
+                <div
+                  key={tier.key}
+                  className={`relative flex flex-col rounded-2xl border p-5 ${
+                    tier.popular
+                      ? "qe-brand-glow border-brand/50 bg-brand/[0.06]"
+                      : "border-hairline bg-panel-2"
+                  }`}
+                >
+                  {tier.popular && (
+                    <span className="absolute -top-2.5 left-5 rounded-md bg-brand px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                      Most popular
+                    </span>
+                  )}
+                  <div className="flex items-baseline justify-between">
+                    <h3 className="qe-display text-sm font-bold">{tier.name}</h3>
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{tier.tagline}</span>
+                  </div>
+                  <p className="qe-display mt-3 text-3xl font-bold">
+                    {tierPrice(tier, ccy)}
+                    <span className="text-sm font-medium text-muted-foreground">/month</span>
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">≈ ₦{tier.prices.NGN.toLocaleString("en-US")} reference price</p>
+                  <ul className="mt-4 flex-1 space-y-2 text-xs leading-relaxed text-foreground/85">
+                    {tier.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => setEntered(true)}
+                    className={`mt-5 w-full rounded-xl py-2.5 text-sm font-bold transition-all ${
+                      tier.popular
+                        ? "qe-glow bg-brand text-white hover:brightness-110"
+                        : "border border-hairline bg-panel text-foreground hover:border-brand/40"
+                    }`}
+                  >
+                    Start 2-day trial
+                  </button>
+                </div>
+              ))}
             </div>
+
+            <p className="mt-5 text-center text-[11px] text-muted-foreground">
+              Card checkout is in final onboarding with our payment provider — join the in-app waitlist to be notified
+              the moment your plan can be activated. Questions?{" "}
+              <a className="text-brand-hi hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            </p>
           </div>
         </motion.div>
       </section>

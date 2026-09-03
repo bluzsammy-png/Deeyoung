@@ -29,7 +29,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "DeeYoung Pro — Market Signals, Catalysts & Risk. One Terminal.",
   description:
-    "Price action, news flow and portfolio risk in one screen, priced for Nigeria. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. 14 days free, no card.",
+    "Price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. 2-day trial, three plans, your currency.",
   keywords: ["DeeYoung Pro", "DeeYoungs Ltd", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
   authors: [{ name: "DeeYoungs Ltd" }],
   icons: {
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "DeeYoung Pro — See what's moving. Know why it's moving.",
-    description: "Move first. Market signals, catalysts and risk in one terminal — built in Lagos, tuned for global markets. 14-day free trial, no card.",
+    description: "Move first. Market signals, catalysts and risk in one terminal — Wall Street tools at a price that makes sense. 2-day free trial, three plans.",
     siteName: "DeeYoung Pro",
     type: "website",
   },

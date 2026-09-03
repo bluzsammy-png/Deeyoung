@@ -61,4 +61,4 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
     },
   });
   return NextResponse.json({ ok: true, killSwitch: false });
-}, { premium: true });
+}, { minPlan: "PRO" });

@@ -64,6 +64,8 @@ export function AuthView({ onBack }: { onBack: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // When an error has an obvious next step, offer it directly (no dead ends).
+  const [errorAction, setErrorAction] = useState<"signin" | "signup" | "forgot" | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Password-reset deep link: the reset email lands on /?reset=<token>.
@@ -79,13 +81,20 @@ export function AuthView({ onBack }: { onBack: () => void }) {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError(null);
+    setErrorAction(null);
     setNotice(null);
     setNeedVerify(false);
+  };
+
+  const fail = (message: string, action: "signin" | "signup" | "forgot" | null = null) => {
+    setError(message);
+    setErrorAction(action);
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setErrorAction(null);
     setNotice(null);
     setBusy(true);
     try {
@@ -97,15 +106,23 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           // @ts-expect-error — turnstileToken only exists when Turnstile is configured server-side
           turnstileToken,
         });
-        if (err) throw new Error(err.message || "Could not create your account.");
+        if (err) {
+          const dup = err.status === 422 || (err.code ?? "").includes("USER_ALREADY_EXISTS");
+          if (dup) {
+            fail("That email already has an account. Sign in instead — or reset your password if you've forgotten it.", "signin");
+          } else {
+            fail(err.message || "Couldn't create your account. Check your details and retry.");
+          }
+        }
       } else if (mode === "signin") {
         const { error: err } = await authClient.signIn.email({ email: email.trim(), password });
         if (err) {
           if (err.status === 403 || err.code === "EMAIL_NOT_VERIFIED") {
             setNeedVerify(true);
-            throw new Error("Please verify your email before signing in — check your inbox.");
+            fail("Please verify your email before signing in — check your inbox.");
+          } else {
+            fail("No account matches that email and password. Double-check both — or create an account in 20 seconds.", "signup");
           }
-          throw new Error(err.message || "Invalid email or password.");
         }
       } else if (mode === "forgot") {
         // Always returns success (no account enumeration).
@@ -114,14 +131,16 @@ export function AuthView({ onBack }: { onBack: () => void }) {
       } else if (mode === "reset") {
         if (newPassword !== confirmPassword) throw new Error("The two passwords don't match.");
         const { error: err } = await authClient.resetPassword({ newPassword, token: resetToken });
-        if (err) throw new Error(err.message || "That reset link is invalid or has expired.");
-        setNotice("Password updated. Sign in with your new password.");
-        setPassword("");
-        switchMode("signin");
+        if (err) fail("That reset link is invalid or has expired. Request a fresh one below.", "forgot");
+        else {
+          setNotice("Password updated. Sign in with your new password.");
+          setPassword("");
+          switchMode("signin");
+        }
       }
       // session hook in the app shell flips the gate automatically
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please retry.");
+      fail(err instanceof Error ? err.message : "Something went wrong. Please retry.");
     } finally {
       setBusy(false);
     }
@@ -264,10 +283,23 @@ export function AuthView({ onBack }: { onBack: () => void }) {
             {mode !== "forgot" && mode !== "reset" && <Turnstile onToken={setTurnstileToken} />}
 
             {error && (
-              <p className="flex items-start gap-2 rounded-xl border border-neg/30 bg-neg/10 px-3.5 py-2.5 text-xs leading-snug text-neg" role="alert">
-                <MailWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {error}
-              </p>
+              <div className="space-y-2" role="alert">
+                <p className="flex items-start gap-2 rounded-xl border border-neg/30 bg-neg/10 px-3.5 py-2.5 text-xs leading-snug text-neg">
+                  <MailWarning className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {error}
+                </p>
+                {errorAction && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode(errorAction as Mode)}
+                    className="w-full rounded-xl border border-brand/35 bg-brand/10 py-2.5 text-xs font-bold text-brand-hi transition-colors hover:bg-brand/20"
+                  >
+                    {errorAction === "signup" && "Create an account with this email →"}
+                    {errorAction === "signin" && "Sign in instead →"}
+                    {errorAction === "forgot" && "Send a new reset link →"}
+                  </button>
+                )}
+              </div>
             )}
 
             {notice && (
@@ -295,7 +327,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
               {mode === "signup"
-                ? "Start my 14-day free trial"
+                ? "Start my 2-day free trial"
                 : mode === "forgot"
                   ? "Send reset link"
                   : mode === "reset"
@@ -324,7 +356,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           <div className="mt-5 space-y-2 border-t border-hairline pt-4">
             <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-brand" />
-              14-day free trial · no card required · cancel anytime
+              2-day free trial · full analytics · subscribe from ₦5,000/mo
             </p>
             <p className="text-[11px] leading-relaxed text-muted-foreground/70">
               One account per person. Disposable or temporary email domains are rejected automatically,

@@ -1,11 +1,11 @@
 // DEEYOUNG PRO — API route guard: session → account state → entitlements.
-// Every route handler is wrapped by withGuard(); premium routes pass { premium: true }.
+// Every route handler is wrapped by withGuard(); gated routes pass { minPlan: "..." }.
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { hasPremiumAccess } from "@/lib/entitlements";
+import { PLAN_RANK, planRank, type Plan } from "@/lib/entitlements";
 import { ensureUserProvisioned } from "@/lib/sentinel";
 import type { PaperAccount, SentinelConfig, User } from "@prisma/client";
 
@@ -34,12 +34,14 @@ type RouteHandler<C> = (req: Request, ctx: C, routeCtx: unknown) => Response | P
  * Wrap a route handler with auth + trust enforcement:
  *  401 AUTH_REQUIRED       — no valid session
  *  403 ACCOUNT_SUSPENDED / ACCOUNT_BANNED — moderation ladder
- *  402 PREMIUM_REQUIRED    — feature locked on the FREE plan (trial/Pro pass)
+ *  402 PREMIUM_REQUIRED    — the user's plan doesn't include this feature
+ *                            (pass opts.minPlan, e.g. "TRIAL" for analytics,
+ *                            "PRO" for SENTINEL/Backtest/Briefing)
  * Handlers receive { user, config, account } — the same shape bootstrapUser used to return.
  */
 export function withGuard<C = GuardedContext>(
   handler: RouteHandler<C>,
-  opts?: { premium?: boolean },
+  opts?: { minPlan?: Plan },
 ): (req: Request, routeCtx: unknown) => Promise<Response> {
   return async (req: Request = new Request("http://local/"), routeCtx?: unknown) => {
     try {
@@ -55,11 +57,12 @@ export function withGuard<C = GuardedContext>(
         throw new GuardError(403, "ACCOUNT_SUSPENDED", "Your account is suspended. Check your email for next steps.");
       }
       const { config, account } = await ensureUserProvisioned(user.id);
-      if (opts?.premium && !hasPremiumAccess(user)) {
+      if (opts?.minPlan && planRank(user) < PLAN_RANK[opts.minPlan]) {
+        const needed = opts.minPlan === "ELITE" ? "Elite" : opts.minPlan === "PRO" ? "Pro" : "a paid plan";
         throw new GuardError(
           402,
           "PREMIUM_REQUIRED",
-          "This is a Pro feature. Your 14-day free trial unlocks everything — upgrade to keep it after the trial ends.",
+          `This feature is part of ${needed}. Subscribe to unlock it — your plan doesn't include it right now.`,
         );
       }
       return await handler(req, { user, config, account } as C, routeCtx);

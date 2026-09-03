@@ -5,9 +5,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { KeyRound, Plug, ShieldCheck } from "lucide-react";
+import { CreditCard, KeyRound, Plug, ShieldCheck } from "lucide-react";
 import { SectionHead, InfoTip } from "@/components/quantedge/ui-bits";
 import { useApp } from "@/lib/store";
+import { authClient, type SessionUser } from "@/lib/auth-client";
+import { effectivePlan, trialTimeLeftLabel } from "@/lib/entitlements";
+import { BillingModal } from "@/components/quantedge/billing-modal";
 
 interface HealthPayload {
   overall: string;
@@ -17,6 +20,11 @@ interface HealthPayload {
 
 export function SettingsView() {
   const setLegal = useApp((s) => s.setLegalModal);
+  const { data: session } = authClient.useSession();
+  const user = session?.user as SessionUser | undefined;
+  const plan = user ? effectivePlan(user) : "FREE";
+  const trialLabel = user ? trialTimeLeftLabel(user) : null;
+  const [billingOpen, setBillingOpen] = useState(false);
   const [health, setHealth] = useState<HealthPayload | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({
     SIGNAL_HIGH_CONFIDENCE: true, SENTINEL_APPROVAL_REQUEST: true, TRADE_EXECUTED: true,
@@ -169,13 +177,24 @@ export function SettingsView() {
         {/* ── Account & legal ── */}
         <SettingsCard title="Account" desc="Subscription, privacy, security, legal">
           <div className="space-y-2">
-            <div className="flex items-center justify-between rounded-lg bg-panel-2 px-3 py-2.5">
+            <button
+              onClick={() => setBillingOpen(true)}
+              className="flex w-full items-center justify-between rounded-lg bg-panel-2 px-3 py-2.5 text-left transition-colors hover:border-brand/30"
+            >
               <div>
-                <p className="text-xs font-semibold">Plan: Preview (Free)</p>
-                <p className="text-[10.5px] text-muted-foreground">Paper trading, analytics, SENTINEL Approve. Paid tiers arrive with Stripe + store billing.</p>
+                <p className="text-xs font-semibold">
+                  Plan: {plan === "TRIAL" ? `2-Day Trial${trialLabel ? ` · ${trialLabel} left` : ""}` : plan === "FREE" ? "Free — trial ended" : plan}
+                </p>
+                <p className="text-[10.5px] text-muted-foreground">
+                  {plan === "FREE"
+                    ? "Subscribe from ₦5,000/mo to restore the full terminal. Starter, Pro and Elite available."
+                    : plan === "TRIAL"
+                      ? "Full analytics for 48 hours. SENTINEL, Backtest Lab and the Briefing unlock when you subscribe."
+                      : "Everything your plan includes is unlocked. Manage or upgrade below."}
+                </p>
               </div>
-              <Plug className="h-4 w-4 text-muted-foreground" />
-            </div>
+              <CreditCard className="h-4 w-4 shrink-0 text-brand-hi" />
+            </button>
             <div className="flex flex-wrap gap-2 pt-1">
               <LegalLink label="Terms of Service" onClick={() => setLegal("TOS")} />
               <LegalLink label="Privacy Policy" onClick={() => setLegal("PRIVACY")} />
@@ -188,6 +207,8 @@ export function SettingsView() {
           </div>
         </SettingsCard>
       </div>
+
+      <BillingModal open={billingOpen} onOpenChange={setBillingOpen} />
     </div>
   );
 }
