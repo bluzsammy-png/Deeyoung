@@ -16,6 +16,7 @@ import { SignalRing } from "@/components/quantedge/charts/widgets";
 import { Sparkline } from "@/components/quantedge/charts/core";
 import { AuroraBackdrop } from "@/components/quantedge/charts/aurora";
 import { LegalModal } from "@/components/quantedge/legal";
+import { MediaKitModal } from "@/components/quantedge/media-kit";
 import { TiltCard } from "@/components/quantedge/three/tilt-card";
 import { TIERS, CURRENCY_SYMBOL, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
 import type { Quote } from "@/lib/types";
@@ -55,6 +56,7 @@ export function Landing() {
   const [signalDemo] = useState({ score: 84 });
   const [scrolled, setScrolled] = useState(false);
   const [ccy, setCcy] = usePricingCurrency();
+  const [kitOpen, setKitOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -92,6 +94,7 @@ export function Landing() {
             <button onClick={() => setLegalModal("TOS")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Terms</button>
             <button onClick={() => setLegalModal("PRIVACY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Privacy</button>
             <button onClick={() => setLegalModal("SECURITY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Security</button>
+            <button onClick={() => setKitOpen(true)} className="rounded-lg px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:text-brand">Media Kit</button>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground md:block">Support</a>
             <button
               onClick={() => setEntered(true)}
@@ -483,6 +486,7 @@ export function Landing() {
                 <button onClick={() => setLegalModal("PRIVACY")} className="transition-colors hover:text-foreground">Privacy Policy</button>
                 <button onClick={() => setLegalModal("SECURITY")} className="transition-colors hover:text-foreground">Security</button>
                 <button onClick={() => setLegalModal("REFUND")} className="transition-colors hover:text-foreground">Refund & Cancellation</button>
+                <button onClick={() => setKitOpen(true)} className="font-semibold transition-colors hover:text-brand">Media Kit — film & ads</button>
                 <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
               </div>
               <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-1.5 text-foreground/80 transition-colors hover:text-brand-hi">
@@ -495,6 +499,7 @@ export function Landing() {
       </footer>
 
       <LegalModal open={legalModal} onClose={() => setLegalModal(null)} />
+      <MediaKitModal open={kitOpen} onClose={() => setKitOpen(false)} />
     </div>
   );
 }
