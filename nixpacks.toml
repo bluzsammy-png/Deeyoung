@@ -1,0 +1,5 @@
+# Railway Nixpacks build configuration
+# Pin Node 22 — Nixpacks otherwise defaults to Node 18, which is EOL and
+# removed from its nixpkgs snapshot, failing the build before compilation.
+[variables]
+NIXPACKS_NODE_VERSION = "22"

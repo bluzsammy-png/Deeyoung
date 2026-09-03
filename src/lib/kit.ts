@@ -1,7 +1,11 @@
 // Media Kit manifest — every deliverable for the DeeYoung Pro launch kit.
-// Files live in the sandbox download dir and are served via /api/kit/<file>.
+// Files live OUTSIDE the project tree and are served via /api/kit/<file>.
+// Production deployments without a mounted media dir hide the kit entirely:
+// set NEXT_PUBLIC_MEDIA_KIT=on (build-time) only where /api/kit is backed.
 export type KitItem = { file: string; label: string; note?: string };
 export type KitGroup = { title: string; items: KitItem[] };
+
+export const MEDIA_KIT_ENABLED = process.env.NEXT_PUBLIC_MEDIA_KIT === "on";
 
 export const FILM_FILE = "DeeYoung-Pro-80s-Ad-Film.mp4";
 

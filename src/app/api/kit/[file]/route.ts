@@ -50,7 +50,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ file: strin
   try {
     entries = await readdir(DIR);
   } catch {
-    return new Response("Kit unavailable", { status: 500 });
+    // Media dir not mounted on this deployment (e.g. production) — honest 503.
+    return Response.json(
+      { error: "Media kit is not available on this deployment." },
+      { status: 503 },
+    );
   }
   if (!entries.includes(file)) {
     return new Response("Not found", { status: 404 });
