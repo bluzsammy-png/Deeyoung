@@ -3,6 +3,7 @@
 
 import { atr, bollinger, ema, lastDefined, macd, relativeVolume, roc, rsi, vwap } from "@/lib/engine/indicators";
 import type { Bar } from "@/lib/engine/indicators";
+import { candleFactorScore } from "@/lib/engine/candlestick";
 import type { CandleSeries, DataState, FactorContribution, SignalResult } from "@/lib/types";
 
 // Factor weights — technical factors sum to 100 with catalyst/regime as modifiers (§14 example)
@@ -17,6 +18,15 @@ const W = {
   CATALYST: 9,
   REGIME: 5,
 };
+
+// Horizon-aware weight table: the campaign-validated weights stay UNTOUCHED and the
+// CANDLESTICKS factor is added as a CONFLUENCE BONUS (max +9 on strong patterns with
+// 5m agreement). Rationale (measured in the A/B probe): re-funding/trimming the
+// existing weights shifted every score ~9 points down and pushed gate-65 setups out
+// of reach (treatment n=0 on BTC) — gate calibration depends on the original scale.
+// Nominal budget 95 technical + 9 catalyst + 5 regime = 109, clamped at 100.
+// Legacy scoring above is untouched (byte-identical when input.horizon is undefined).
+const W_HORIZON: Record<string, number> = { ...W, CANDLESTICKS: 9 };
 
 export interface EngineInput {
   candles: CandleSeries;
@@ -34,15 +44,24 @@ export interface EngineInput {
    *  Clamped to [0.5, 1.5]. Absent/undefined ⇒ 1.0 everywhere ⇒ byte-identical legacy
  *  scoring. The engine itself stays deterministic — callers decide whether to adapt. */
   adaptiveWeights?: Record<string, number> | null;
+  /** OPT-IN (true only) — adds the CANDLESTICKS factor + W_HORIZON weights to horizon
+   *  scoring. DEFAULT (undefined/false) = the exact shipped 73554e3 behavior. Rationale:
+   *  A/B round 1 REJECTED the bonus design (n=269→413 with win 46.5→36.6%, maxDD
+   *  31→58%) — candle confluence must never silently change production scoring. */
+  candlePatterns?: boolean | null;
 }
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
 
 export function computeSignal(input: EngineInput): SignalResult | null {
-  // Effective weights: base W scaled by bounded adaptive multipliers (learning memory).
-  const Weff: Record<string, number> = { ...W };
+  // Effective weights: new horizon table (candle pack ON) or the original tables,
+  // scaled by bounded adaptive multipliers (learning memory). Legacy path (no
+  // horizon) and the A/B control (candlePatterns:false) are byte-identical to 73554e3.
+  const useCandles = !!input.horizon && input.candlePatterns === true;
+  const baseW: Record<string, number> = useCandles ? W_HORIZON : W;
+  const Weff: Record<string, number> = { ...baseW };
   if (input.adaptiveWeights) {
-    for (const k of Object.keys(W)) Weff[k] = W[k] * clamp(input.adaptiveWeights[k] ?? 1, 0.5, 1.5);
+    for (const k of Object.keys(baseW)) Weff[k] = baseW[k] * clamp(input.adaptiveWeights[k] ?? 1, 0.5, 1.5);
   }
   const { candles } = input;
   const bars: Bar[] = candles.candles;
@@ -146,14 +165,23 @@ export function computeSignal(input: EngineInput): SignalResult | null {
 
   // 8. Catalyst confirmation (max 9) — 0 when no verified catalysts (never fabricated §11)
   if (input.catalystScore > 0) add("CATALYST", "Catalyst", Weff.CATALYST * (input.catalystScore / 9), `Verified catalyst strength ${input.catalystScore}/9`);
-  else factors.push({ name: "Catalyst", key: "CATALYST", contribution: 0, max: W.CATALYST, detail: "No verified catalyst — technical-only signal" });
+  else factors.push({ name: "Catalyst", key: "CATALYST", contribution: 0, max: Weff.CATALYST, detail: "No verified catalyst — technical-only signal" });
 
   // 9. Regime modifier (max 5)
   const regimeBull = ["RISK_ON", "MOMENTUM"].includes(input.regimePrimary);
   const regimeBear = ["RISK_OFF", "LIQUIDITY_STRESS", "HIGH_VOLATILITY"].includes(input.regimePrimary);
   if (regimeBull) add("REGIME", "Regime", Weff.REGIME, `Risk-favorable regime (${input.regimePrimary}) supports long setups`);
   else if (regimeBear) add("REGIME", "Regime", -Weff.REGIME, `Risk-unfavorable regime (${input.regimePrimary}) penalizes long setups`);
-  else factors.push({ name: "Regime", key: "REGIME", contribution: 0, max: W.REGIME, detail: "Neutral regime — no modifier" });
+  else factors.push({ name: "Regime", key: "REGIME", contribution: 0, max: Weff.REGIME, detail: "Neutral regime — no modifier" });
+
+  // 10. Candlestick chart reading (max 9, horizon-aware scoring only) — §NEW.
+  //     Classical pattern geometry + 5m higher-timeframe agreement; efficacy is
+  //     learned (ADAPTABLE_KEYS includes CANDLESTICKS) and A/B-measured.
+  if (useCandles) {
+    const cf = candleFactorScore(bars.slice(-30));
+    if (Math.abs(cf.score) >= 0.05) add("CANDLESTICKS", "Candlesticks", cf.score * Weff.CANDLESTICKS, cf.detail);
+    else factors.push({ name: "Candlesticks", key: "CANDLESTICKS", contribution: 0, max: Weff.CANDLESTICKS, detail: cf.detail });
+  }
 
   const direction = bullScore >= bearScore ? (bullScore - bearScore > 12 ? "LONG" : "NEUTRAL") : (bearScore - bullScore > 12 ? "SHORT" : "NEUTRAL");
   const score = Math.round(clamp(Math.max(bullScore, bearScore), 0, 100));

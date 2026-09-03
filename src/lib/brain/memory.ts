@@ -19,8 +19,9 @@ import { evaluateOpenGuards, type OpenGuardVerdict, type OpenGuardInput } from "
 
 export type Horizon = "M10" | "M30";
 
-// Engine factor keys eligible for adaptation (CATALYST/REGIME deliberately excluded)
-export const ADAPTABLE_KEYS = ["EMA_STRUCTURE", "VWAP", "RSI", "MACD", "BOLLINGER", "ROC", "VOLUME"] as const;
+// Engine factor keys eligible for adaptation (CATALYST/REGIME deliberately excluded;
+// CANDLESTICKS included — its weight is learned from journaled outcomes like any other).
+export const ADAPTABLE_KEYS = ["EMA_STRUCTURE", "VWAP", "RSI", "MACD", "BOLLINGER", "ROC", "VOLUME", "CANDLESTICKS"] as const;
 export type AdaptableKey = (typeof ADAPTABLE_KEYS)[number];
 
 const MIN_SAMPLE = 20;        // outcomes before a factor's weight may move
