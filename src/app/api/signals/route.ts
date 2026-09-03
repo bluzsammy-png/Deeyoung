@@ -17,7 +17,7 @@ export const GET = withGuard(async (_req, { user, config, account }) => {
   // Scan priority: metals + FX majors first (the most-asked markets), then the
   // equity bench. Volume-blind assets (FX spot, gold proxy) use neutral volume
   // and a notional liquidity floor — Yahoo reports no meaningful volume for them.
-  const SCAN = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "QQQ", "SPY", "COIN", "PLTR"];
+  const SCAN = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "QQQ", "SPY", "COIN", "PLTR"];
   const { quotes } = await marketProvider.getQuotes(SCAN);
   const bySymbol = new Map(quotes.map((q) => [q.symbol, q]));
   const scanList = SCAN.map((s) => bySymbol.get(s)).filter((q): q is NonNullable<typeof q> => !!q);

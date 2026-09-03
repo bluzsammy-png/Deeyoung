@@ -29,7 +29,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "DeeYoung Pro — Market Signals, Catalysts & Risk. One Terminal.",
   description:
-    "Price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. 2-day trial, three plans, your currency.",
+    "Gold, FX majors and US stocks — price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. 2-day trial, three plans, your currency.",
   keywords: ["DeeYoung Pro", "DeeYoungs Ltd", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
   authors: [{ name: "DeeYoungs Ltd" }],
   icons: {

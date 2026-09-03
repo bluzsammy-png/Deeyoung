@@ -18,7 +18,7 @@ export function MarketsView() {
   const focused = useApp((s) => s.focusedSymbol);
   const setFocused = useApp((s) => s.setFocusedSymbol);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [filter, setFilter] = useState<"ALL" | "EQUITY" | "ETF">("ALL");
+  const [filter, setFilter] = useState<"ALL" | "EQUITY" | "ETF" | "FX" | "METAL">("ALL");
 
   useEffect(() => {
     let alive = true;
@@ -53,7 +53,7 @@ export function MarketsView() {
           </InfoTip>
         </div>
         <MarketHeatmap
-          cells={quotes.map((q) => ({ symbol: q.symbol, changePct: q.changePct, weight: q.avgVolume * q.price, name: q.name }))}
+          cells={quotes.map((q) => ({ symbol: q.symbol, changePct: q.changePct, weight: (q.avgVolume || 1_000_000) * q.price, name: q.name }))}
           onPick={setFocused}
         />
       </div>
@@ -62,7 +62,7 @@ export function MarketsView() {
         {/* quote table */}
         <div className="qe-panel overflow-hidden">
           <div className="flex items-center gap-1.5 border-b border-hairline px-3 py-2.5">
-            {(["ALL", "EQUITY", "ETF"] as const).map((f) => (
+            {(["ALL", "EQUITY", "ETF", "FX", "METAL"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}

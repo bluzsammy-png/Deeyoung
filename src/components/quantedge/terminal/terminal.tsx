@@ -63,7 +63,7 @@ export function Terminal() {
   // ── Live ticker tape (shared cache upstream; 20s refresh) ──
   useEffect(() => {
     let alive = true;
-    const syms = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "GOOGL", "AMZN", "SPY", "QQQ", "SMH", "PLTR", "COIN", "JPM"];
+    const syms = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "GOOGL", "SPY", "QQQ", "PLTR", "COIN"];
     const load = async () => {
       try {
         const res = await fetch(`/api/market/quotes?symbols=${syms.join(",")}`);

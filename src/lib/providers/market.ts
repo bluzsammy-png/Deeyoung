@@ -125,6 +125,8 @@ export const UNIVERSE: Record<string, { name: string; assetClass: Quote["assetCl
   EURUSD: { name: "Euro / US Dollar", assetClass: "FX", sector: "FX Majors" },
   GBPUSD: { name: "British Pound / US Dollar", assetClass: "FX", sector: "FX Majors" },
   USDJPY: { name: "US Dollar / Japanese Yen", assetClass: "FX", sector: "FX Majors" },
+  AUDUSD: { name: "Australian Dollar / US Dollar", assetClass: "FX", sector: "FX Majors" },
+  USDCAD: { name: "US Dollar / Canadian Dollar", assetClass: "FX", sector: "FX Majors" },
   NVDA: { name: "NVIDIA Corp", assetClass: "EQUITY", sector: "Semiconductors" },
   AAPL: { name: "Apple Inc", assetClass: "EQUITY", sector: "Consumer Tech" },
   MSFT: { name: "Microsoft Corp", assetClass: "EQUITY", sector: "Software" },
@@ -304,7 +306,7 @@ export class SimulatedProvider implements MarketDataProvider {
 
   private basePrice(symbol: string): number {
     const bases: Record<string, number> = {
-      XAUUSD: 4428, EURUSD: 1.159, GBPUSD: 1.348, USDJPY: 158.7,
+      XAUUSD: 4428, EURUSD: 1.159, GBPUSD: 1.348, USDJPY: 158.7, AUDUSD: 0.717, USDCAD: 1.384,
       NVDA: 178, AAPL: 254, MSFT: 512, TSLA: 342, AMZN: 246, GOOGL: 232, META: 742,
       AMD: 218, SMH: 312, QQQ: 601, SPY: 652, IWM: 238, XLF: 52, XLV: 41, XLE: 96,
       PLTR: 62, COIN: 288, MSTR: 344, JPM: 312, UNH: 318,

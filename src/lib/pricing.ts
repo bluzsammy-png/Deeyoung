@@ -20,7 +20,7 @@ export const TIERS: Tier[] = [
     tagline: "The full analytics terminal",
     prices: { NGN: 5000, USD: 4, GBP: 3, EUR: 4, GHS: 55, KES: 520, ZAR: 75, CAD: 5, AUD: 7, INR: 350 },
     features: [
-      "Every market view: charts, regimes, catalysts",
+      "Every market: stocks, FX majors and gold — charts, regimes, catalysts",
       "Multi-factor signal scores — math visible",
       "Portfolio risk: concentration, correlation, drawdown",
       "Watchlist + price & signal alerts",

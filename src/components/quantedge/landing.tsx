@@ -25,7 +25,7 @@ const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"
   loading: () => <div className="qe-banner absolute inset-0" aria-hidden />,
 });
 
-const TICKERS = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "SPY", "QQQ"];
+const TICKERS = ["XAUUSD", "EURUSD", "NVDA", "AAPL", "MSFT", "TSLA", "GBPUSD", "META", "USDJPY", "SPY"];
 const SUPPORT_EMAIL = "deyongsltd@gmail.com";
 
 /** Location-aware pricing currency: auto-detected, manually overridable, persisted.
@@ -124,7 +124,7 @@ export function Landing() {
               <span className="qe-gradient-text">Move first.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget. Price action, news flow and portfolio risk sit in one screen. Every signal shows the math behind its score — seven factors, nothing hidden. When you want a second pair of hands, SENTINEL drafts the trade and waits for your go-ahead. Paper execution until you decide otherwise.
+              DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget. Gold, FX majors and US stocks — price action, news flow and portfolio risk sit in one screen. Every signal shows the math behind its score — seven factors, nothing hidden. When you want a second pair of hands, SENTINEL drafts the trade and waits for your go-ahead. Paper execution until you decide otherwise.
             </p>
 
             {/* honesty disclosure — surfaced up front */}
@@ -150,7 +150,7 @@ export function Landing() {
             {/* honest capability strip */}
             <div className="mt-8 flex flex-wrap items-center gap-2">
               {[
-                { k: "20", v: "stocks covered in depth" },
+                { k: "26", v: "markets: stocks, FX & gold" },
                 { k: "7", v: "signal factors, math visible" },
                 { k: "4", v: "SENTINEL safety levels" },
                 { k: "100%", v: "paper execution" },
@@ -261,7 +261,7 @@ export function Landing() {
           {[
             {
               icon: Activity, title: "Multi-factor signals",
-              body: "EMA structure, VWAP, RSI, MACD, volume, catalysts and regime — every score shows its factor contributions. No black boxes.",
+              body: "EMA structure, VWAP, RSI, MACD, catalysts and regime — on stocks, FX majors and gold. Every score shows its factor contributions. No black boxes.",
               sketch: (
                 <svg viewBox="0 0 120 36" className="h-9 w-full">
                   {[14, 30, 22, 38, 26, 34, 18, 30].map((h, i) => (
