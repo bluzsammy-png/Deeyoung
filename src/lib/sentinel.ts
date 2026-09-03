@@ -6,9 +6,9 @@ import { db } from "@/lib/db";
 import { getRegime } from "@/lib/engine/regime";
 import { computeSignal } from "@/lib/engine/signals";
 import { runRiskChecks } from "@/lib/engine/risk";
-import { marketProvider, universeSymbols } from "@/lib/providers/market";
+import { marketProvider, universeSymbols, UNIVERSE } from "@/lib/providers/market";
 import { getExecutionProvider } from "@/lib/providers/execution";
-import type { Quote, SentinelMode, SentinelState, SentinelTickResult } from "@/lib/types";
+import type { Quote, SentinelMode, SentinelState, SentinelTickResult, SignalResult } from "@/lib/types";
 import type { PaperAccount, Position, SentinelConfig } from "@prisma/client";
 
 const WATCHLIST_SEED = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "SPY", "QQQ", "SMH", "PLTR", "META"];
@@ -45,17 +45,17 @@ export function effectiveState(config: SentinelConfig, dataStale: boolean): Sent
   return "ACTIVE";
 }
 
-function sessionNow(): "REGULAR" | "PRE" | "POST" {
+function sessionNow(): "REGULAR" | "PRE" | "POST" | "CLOSED" {
   // US Eastern approximation from UTC (sandbox-honest; ET = UTC-4 EDT / UTC-5 EST)
   const now = new Date();
   const et = new Date(now.getTime() - (now.getTimezoneOffset() === 0 ? 4 * 3600_000 : 0));
   const h = now.getUTCHours() - 4; // EDT assumption
   const day = now.getUTCDay();
-  if (day === 0 || day === 6) return "CLOSED" as unknown as "REGULAR";
+  if (day === 0 || day === 6) return "CLOSED";
   if (h >= 9.5 && h < 16) return "REGULAR";
   if (h >= 4 && h < 9.5) return "PRE";
   if (h >= 16 && h < 20) return "POST";
-  return "CLOSED" as unknown as "REGULAR";
+  return "CLOSED";
 }
 
 async function correlatedExposurePct(positions: Position[], sector: string, equity: number): Promise<number> {
@@ -141,6 +141,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
     notes.push("Data recovered — SENTINEL re-armed");
   }
 
+  const sess = sessionNow();
   const state = effectiveState(config, false);
   result.state = state;
   if (state === "PAUSED" || state === "RISK_LOCKED") {
@@ -155,7 +156,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
 
   // universe pass: fetch candles for scan (cached) and compute signals
   const scanList = quotes.slice(0, 10); // top-liquid slice per tick (provider-budget aware §29)
-  const signalResults = [];
+  const signalResults: { sig: SignalResult; quote: Quote }[] = [];
   for (const q of scanList) {
     const [intraday, daily] = await Promise.all([
       marketProvider.getCandles(q.symbol, "1D"),
@@ -173,6 +174,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
       catalystScore: catalyst,
       avgVolume: q.avgVolume,
       minLiquidityUsd: config.minLiquidityUsd,
+      horizon: config.signalHorizon === "M30" ? "M30" : config.signalHorizon === "M10" ? "M10" : null,
     });
     if (sig && sig.direction !== "NEUTRAL") signalResults.push({ sig, quote: q });
   }
@@ -212,7 +214,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
       positions, openTradesToday: todayOrders, realizedPnlToday: realizedToday,
       realizedPnlWeek: 0, currentDrawdownPct: 0,
       quote, correlatedExposurePct: await correlatedExposurePct(positions, quote.sector, equity),
-      session: sessionNow() === "CLOSED" ? "REGULAR" as const : sessionNow(),
+      session: (sess === "CLOSED" ? "REGULAR" : sess) as "REGULAR" | "PRE" | "POST",
     };
     const verdict = runRiskChecks(sig, ctx);
 

@@ -241,6 +241,7 @@ model SentinelConfig {
   maxDailyTrades           Int      @default(10)
   minRR                    Float    @default(1.5)
   minSignalScore           Float    @default(70)
+  signalHorizon            String   @default("M30") // M10 | M30 — horizon-aware scoring (campaign-validated)
   minLiquidityUsd          Float    @default(5000000)
   maxSpreadBps             Float    @default(15)
   maxCorrelatedExposurePct Float    @default(35)

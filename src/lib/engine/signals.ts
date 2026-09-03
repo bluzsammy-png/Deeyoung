@@ -26,6 +26,10 @@ export interface EngineInput {
   catalystScore: number;       // 0–9 from catalyst engine (0 when no verified catalysts)
   avgVolume: number;
   minLiquidityUsd: number;
+  /** Intraday evaluation horizon. Undefined = legacy scoring (unchanged).
+   *  Horizon-aware scoring is campaign-validated (60d Binance 1m replay, 2026-09):
+   *  chase-guard (relVol ≥1.5× and stretched bands underperform 5×) + M30 momentum bonus. */
+  horizon?: "M10" | "M30" | null;
 }
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
@@ -104,19 +108,28 @@ export function computeSignal(input: EngineInput): SignalResult | null {
   // 5. Bollinger stretch (max 8)
   if (bbUpper != null && bbLower != null) {
     const pos = (price - bbLower) / ((bbUpper - bbLower) || 1);
-    if (pos > 0.9) add("BOLLINGER", "Bollinger Stretch", -W.BOLLINGER * 0.5, "Pressing upper band — stretched");
+    if (pos > 0.9) add("BOLLINGER", "Bollinger Stretch", -(input.horizon ? W.BOLLINGER : W.BOLLINGER * 0.5), input.horizon ? "Pressing upper band — stretched; chase-guard doubles the penalty (campaign: stretched entries PF 1.09 vs 1.29)" : "Pressing upper band — stretched");
     else if (pos > 0.55) add("BOLLINGER", "Bollinger Stretch", W.BOLLINGER * clamp((pos - 0.55) / 0.35, 0.3, 1), `Band position ${(pos * 100).toFixed(0)}% — upper-half strength`);
     else if (pos < 0.1) add("BOLLINGER", "Bollinger Stretch", W.BOLLINGER * 0.4, "Pressing lower band — mean-reversion watch");
     else add("BOLLINGER", "Bollinger Stretch", 0, "Mid-band — no edge");
   }
 
-  // 6. Rate of change (max 8)
-  add("ROC", "Rate of Change", clamp(rocVal / 4, -1, 1) * W.ROC, `10-period ROC ${rocVal.toFixed(2)}%`);
+  // 6. Rate of change (max 8) — M30 momentum bonus (campaign: ROC ≥2% at 30m horizon
+  //    earned PF 1.47–1.80 while the same condition was neutral at 10m)
+  {
+    const rocBonus = input.horizon === "M30" && rocVal >= 2 && rocVal <= 6 ? W.ROC * 0.5 : 0;
+    add("ROC", "Rate of Change", clamp(rocVal / 4, -1, 1) * W.ROC + rocBonus, `10-period ROC ${rocVal.toFixed(2)}%${rocBonus ? " — real momentum bonus applied for 30-minute horizon" : ""}`);
+  }
 
-  // 7. Relative volume (max 11)
+  // 7. Relative volume (max 11) — horizon-aware chase-guard.
+  //    Campaign finding (60d, 1m, 705 trades): relVol ≥1.5× entries PF 1.10 vs 1.71 for
+  //    mild 1.05–1.5× — by the time volume spikes on 1m bars the burst is exhausted.
+  //    Legacy (no horizon) scoring is unchanged.
   {
     const rv = input.relVolume;
-    if (rv >= 1.5) add("VOLUME", "Volume", W.VOLUME * clamp(rv / 3, 0.5, 1), `Relative volume ${rv.toFixed(2)}× — participation confirms move`);
+    if (input.horizon && rv >= 3) add("VOLUME", "Volume", -W.VOLUME * 0.3, `Relative volume ${rv.toFixed(2)}× — blow-off chase-guard: extreme 1m participation marks exhaustion, not strength`);
+    else if (input.horizon && rv >= 1.5) add("VOLUME", "Volume", W.VOLUME * 0.2, `Relative volume ${rv.toFixed(2)}× — elevated; chase-guard caps the reward (campaign: rv≥1.5× underperforms 5×)`);
+    else if (rv >= 1.5) add("VOLUME", "Volume", W.VOLUME * clamp(rv / 3, 0.5, 1), `Relative volume ${rv.toFixed(2)}× — participation confirms move`);
     else if (rv >= 1.05) add("VOLUME", "Volume", W.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — slightly elevated`);
     else if (rv < 0.6) add("VOLUME", "Volume", -W.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — thin participation, breakouts suspect`);
     else add("VOLUME", "Volume", 0, `Relative volume ${rv.toFixed(2)}× — average`);
@@ -160,7 +173,7 @@ export function computeSignal(input: EngineInput): SignalResult | null {
 
   const explanation = direction === "NEUTRAL"
     ? `No trade-worthy alignment on ${candles.symbol}: factor signals conflict (bull ${bullScore.toFixed(0)} vs bear ${bearScore.toFixed(0)}). DeeYoung stays flat and rescans.`
-    : `${direction === "LONG" ? "Bullish" : "Bearish"} setup on ${candles.symbol} scoring ${score}/100, driven mainly by ${topFactors}. ${input.catalystScore > 0 ? "A verified catalyst adds confluence. " : ""}Setup respects a ${stopMult}× ATR stop at ${stop.toFixed(2)} with target ${target.toFixed(2)} (R:R ${rr.toFixed(1)}). This is analysis, not a guarantee — a ${score}% signal score is NOT a ${score}% win probability.`;
+    : `${direction === "LONG" ? "Bullish" : "Bearish"} setup on ${candles.symbol} scoring ${score}/100, driven mainly by ${topFactors}. ${input.catalystScore > 0 ? "A verified catalyst adds confluence. " : ""}${input.horizon ? `Horizon-aware scoring active (${input.horizon}): chase-guard filters exhaustion entries. ` : ""}Setup respects a ${stopMult}× ATR stop at ${stop.toFixed(2)} with target ${target.toFixed(2)} (R:R ${rr.toFixed(1)}). This is analysis, not a guarantee — a ${score}% signal score is NOT a ${score}% win probability.`;
 
   return {
     symbol: candles.symbol,
