@@ -214,6 +214,7 @@ model SignalRecord {
   rr              Float
   regime          String
   catalystScore   Float     @default(0)
+  horizon         String? // M10 | M30 (learning memory attribution)
   status          String    @default("OPEN") // OPEN | TARGET_HIT | STOP_HIT | EXPIRED | CANCELLED
   resultPct       Float?
   openedAt        DateTime  @default(now())
@@ -420,4 +421,12 @@ model BrokerLink {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ─── LEARNING MEMORY (§NEW) ───────────────────────────────────────────────────
+model BrainMemory {
+  id        String   @id @default(cuid())
+  scope     String   @unique
+  stateJson String
+  updatedAt DateTime @updatedAt
 }

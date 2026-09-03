@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getRegime } from "@/lib/engine/regime";
 import { computeSignal } from "@/lib/engine/signals";
 import { runRiskChecks } from "@/lib/engine/risk";
+import { getBrain, ensureBrainLoop } from "@/lib/brain/memory";
 import { marketProvider, universeSymbols, UNIVERSE } from "@/lib/providers/market";
 import { getExecutionProvider } from "@/lib/providers/execution";
 import type { Quote, SentinelMode, SentinelState, SentinelTickResult, SignalResult } from "@/lib/types";
@@ -96,6 +97,18 @@ export async function resolveOpenSignals(userId: string) {
         : (sig.entry - price) / sig.entry * 100;
       await db.signalRecord.update({ where: { id: sig.id }, data: { status, resultPct, resolvedAt: new Date() } });
       resolved++;
+      // ── Learning memory journaling (L7 — every outcome trains the bot) ──
+      try {
+        const brain = getBrain();
+        const facs = parse<{ key?: string; name?: string; contribution: number }[]>(sig.factors, []);
+        const holdMin = (Date.now() - sig.openedAt.getTime()) / 60_000;
+        const hz = sig.horizon === "M30" || sig.horizon === "M10" ? sig.horizon : holdMin >= 25 ? "M30" : "M10";
+        const atrPct = Math.abs(sig.entry - sig.stop) / 1.6 / sig.entry * 100;
+        const netPct = sig.direction === "LONG" ? resultPct - 0.22 : resultPct - 0.22; // net of 22bps round trip
+        brain.recordOutcome({ horizon: hz, symbol: sig.symbol, netPct, hourUtc: new Date().getUTCHours(), atrPct, factors: facs });
+        brain.refresh();
+        void brain.persist();
+      } catch { /* memory never breaks trading */ }
       await db.auditEvent.create({
         data: { userId, category: "SENTINEL", action: `SIGNAL_${status}`, detail: JSON.stringify({ symbol: sig.symbol, resultPct }) },
       });
@@ -148,6 +161,10 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
     notes.push(`SENTINEL is ${state} — scanning continues for display but no action is taken`);
   }
 
+  // ── Learning memory: ensure the per-minute refresh loop is alive (§NEW) ──
+  ensureBrainLoop();
+  const brain = getBrain();
+
   // ── Shared scan (§27): regime cached, quotes cached 15s, one universe pass ──
   const regime = await getRegime();
   const symbols = universeSymbols();
@@ -166,6 +183,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
     const rv = q.avgVolume > 0 ? q.volume / q.avgVolume : 1;
     // catalyst score: real data only (unusual volume); news adds only with verified feed
     const catalyst = Math.min(9, rv >= 2.5 ? 4 : rv >= 1.8 ? 3 : rv >= 1.3 ? 1.5 : 0);
+    const hz = config.signalHorizon === "M30" ? "M30" : config.signalHorizon === "M10" ? "M10" : null;
     const sig = computeSignal({
       candles: intraday?.candles.length && intraday.candles.length >= 60 ? intraday : daily,
       dayCandles: intraday ?? undefined,
@@ -174,7 +192,8 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
       catalystScore: catalyst,
       avgVolume: q.avgVolume,
       minLiquidityUsd: config.minLiquidityUsd,
-      horizon: config.signalHorizon === "M30" ? "M30" : config.signalHorizon === "M10" ? "M10" : null,
+      horizon: hz,
+      adaptiveWeights: hz ? brain.adaptiveWeights(hz) : undefined,
     });
     if (sig && sig.direction !== "NEUTRAL") signalResults.push({ sig, quote: q });
   }

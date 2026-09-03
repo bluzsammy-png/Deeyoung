@@ -30,11 +30,20 @@ export interface EngineInput {
    *  Horizon-aware scoring is campaign-validated (60d Binance 1m replay, 2026-09):
    *  chase-guard (relVol ≥1.5× and stretched bands underperform 5×) + M30 momentum bonus. */
   horizon?: "M10" | "M30" | null;
+  /** Per-factor weight MULTIPLIERS from the learning memory (learning-memory §NEW).
+   *  Clamped to [0.5, 1.5]. Absent/undefined ⇒ 1.0 everywhere ⇒ byte-identical legacy
+ *  scoring. The engine itself stays deterministic — callers decide whether to adapt. */
+  adaptiveWeights?: Record<string, number> | null;
 }
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
 
 export function computeSignal(input: EngineInput): SignalResult | null {
+  // Effective weights: base W scaled by bounded adaptive multipliers (learning memory).
+  const Weff: Record<string, number> = { ...W };
+  if (input.adaptiveWeights) {
+    for (const k of Object.keys(W)) Weff[k] = W[k] * clamp(input.adaptiveWeights[k] ?? 1, 0.5, 1.5);
+  }
   const { candles } = input;
   const bars: Bar[] = candles.candles;
   if (bars.length < 60) return null;
@@ -64,7 +73,7 @@ export function computeSignal(input: EngineInput): SignalResult | null {
   let bullScore = 0, bearScore = 0;
 
   const add = (key: string, name: string, contribution: number, detail: string) => {
-    const c = { name, key, contribution: Math.round(contribution * 10) / 10, max: (W as Record<string, number>)[key] ?? 0, detail };
+    const c = { name, key, contribution: Math.round(contribution * 10) / 10, max: Weff[key] ?? 0, detail };
     factors.push(c);
     if (contribution >= 0) bullScore += contribution; else bearScore += -contribution;
   };
@@ -75,8 +84,8 @@ export function computeSignal(input: EngineInput): SignalResult | null {
     const below = price < ema20 && ema20 < ema50;
     const spread = Math.abs(price - ema20) / (atr14 || price) ;
     const strength = clamp(spread / 1.2, 0.3, 1);
-    if (above) add("EMA_STRUCTURE", "EMA Structure", W.EMA_STRUCTURE * strength, `Price above rising 20/50 EMA stack (+${(strength * 100).toFixed(0)}% alignment)`);
-    else if (below) add("EMA_STRUCTURE", "EMA Structure", -W.EMA_STRUCTURE * strength, "Price below falling 20/50 EMA stack");
+    if (above) add("EMA_STRUCTURE", "EMA Structure", Weff.EMA_STRUCTURE * strength, `Price above rising 20/50 EMA stack (+${(strength * 100).toFixed(0)}% alignment)`);
+    else if (below) add("EMA_STRUCTURE", "EMA Structure", -Weff.EMA_STRUCTURE * strength, "Price below falling 20/50 EMA stack");
     else add("EMA_STRUCTURE", "EMA Structure", (price > ema50 ? 2 : -2), "EMA stack compressed — mixed trend");
   }
 
@@ -84,41 +93,41 @@ export function computeSignal(input: EngineInput): SignalResult | null {
   if (vwapSession != null) {
     const dist = (price - vwapSession) / price;
     const s = clamp(Math.abs(dist) / 0.02, 0.25, 1);
-    if (dist > 0.002) add("VWAP", "VWAP", W.VWAP * s, `Trading ${ (dist * 100).toFixed(2) }% above session VWAP — buyers in control`);
-    else if (dist < -0.002) add("VWAP", "VWAP", -W.VWAP * s, `Trading ${ (Math.abs(dist) * 100).toFixed(2) }% below session VWAP — sellers in control`);
+    if (dist > 0.002) add("VWAP", "VWAP", Weff.VWAP * s, `Trading ${ (dist * 100).toFixed(2) }% above session VWAP — buyers in control`);
+    else if (dist < -0.002) add("VWAP", "VWAP", -Weff.VWAP * s, `Trading ${ (Math.abs(dist) * 100).toFixed(2) }% below session VWAP — sellers in control`);
     else add("VWAP", "VWAP", 0, "Pinned at VWAP — balanced");
   }
 
   // 3. RSI momentum (max 12)
   {
-    if (rsiVal >= 55 && rsiVal <= 72) add("RSI", "RSI Momentum", W.RSI * clamp((rsiVal - 55) / 15, 0.4, 1), `RSI ${rsiVal.toFixed(0)} — healthy bullish momentum band`);
-    else if (rsiVal > 72) add("RSI", "RSI Momentum", W.RSI * 0.25, `RSI ${rsiVal.toFixed(0)} — overbought, follow-through risk`);
-    else if (rsiVal <= 45 && rsiVal >= 28) add("RSI", "RSI Momentum", -W.RSI * clamp((45 - rsiVal) / 15, 0.4, 1), `RSI ${rsiVal.toFixed(0)} — bearish momentum`);
-    else if (rsiVal < 28) add("RSI", "RSI Momentum", -W.RSI * 0.2, `RSI ${rsiVal.toFixed(0)} — oversold bounce watch`);
+    if (rsiVal >= 55 && rsiVal <= 72) add("RSI", "RSI Momentum", Weff.RSI * clamp((rsiVal - 55) / 15, 0.4, 1), `RSI ${rsiVal.toFixed(0)} — healthy bullish momentum band`);
+    else if (rsiVal > 72) add("RSI", "RSI Momentum", Weff.RSI * 0.25, `RSI ${rsiVal.toFixed(0)} — overbought, follow-through risk`);
+    else if (rsiVal <= 45 && rsiVal >= 28) add("RSI", "RSI Momentum", -Weff.RSI * clamp((45 - rsiVal) / 15, 0.4, 1), `RSI ${rsiVal.toFixed(0)} — bearish momentum`);
+    else if (rsiVal < 28) add("RSI", "RSI Momentum", -Weff.RSI * 0.2, `RSI ${rsiVal.toFixed(0)} — oversold bounce watch`);
     else add("RSI", "RSI Momentum", 0, `RSI ${rsiVal.toFixed(0)} — neutral`);
   }
 
   // 4. MACD expansion (max 14)
   {
     const expanding = Math.abs(macdHist) > Math.abs(macdHistPrev);
-    if (macdHist > 0) add("MACD", "MACD", W.MACD * (expanding ? 1 : 0.55), `Histogram +${macdHist.toFixed(3)} — ${expanding ? "bullish momentum expanding" : "bullish but decelerating"}`);
-    else add("MACD", "MACD", -W.MACD * (expanding ? 1 : 0.55), `Histogram ${macdHist.toFixed(3)} — ${expanding ? "bearish momentum expanding" : "bearish but decelerating"}`);
+    if (macdHist > 0) add("MACD", "MACD", Weff.MACD * (expanding ? 1 : 0.55), `Histogram +${macdHist.toFixed(3)} — ${expanding ? "bullish momentum expanding" : "bullish but decelerating"}`);
+    else add("MACD", "MACD", -Weff.MACD * (expanding ? 1 : 0.55), `Histogram ${macdHist.toFixed(3)} — ${expanding ? "bearish momentum expanding" : "bearish but decelerating"}`);
   }
 
   // 5. Bollinger stretch (max 8)
   if (bbUpper != null && bbLower != null) {
     const pos = (price - bbLower) / ((bbUpper - bbLower) || 1);
-    if (pos > 0.9) add("BOLLINGER", "Bollinger Stretch", -(input.horizon ? W.BOLLINGER : W.BOLLINGER * 0.5), input.horizon ? "Pressing upper band — stretched; chase-guard doubles the penalty (campaign: stretched entries PF 1.09 vs 1.29)" : "Pressing upper band — stretched");
-    else if (pos > 0.55) add("BOLLINGER", "Bollinger Stretch", W.BOLLINGER * clamp((pos - 0.55) / 0.35, 0.3, 1), `Band position ${(pos * 100).toFixed(0)}% — upper-half strength`);
-    else if (pos < 0.1) add("BOLLINGER", "Bollinger Stretch", W.BOLLINGER * 0.4, "Pressing lower band — mean-reversion watch");
+    if (pos > 0.9) add("BOLLINGER", "Bollinger Stretch", -(input.horizon ? Weff.BOLLINGER : Weff.BOLLINGER * 0.5), input.horizon ? "Pressing upper band — stretched; chase-guard doubles the penalty (campaign: stretched entries PF 1.09 vs 1.29)" : "Pressing upper band — stretched");
+    else if (pos > 0.55) add("BOLLINGER", "Bollinger Stretch", Weff.BOLLINGER * clamp((pos - 0.55) / 0.35, 0.3, 1), `Band position ${(pos * 100).toFixed(0)}% — upper-half strength`);
+    else if (pos < 0.1) add("BOLLINGER", "Bollinger Stretch", Weff.BOLLINGER * 0.4, "Pressing lower band — mean-reversion watch");
     else add("BOLLINGER", "Bollinger Stretch", 0, "Mid-band — no edge");
   }
 
   // 6. Rate of change (max 8) — M30 momentum bonus (campaign: ROC ≥2% at 30m horizon
   //    earned PF 1.47–1.80 while the same condition was neutral at 10m)
   {
-    const rocBonus = input.horizon === "M30" && rocVal >= 2 && rocVal <= 6 ? W.ROC * 0.5 : 0;
-    add("ROC", "Rate of Change", clamp(rocVal / 4, -1, 1) * W.ROC + rocBonus, `10-period ROC ${rocVal.toFixed(2)}%${rocBonus ? " — real momentum bonus applied for 30-minute horizon" : ""}`);
+    const rocBonus = input.horizon === "M30" && rocVal >= 2 && rocVal <= 6 ? Weff.ROC * 0.5 : 0;
+    add("ROC", "Rate of Change", clamp(rocVal / 4, -1, 1) * Weff.ROC + rocBonus, `10-period ROC ${rocVal.toFixed(2)}%${rocBonus ? " — real momentum bonus applied for 30-minute horizon" : ""}`);
   }
 
   // 7. Relative volume (max 11) — horizon-aware chase-guard.
@@ -127,23 +136,23 @@ export function computeSignal(input: EngineInput): SignalResult | null {
   //    Legacy (no horizon) scoring is unchanged.
   {
     const rv = input.relVolume;
-    if (input.horizon && rv >= 3) add("VOLUME", "Volume", -W.VOLUME * 0.3, `Relative volume ${rv.toFixed(2)}× — blow-off chase-guard: extreme 1m participation marks exhaustion, not strength`);
-    else if (input.horizon && rv >= 1.5) add("VOLUME", "Volume", W.VOLUME * 0.2, `Relative volume ${rv.toFixed(2)}× — elevated; chase-guard caps the reward (campaign: rv≥1.5× underperforms 5×)`);
-    else if (rv >= 1.5) add("VOLUME", "Volume", W.VOLUME * clamp(rv / 3, 0.5, 1), `Relative volume ${rv.toFixed(2)}× — participation confirms move`);
-    else if (rv >= 1.05) add("VOLUME", "Volume", W.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — slightly elevated`);
-    else if (rv < 0.6) add("VOLUME", "Volume", -W.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — thin participation, breakouts suspect`);
+    if (input.horizon && rv >= 3) add("VOLUME", "Volume", -Weff.VOLUME * 0.3, `Relative volume ${rv.toFixed(2)}× — blow-off chase-guard: extreme 1m participation marks exhaustion, not strength`);
+    else if (input.horizon && rv >= 1.5) add("VOLUME", "Volume", Weff.VOLUME * 0.2, `Relative volume ${rv.toFixed(2)}× — elevated; chase-guard caps the reward (campaign: rv≥1.5× underperforms 5×)`);
+    else if (rv >= 1.5) add("VOLUME", "Volume", Weff.VOLUME * clamp(rv / 3, 0.5, 1), `Relative volume ${rv.toFixed(2)}× — participation confirms move`);
+    else if (rv >= 1.05) add("VOLUME", "Volume", Weff.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — slightly elevated`);
+    else if (rv < 0.6) add("VOLUME", "Volume", -Weff.VOLUME * 0.4, `Relative volume ${rv.toFixed(2)}× — thin participation, breakouts suspect`);
     else add("VOLUME", "Volume", 0, `Relative volume ${rv.toFixed(2)}× — average`);
   }
 
   // 8. Catalyst confirmation (max 9) — 0 when no verified catalysts (never fabricated §11)
-  if (input.catalystScore > 0) add("CATALYST", "Catalyst", W.CATALYST * (input.catalystScore / 9), `Verified catalyst strength ${input.catalystScore}/9`);
+  if (input.catalystScore > 0) add("CATALYST", "Catalyst", Weff.CATALYST * (input.catalystScore / 9), `Verified catalyst strength ${input.catalystScore}/9`);
   else factors.push({ name: "Catalyst", key: "CATALYST", contribution: 0, max: W.CATALYST, detail: "No verified catalyst — technical-only signal" });
 
   // 9. Regime modifier (max 5)
   const regimeBull = ["RISK_ON", "MOMENTUM"].includes(input.regimePrimary);
   const regimeBear = ["RISK_OFF", "LIQUIDITY_STRESS", "HIGH_VOLATILITY"].includes(input.regimePrimary);
-  if (regimeBull) add("REGIME", "Regime", W.REGIME, `Risk-favorable regime (${input.regimePrimary}) supports long setups`);
-  else if (regimeBear) add("REGIME", "Regime", -W.REGIME, `Risk-unfavorable regime (${input.regimePrimary}) penalizes long setups`);
+  if (regimeBull) add("REGIME", "Regime", Weff.REGIME, `Risk-favorable regime (${input.regimePrimary}) supports long setups`);
+  else if (regimeBear) add("REGIME", "Regime", -Weff.REGIME, `Risk-unfavorable regime (${input.regimePrimary}) penalizes long setups`);
   else factors.push({ name: "Regime", key: "REGIME", contribution: 0, max: W.REGIME, detail: "Neutral regime — no modifier" });
 
   const direction = bullScore >= bearScore ? (bullScore - bearScore > 12 ? "LONG" : "NEUTRAL") : (bearScore - bullScore > 12 ? "SHORT" : "NEUTRAL");
