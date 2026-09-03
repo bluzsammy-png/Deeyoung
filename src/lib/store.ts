@@ -14,8 +14,8 @@ interface AppState {
   setView: (v: TerminalView) => void;
   focusedSymbol: string;
   setFocusedSymbol: (s: string) => void;
-  legalModal: "TOS" | "PRIVACY" | "REFUND" | null;
-  setLegalModal: (m: "TOS" | "PRIVACY" | "REFUND" | null) => void;
+  legalModal: "TOS" | "PRIVACY" | "SECURITY" | "REFUND" | null;
+  setLegalModal: (m: "TOS" | "PRIVACY" | "SECURITY" | "REFUND" | null) => void;
   unreadNotifications: number;
   setUnreadNotifications: (n: number) => void;
 }

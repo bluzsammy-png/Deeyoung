@@ -91,6 +91,7 @@ export function Landing() {
           <div className="flex items-center gap-2">
             <button onClick={() => setLegalModal("TOS")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Terms</button>
             <button onClick={() => setLegalModal("PRIVACY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Privacy</button>
+            <button onClick={() => setLegalModal("SECURITY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Security</button>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground md:block">Support</a>
             <button
               onClick={() => setEntered(true)}
@@ -480,6 +481,7 @@ export function Landing() {
               <div className="flex flex-wrap gap-4 sm:justify-end">
                 <button onClick={() => setLegalModal("TOS")} className="transition-colors hover:text-foreground">Terms of Service</button>
                 <button onClick={() => setLegalModal("PRIVACY")} className="transition-colors hover:text-foreground">Privacy Policy</button>
+                <button onClick={() => setLegalModal("SECURITY")} className="transition-colors hover:text-foreground">Security</button>
                 <button onClick={() => setLegalModal("REFUND")} className="transition-colors hover:text-foreground">Refund & Cancellation</button>
                 <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
               </div>
