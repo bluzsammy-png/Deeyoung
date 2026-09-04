@@ -430,3 +430,19 @@ Work Log:
 Stage Summary:
 - Everything shipped in 1239e5a verified locally E2E; deploy triggered via proven auto-deploy bridge (success UNVERIFIABLE from here until pairing).
 - Success-rate answer blocked ONLY by edge egress; two zero-code paths for the user: open /status (browser) or click the pairing code (restores my full telemetry).
+
+---
+Task ID: 22 (user report: "pairing code error" — diagnosis + egress re-test)
+Agent: main (Super Z)
+
+Work Log:
+- Root cause of user's error: browserless pairing codes live ~10 min (one login attempt each); user clicked a code from an older message after the loop had rotated it. Codes cycled this session: DLLT-FJZQ → TKQC-QMTF → TKFS-ZBMX (two 9.5-min watch windows expired unclicked).
+- Sandbox-reset damage confirmed deeper: .env regenerated with LOCAL sqlite DATABASE_URL (db/custom.db); production Supabase pooler URL unrecoverable locally (only doc references in DEPLOY.md survive). GitHub remote-URL token SURVIVED (40 chars, API 200).
+- GitHub Actions probe re-test: dispatched run 33925227657 at 22:22 UTC — every surface (/, /status, /api/engine/status, metaapi-diag) still HTTP 429 from GitHub runner egress. Engine JSON unextractable. Edge block ongoing since ~20:00 UTC.
+- probe.yml `branches: [main]` verified CORRECT (earlier "ain]" readout was a terminal display artifact — no bug, no commit needed).
+- Persisted scripts/probe_readout.py: dispatch probe → poll → download log zip → extract production engine JSON (supports direct run-id mode). Ready to harvest the real success rate the moment any egress path opens.
+- Conclusion stands: production reachable ONLY via (a) user's browser, (b) paired Railway CLI. Pairing loop alive (self-refreshing, ~4h runway left of 40 attempts).
+
+Stage Summary:
+- "Pairing code error" = expired code, user did nothing wrong. Fresh code handed over with one-click URL.
+- Success-rate report BLOCKED on first contact with production (429 wall). Two zero-code paths for user: click pairing, or open /status.
