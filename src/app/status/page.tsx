@@ -177,6 +177,9 @@ export default async function StatusPage() {
       <div className="mt-10 border-t border-zinc-800 pt-4 text-xs text-zinc-600">
         Raw JSON: <a className="text-zinc-400 underline decoration-dotted hover:text-zinc-200" href="/api/engine/status">/api/engine/status</a>
         {" · "}Venue diagnostics: <a className="text-zinc-400 underline decoration-dotted hover:text-zinc-200" href="/api/brokers/metaapi-diag">/api/brokers/metaapi-diag</a>
+        <div className="mt-2 font-mono">
+          build {snap.build.marker}{snap.build.sha ? ` · commit ${String(snap.build.sha).slice(0, 7)}` : " · commit unknown"}
+        </div>
       </div>
     </main>
   );

@@ -88,5 +88,11 @@ export async function buildEngineSnapshot() {
     equityCurve: curve.slice(-96),
     brainScope: "global",
     venue: await venueStatus(),
+    build: {
+      sha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
+      source: process.env.RAILWAY_GIT_COMMIT_SHA ? "railway" : "local",
+      // Marker only exists in this commit — its presence proves the deploy swapped.
+      marker: "engine-ui-v3",
+    },
   };
 }
