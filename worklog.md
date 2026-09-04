@@ -181,3 +181,22 @@ Stage Summary:
 - Code: 100% delivered and pushed. GitHub: GREEN (PAT verified). Local engine: GREEN.
 - Railway deploy confirmation + deploy-log reading: BLOCKED on a valid Railway token (the pasted UUID fails auth). Exact re-issue path given to user: Railway dashboard → account avatar → Account Settings → API Tokens → Create New Token → copy value shown ONCE (a full UUID, not a URL fragment).
 - User-side 10-second verification while token is re-issued: open https://deeyoung-production.up.railway.app/status — if the engine page renders with the venue panel, the new build swapped (404 mystery resolved); Railway dashboard → Deeyoung → Deployments should show commit 28f3414 SUCCESS.
+
+---
+Task ID: 15-d (Railway token root-caused via upstream issue trail)
+Agent: main (Super Z)
+Task: User pasted a 2nd Railway UUID (a7191364-…) — diagnose why BOTH tokens reject on backboard GraphQL.
+
+Work Log:
+- 2nd token rejected identically to the 1st on both backboard.railway.app AND backboard.railway.com (me/projects all "Not Authorized") → token TYPE, not domain, not paste error.
+- Web research hit the exact known bug: railwayapp/cli#699 (open since 2025-11) — valid-looking tokens unauthorized; cli#657 comment chain names the cause; Railway staff (ndneighbor) acknowledged scoping debt; cadeljones (2026-02) wrote the definitive breakdown.
+- Official docs.railway.com/integrations/api (fetched OK from sandbox — only the app domain is edge-blocked) confirms three token types: Account ("select 'No workspace'" → broadest scope, works for all GraphQL), Workspace (dropdown-selected workspace), Project (from PROJECT settings, "scoped to a specific environment", deploy-oriented — matches user's garbled "token for the environment").
+- VERDICT: both pasted UUIDs are workspace/project-scoped tokens — a documented 6-month Railway UX trap that yields "Not Authorized" for every account-level query. Nothing wrong on the user's side beyond the dropdown.
+- FIX given to user: Account Settings → Tokens → create with "No workspace" selected in the dropdown → that single token unlocks projects/deploy-logs/variable-upsert for me.
+- Banked extra verification while blocked: OKX public API reachable from sandbox (time 200, BTC-USDT last 79304.1 real print, SPOT instruments lotSz 1e-8 / minSz 1e-5 / quoteCcy USDT) → venue layer's target confirmed live + instId mapping correct against real OKX responses (okx-selftest's offline vectors now backed by a live public probe).
+- 2nd token recorded in .env (RAILWAY_TOKEN_PASTED_2) per "do not scrub until i say so"; secrets never in worklog.
+
+Stage Summary:
+- Blocker fully root-caused: scoped-token trap, upstream-documented. Waiting on ONE account token created with "No workspace".
+- Everything else GREEN: GitHub synced (PAT works), local engine ACTIVE on real Binance feed, venue+risk rails live in /api/engine/status, OKX target proven reachable.
+- On valid token arrival: read deploy+boot logs, verify [bridge] lines, set env vars (TWELVEDATA_API_KEY when user supplies, OKX_* when user creates account), confirm 28f3414 deploy SUCCESS.
