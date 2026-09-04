@@ -1,20 +1,38 @@
 // DEEYOUNG PRO — broker bridge diagnostics (§broker-bridge).
 // GET /api/brokers/metaapi-diag — kept for continuity; reports ALL venues:
-//   Bybit (PRIMARY since 2026-09-04: demo trading, Nigeria-compatible),
-//   OANDA (dormant — not available to Nigerian residents), MetaApi (retired).
+//   Alpaca (PRIMARY since 2026-09-04: paper trading, Nigeria-compatible),
+//   Bybit (dormant — website geo-blocked from user's location), 
+//   OANDA (dormant — no Nigerian onboarding), MetaApi (retired).
 // Returns ONLY aggregate facts (status codes, counts, verdict words). Never
 // echoes keys, secrets, account ids or balances — health-route presence-boolean pattern.
 
 import { NextResponse } from "next/server";
 import { oandaConfigured, oandaAccountSummary } from "@/lib/brokers/oanda";
 import { bybitConfigured, bybitAccountSummary, bybitEnvLabel } from "@/lib/brokers/bybit";
+import { alpacaConfigured, alpacaAccountSummary, alpacaEnvLabel } from "@/lib/brokers/alpaca";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const out: Record<string, unknown> = {};
 
-  // ── Bybit (PRIMARY — demo trading venue) ─────────────────────────────────────
+  // ── Alpaca (PRIMARY — paper trading venue) ───────────────────────────────────
+  if (!alpacaConfigured()) {
+    out.ALPACA = {
+      configured: false, verdict: "NO_KEYS",
+      detail: "ALPACA_KEY_ID / ALPACA_SECRET_KEY not set. Paper bridge dormant by design.",
+    };
+  } else {
+    const s = await alpacaAccountSummary();
+    out.ALPACA = {
+      configured: true, venue: alpacaEnvLabel(),
+      verdict: s.status === "CONNECTED" ? "KEYS_VALID" : s.status,
+      detail: s.detail,
+      ...(s.status === "CONNECTED" ? { accountStatus: s.accountStatus } : {}),
+    };
+  }
+
+  // ── Bybit (dormant 2026-09-04 — website unreachable from user's location) ───
   if (!bybitConfigured()) {
     out.BYBIT = {
       configured: false, verdict: "NO_KEYS",
