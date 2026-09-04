@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#0a0a0b;color:#fafafa;font-family:'Noto Sans','DejaVu Sans',sans-serif;position:relative}
+body::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.red{color:#ef312e}.mono{font-family:'DejaVu Sans Mono',monospace}
+.frame{position:absolute;inset:0;padding:52px 72px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:10px;background:#ef312e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+.wordmark{font-weight:800;font-size:22px}
+.tagline{font-size:10px;letter-spacing:3px;color:#8b8b93;margin-top:2px}
+.scenetag{text-align:right}
+.scenetag .k{font-size:11px;letter-spacing:4px;color:#ef312e;font-weight:700}
+.scenetag .t{font-size:26px;font-weight:800;margin-top:6px}
+.scenetag .s{font-size:13px;color:#8b8b93;margin-top:4px}
+.loop{display:flex;align-items:stretch;gap:0;margin-top:8px}
+.node{flex:1;background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px 22px;position:relative}
+.node .num{font-size:12px;letter-spacing:3px;color:#ef312e;font-weight:800}
+.node .h{font-size:21px;font-weight:800;margin-top:10px}
+.node .b{font-size:13px;color:#a6a6ad;margin-top:8px;line-height:1.5}
+.node .where{margin-top:14px;font-size:10.5px;letter-spacing:1.5px;color:#7c7c84;font-weight:700;border-top:1px solid rgba(255,255,255,.07);padding-top:10px}
+.arrow{width:56px;display:flex;align-items:center;justify-content:center;flex:none}
+.arrow svg{width:36px;height:24px}
+.everymin{margin-top:44px;background:#101013;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:26px 30px}
+.everymin .h{font-size:13px;letter-spacing:3px;color:#ef312e;font-weight:800;margin-bottom:18px}
+.steps{display:flex;align-items:center;gap:10px}
+.step{background:#17171b;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 16px;font-size:13px;font-weight:700;white-space:nowrap}
+.step small{display:block;font-weight:400;color:#9b9ba3;font-size:11px;margin-top:2px}
+.chev{color:#ef312e;font-size:18px;font-weight:800}
+.note{margin-top:40px;display:flex;gap:16px}
+.card{flex:1;background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px 24px}
+.card .h{font-size:15px;font-weight:800;margin-bottom:8px}
+.card .b{font-size:13px;color:#a6a6ad;line-height:1.55}
+.card .b b{color:#fafafa}
+.foot{margin-top:auto;display:flex;justify-content:space-between;font-size:12px;color:#6f6f77}
+</style></head><body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="logo">D</div><div><div class="wordmark">DeeYoung <span class="red">Pro</span></div><div class="tagline">READ THE MARKET. MOVE FIRST.</div></div></div>
+    <div class="scenetag"><div class="k">DESIGN FRAME 02 / 08</div><div class="t">How everything works — the DeeYoung loop</div><div class="s">read → investigate → decide → act → learn</div></div>
+  </div>
+  <div class="loop">
+    <div class="node"><div class="num">STEP 1</div><div class="h">Read the regime</div><div class="b">The engine classifies the tape — momentum, chop, or stress — with a confidence number. Thresholds shift with the market instead of fixed guesses.</div><div class="where">DASHBOARD · REGIME GAUGE</div></div>
+    <div class="arrow"><svg viewBox="0 0 36 24"><path d="M2 12h26M22 4l8 8-8 8" stroke="#ef312e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="node"><div class="num">STEP 2</div><div class="h">Spot the setup</div><div class="b">Seven factors score every symbol — EMA structure, VWAP, RSI, MACD, catalysts, regime and more. The math behind each score is on the card, never hidden.</div><div class="where">SIGNALS · SCORE RINGS</div></div>
+    <div class="arrow"><svg viewBox="0 0 36 24"><path d="M2 12h26M22 4l8 8-8 8" stroke="#ef312e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="node"><div class="num">STEP 3</div><div class="h">Check the risk</div><div class="b">Before you act: concentration, correlation, scenario shocks (-5%, -10%, vol spike) and drawdown — risk beyond P&amp;L, on one panel.</div><div class="where">PORTFOLIO · RISK COMPOSITE</div></div>
+    <div class="arrow"><svg viewBox="0 0 36 24"><path d="M2 12h26M22 4l8 8-8 8" stroke="#ef312e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="node"><div class="num">STEP 4</div><div class="h">Make the call</div><div class="b">Ask the desk bot in plain English — it returns direction, entry, stop, two targets, R:R and what kills the idea, grounded in live prices.</div><div class="where">TRADE DESK · AI ANALYST</div></div>
+    <div class="arrow"><svg viewBox="0 0 36 24"><path d="M2 12h26M22 4l8 8-8 8" stroke="#ef312e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="node"><div class="num">STEP 5</div><div class="h">Let SENTINEL draft — you approve</div><div class="b">Pro can draft risk-checked trades for one-tap approval, or delegate inside hard limits you set. The bot proposes; nothing executes without you.</div><div class="where">SENTINEL · APPROVE QUEUE</div></div>
+  </div>
+  <div class="everymin">
+    <div class="h">WHAT HAPPENS EVERY MINUTE, UNDER THE HOOD</div>
+    <div class="steps">
+      <div class="step">Scan the universe<small>26 symbols · delayed feeds</small></div><span class="chev">›</span>
+      <div class="step">Score 7 factors<small>math visible on every card</small></div><span class="chev">›</span>
+      <div class="step">Regime-adjust filter<small>gate-65/70 entries only</small></div><span class="chev">›</span>
+      <div class="step">Alert or draft<small>queue lands in approvals</small></div><span class="chev">›</span>
+      <div class="step">Execute on paper<small>2bps slip + 10bps fee modeled</small></div><span class="chev">›</span>
+      <div class="step">Write the audit row<small>immutable trail, last 6 events</small></div>
+    </div>
+  </div>
+  <div class="note">
+    <div class="card"><div class="h">Flat is a position</div><div class="b">If nothing clears your threshold, the terminal says so plainly: <b>"Nothing above 55 in this filter."</b> The scan reruns every minute; cards appear only when factor alignment genuinely clears the bar.</div></div>
+    <div class="card"><div class="h">Honesty is a feature</div><div class="b">Missing news key? The panel says <b>NEWS DATA UNAVAILABLE — DeeYoung never displays invented news</b>. Stale tape? A <b>STALE</b> chip flags it. Market closed? Orders are <b>rejected, not faked</b>, and the rejection is logged to the audit trail.</div></div>
+  </div>
+  <div class="foot"><span class="mono">deeyoung-production.up.railway.app</span><span>UI/UX design set · paper trading only — your money never moves here</span></div>
+</div>
+</body></html>

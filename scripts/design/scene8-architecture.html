@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#0a0a0b;color:#fafafa;font-family:'Noto Sans','DejaVu Sans',sans-serif;position:relative}
+body::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.red{color:#ef312e}.mono{font-family:'DejaVu Sans Mono',monospace}
+.frame{position:absolute;inset:0;padding:52px 72px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:10px;background:#ef312e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+.wordmark{font-weight:800;font-size:22px}
+.tagline{font-size:10px;letter-spacing:3px;color:#8b8b93;margin-top:2px}
+.scenetag{text-align:right}
+.scenetag .k{font-size:11px;letter-spacing:4px;color:#ef312e;font-weight:700}
+.scenetag .t{font-size:26px;font-weight:800;margin-top:6px}
+.scenetag .s{font-size:13px;color:#8b8b93;margin-top:4px}
+.arch{display:flex;gap:22px;flex:1;align-items:stretch}
+.layer{flex:1;background:#101013;border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column}
+.layer .lt{font-size:11px;letter-spacing:3px;color:#ef312e;font-weight:800;margin-bottom:4px}
+.layer .ls{font-size:11.5px;color:#8b8b93;margin-bottom:14px;line-height:1.4}
+.box{background:#17171b;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-top:10px}
+.box .h{font-size:13.5px;font-weight:800}
+.box .d{font-size:11px;color:#8b8b93;margin-top:4px;line-height:1.45}
+.box .pill{display:inline-block;margin-top:8px;font-size:9px;font-weight:800;letter-spacing:1px;border-radius:4px;padding:3px 7px}
+.pG{background:rgba(34,197,94,.14);color:#4ade80}
+.pA{background:rgba(245,165,36,.14);color:#f5a524}
+.pR{background:rgba(239,49,46,.14);color:#ff6b64}
+.pN{background:rgba(255,255,255,.08);color:#c8c8cf}
+.varrow{width:44px;display:flex;align-items:center;justify-content:center;flex:none}
+.varrow svg{width:30px;height:70px}
+.stack{display:flex;flex-direction:column;gap:0;margin-top:4px}
+.bottom{display:flex;gap:22px;margin-top:22px}
+.bcard{flex:1;background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 22px}
+.bcard .h{font-size:12px;letter-spacing:2.5px;font-weight:800;color:#ef312e;margin-bottom:8px}
+.bcard .b{font-size:12px;color:#a6a6ad;line-height:1.5}
+.bcard .b b{color:#fafafa}
+.foot{margin-top:20px;display:flex;justify-content:space-between;font-size:12px;color:#6f6f77}
+</style></head><body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="logo">D</div><div><div class="wordmark">DeeYoung <span class="red">Pro</span></div><div class="tagline">READ THE MARKET. MOVE FIRST.</div></div></div>
+    <div class="scenetag"><div class="k">DESIGN FRAME 08 / 08</div><div class="t">Under the hood — how everything connects</div><div class="s">Feeds → brain → venues → ledger, with guardrails at every seam</div></div>
+  </div>
+  <div class="arch">
+    <div class="layer"><div class="lt">1 · MARKET DATA</div><div class="ls">Delayed, labeled, never fabricated</div>
+      <div class="box"><div class="h">Binance public feed</div><div class="d">24/7 crypto engine feed · klines for the runner</div><span class="pill pG">LIVE</span></div>
+      <div class="box"><div class="h">Yahoo-style quotes</div><div class="d">equities · FX majors · commodities · indices</div><span class="pill pG">LIVE</span></div>
+      <div class="box"><div class="h">Twelve Data</div><div class="d">backup candles · adapter tested, lights up the moment a key is set</div><span class="pill pA">KEY PENDING</span></div>
+      <div class="box"><div class="h">News / catalysts</div><div class="d">BYOK free tier · without a key the panel says UNAVAILABLE — no invented headlines</div><span class="pill pA">BYOK</span></div>
+    </div>
+    <div class="varrow"><svg viewBox="0 0 30 70"><path d="M15 4v52M7 48l8 10 8-10" stroke="#ef312e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="layer"><div class="lt">2 · THE BRAIN</div><div class="ls">Same math on every screen — auditable</div>
+      <div class="box"><div class="h">Signal engine</div><div class="d">7 factors per symbol: EMA · VWAP · RSI · MACD · catalysts · regime · more</div><span class="pill pG">RUNNING</span></div>
+      <div class="box"><div class="h">Regime classifier</div><div class="d">momentum · chop · stress + confidence; thresholds adapt</div><span class="pill pG">92% CONF</span></div>
+      <div class="box"><div class="h">Portfolio risk</div><div class="d">concentration · correlation · scenario shocks · drawdown</div><span class="pill pN">ALWAYS ON</span></div>
+      <div class="box"><div class="h">Gate-65/70 discipline</div><div class="d">only high-conviction alignments become alerts or drafts</div><span class="pill pN">QUALITY &gt; COUNT</span></div>
+    </div>
+    <div class="varrow"><svg viewBox="0 0 30 70"><path d="M15 4v52M7 48l8 10 8-10" stroke="#ef312e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="layer"><div class="lt">3 · EXECUTION VENUES</div><div class="ls">Paper is the record; real venues mirror</div>
+      <div class="box" style="border-color:rgba(34,197,94,.4)"><div class="h">Paper engine</div><div class="d">fills at observed price · 2bps slip + 10bps fee per side</div><span class="pill pG">PAPER_PRIMARY · ACTIVE</span></div>
+      <div class="box"><div class="h">OKX demo adapter</div><div class="d">x-simulated-trading: 1 · live-tested: time ✓ price ✓ instruments ✓ · every paper fill mirrored once keys land</div><span class="pill pA">PENDING_BRIDGE</span></div>
+      <div class="box"><div class="h">OKX live</div><div class="d">off by default · flips only with OKX_ENV=live + EXECUTION_VENUE=okx-live</div><span class="pill pR">OFF BY DEFAULT</span></div>
+      <div class="box"><div class="h">Hard risk rails</div><div class="d">≤$100 per trade · ≤3 open · -3R day stop · 30bps slippage alert</div><span class="pill pN">ALWAYS ON</span></div>
+    </div>
+    <div class="varrow"><svg viewBox="0 0 30 70"><path d="M15 4v52M7 48l8 10 8-10" stroke="#ef312e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="layer"><div class="lt">4 · THE LEDGER</div><div class="ls">If it happened, it's written down</div>
+      <div class="box"><div class="h">Immutable audit trail</div><div class="d">every order, fill, rejection, approval, halt — last 6 events on the dashboard, full history in the DB</div><span class="pill pG">APPEND-ONLY</span></div>
+      <div class="box"><div class="h">/status page</div><div class="d">public engine truth: equity, curve, venue verdict, build fingerprint (engine-ui-v3 · commit)</div><span class="pill pG">AUTO-REFRESH 15s</span></div>
+      <div class="box"><div class="h">System health panel</div><div class="d">market data · news · AI · database · mail — degraded states are shown, not hidden</div><span class="pill pN">VISIBLE INTERNALS</span></div>
+      <div class="box"><div class="h">Deploy tripwire</div><div class="d">GitHub Actions probe pings the app on every push; the build marker proves which commit is live</div><span class="pill pN">EVERY PUSH</span></div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="bcard"><div class="h">ACCOUNTS &amp; ACCESS</div><div class="b"><b>Email/password auth</b> with disposable-domain + MX deliverability checks, signup velocity caps, Turnstile-ready, email verification in production. <b>2-day trial, no card</b>; plans Starter $4 · Pro $12 · Elite $28.</div></div>
+    <div class="bcard"><div class="h">THE STANDING RULES</div><div class="b"><b>Paper until you decide otherwise.</b> Simulated is labeled. Missing data is announced. Closed markets reject orders instead of faking fills. The bot proposes; nothing executes without you.</div></div>
+  </div>
+  <div class="foot"><span class="mono">deeyoung-production.up.railway.app</span><span>UI/UX design set · paper trading only — your money never moves here</span></div>
+</div>
+</body></html>

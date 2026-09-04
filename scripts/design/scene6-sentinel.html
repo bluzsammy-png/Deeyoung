@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#0a0a0b;color:#fafafa;font-family:'Noto Sans','DejaVu Sans',sans-serif;position:relative}
+body::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.red{color:#ef312e}.mono{font-family:'DejaVu Sans Mono',monospace}
+.frame{position:absolute;inset:0;padding:52px 72px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:10px;background:#ef312e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+.wordmark{font-weight:800;font-size:22px}
+.tagline{font-size:10px;letter-spacing:3px;color:#8b8b93;margin-top:2px}
+.scenetag{text-align:right}
+.scenetag .k{font-size:11px;letter-spacing:4px;color:#ef312e;font-weight:700}
+.scenetag .t{font-size:26px;font-weight:800;margin-top:6px}
+.scenetag .s{font-size:13px;color:#8b8b93;margin-top:4px}
+.cols{display:flex;gap:28px;flex:1}
+.levels{flex:1.15;display:flex;flex-direction:column;gap:14px}
+.lvl{display:flex;gap:18px;align-items:center;background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 22px}
+.lvl .n{font-size:11px;letter-spacing:2.5px;color:#7c7c84;font-weight:800;width:74px;flex:none}
+.lvl .t{flex:1}
+.lvl .h{font-size:17px;font-weight:800}
+.lvl .b{font-size:12.5px;color:#a6a6ad;margin-top:4px;line-height:1.45}
+.lvl .plan{font-size:10px;font-weight:800;letter-spacing:1.5px;border-radius:6px;padding:5px 10px;flex:none}
+.pS{background:rgba(255,255,255,.09);color:#d4d4da}
+.pP{background:rgba(239,49,46,.16);color:#ff6b64}
+.pE{background:rgba(245,165,36,.16);color:#f5a524}
+.lvl.hot{border-color:rgba(239,49,46,.45)}
+.flowcol{flex:1;display:flex;flex-direction:column;gap:14px}
+.fcard{background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px 24px}
+.fcard .h{font-size:13px;letter-spacing:2.5px;font-weight:800;margin-bottom:14px}
+.fstep{display:flex;gap:14px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.fstep:last-child{border-bottom:none}
+.fnum{width:24px;height:24px;border-radius:50%;background:#ef312e;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.fstep .t{font-size:14px;font-weight:700}
+.fstep .d{font-size:12px;color:#8b8b93;margin-top:2px}
+.kill{background:#1a0e0e;border:1px solid rgba(239,49,46,.4);border-radius:14px;padding:20px 24px}
+.kill .h{font-size:13px;letter-spacing:2.5px;color:#ff6b64;font-weight:800}
+.kill .b{font-size:12.5px;color:#d4b8b8;margin-top:8px;line-height:1.5}
+.killbtn{margin-top:14px;display:inline-block;background:#ef312e;color:#fff;font-weight:800;font-size:14px;border-radius:10px;padding:12px 22px}
+.right{width:430px;display:flex;flex-direction:column;gap:12px}
+.anno{background:#121215;border:1px solid rgba(255,255,255,.07);border-left:3px solid #ef312e;border-radius:10px;padding:13px 16px}
+.anno .h{font-size:13.5px;font-weight:800}
+.anno .b{font-size:12px;color:#a6a6ad;margin-top:3px;line-height:1.45}
+.foot{margin-top:22px;display:flex;justify-content:space-between;font-size:12px;color:#6f6f77}
+</style></head><body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="logo">D</div><div><div class="wordmark">DeeYoung <span class="red">Pro</span></div><div class="tagline">READ THE MARKET. MOVE FIRST.</div></div></div>
+    <div class="scenetag"><div class="k">DESIGN FRAME 06 / 08</div><div class="t">SENTINEL — the safety layer</div><div class="s">Supervised automation · four levels · one-tap kill switch</div></div>
+  </div>
+  <div class="cols">
+    <div class="levels">
+      <div class="lvl"><div class="n">LEVEL 1</div><div class="t"><div class="h">Analytics</div><div class="b">Charts, catalysts, regime calls and portfolio risk — one view. The foundation everyone gets.</div></div><span class="plan pS">STARTER</span></div>
+      <div class="lvl"><div class="n">LEVEL 2</div><div class="t"><div class="h">Signals</div><div class="b">Alerts when something interesting happens on your watchlist. You read, you decide.</div></div><span class="plan pS">STARTER</span></div>
+      <div class="lvl hot"><div class="n">LEVEL 3</div><div class="t"><div class="h">SENTINEL Approve</div><div class="b">SENTINEL drafts the trade — risk-checked, sized, with stops — and waits. You approve or reject, every single time.</div></div><span class="plan pP">PRO</span></div>
+      <div class="lvl"><div class="n">LEVEL 4</div><div class="t"><div class="h">SENTINEL Delegate</div><div class="b">Automatic execution inside your hard limits: notional cap, open-position cap, daily stop. Off by default — you switch it on.</div></div><span class="plan pE">ELITE</span></div>
+      <div class="kill"><div class="h">KILL SWITCH — ALWAYS ONE TAP AWAY</div><div class="b">Every SENTINEL path ends at the same red button. One tap halts drafting and flattens proposals to zero — no confirmation maze, no waiting.</div><span class="killbtn">⏻ Halt SENTINEL</span></div>
+    </div>
+    <div class="flowcol">
+      <div class="fcard">
+        <div class="h">ANATOMY OF ONE APPROVAL</div>
+        <div class="fstep"><div class="fnum">1</div><div><div class="t">A gate-65/70 signal clears every guard</div><div class="d">regime-adjusted threshold · playbook filters</div></div></div>
+        <div class="fstep"><div class="fnum">2</div><div><div class="t">SENTINEL drafts the trade</div><div class="d">symbol · direction · size · entry · stop · targets · R:R</div></div></div>
+        <div class="fstep"><div class="fnum">3</div><div><div class="t">It lands in your approval queue</div><div class="d">with the full math attached — nothing hidden</div></div></div>
+        <div class="fstep"><div class="fnum">4</div><div><div class="t">You tap Approve — or let it expire</div><div class="d">silence is always a no; drafts never age into trades</div></div></div>
+        <div class="fstep"><div class="fnum">5</div><div><div class="t">Paper fill + immutable audit row</div><div class="d">2bps slippage · 10bps fee · written to the trail</div></div></div>
+      </div>
+      <div class="fcard">
+        <div class="h">HARD LIMITS DELEGATE CANNOT CROSS</div>
+        <div class="fstep"><div class="fnum">§</div><div><div class="t">Notional per trade · ≤ $100</div></div></div>
+        <div class="fstep"><div class="fnum">§</div><div><div class="t">Open positions · ≤ 3</div></div></div>
+        <div class="fstep"><div class="fnum">§</div><div><div class="t">Day stop · -3R, then SENTINEL stands down</div></div></div>
+        <div class="fstep"><div class="fnum">§</div><div><div class="t">Slippage alert · 30bps, alerts before damage compounds</div></div></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="anno"><div class="h">Automation with a governor</div><div class="b">SENTINEL is a second pair of hands, not an autopilot. Approve keeps a human in every loop; Delegate still lives inside rails you set.</div></div>
+      <div class="anno"><div class="h">Observe mode first</div><div class="b">New sessions start watching, not acting. SENTINEL earns execution rights one approval at a time.</div></div>
+      <div class="anno"><div class="h">Paper broker, real discipline</div><div class="b">Fills are simulated — the discipline is not. Every draft, approval, rejection and halt is written to the immutable audit trail.</div></div>
+      <div class="anno"><div class="h">Clear labels, always</div><div class="b">Simulated data is labeled SIMULATED. Delayed is labeled DELAYED. Stale is labeled STALE. You always know what you're looking at.</div></div>
+    </div>
+  </div>
+  <div class="foot"><span class="mono">deeyoung-production.up.railway.app</span><span>UI/UX design set · paper trading only — your money never moves here</span></div>
+</div>
+</body></html>

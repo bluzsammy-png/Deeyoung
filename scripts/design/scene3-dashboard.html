@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#0a0a0b;color:#fafafa;font-family:'Noto Sans','DejaVu Sans',sans-serif;position:relative}
+body::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.red{color:#ef312e}.mono{font-family:'DejaVu Sans Mono',monospace}
+.frame{position:absolute;inset:0;padding:52px 72px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:10px;background:#ef312e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+.wordmark{font-weight:800;font-size:22px}
+.tagline{font-size:10px;letter-spacing:3px;color:#8b8b93;margin-top:2px}
+.scenetag{text-align:right}
+.scenetag .k{font-size:11px;letter-spacing:4px;color:#ef312e;font-weight:700}
+.scenetag .t{font-size:26px;font-weight:800;margin-top:6px}
+.scenetag .s{font-size:13px;color:#8b8b93;margin-top:4px}
+.cols{display:flex;gap:28px;flex:1;min-height:0}
+.main{width:1210px;display:flex;flex-direction:column;gap:18px}
+.card{background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.hello{display:flex;gap:18px;padding:24px 26px;align-items:center}
+.hello .g{flex:1}
+.hello .sub{font-size:13px;color:#8b8b93}
+.hello .h{font-size:30px;font-weight:800;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:700;margin-right:10px}
+.chip.red{border-color:rgba(239,49,46,.5);color:#ff6b64}
+.row2{display:flex;gap:18px}
+.port{width:390px;padding:22px 24px}
+.port .lbl{font-size:11px;letter-spacing:2.5px;color:#7c7c84;font-weight:700}
+.port .big{font-size:40px;font-weight:800;margin-top:14px;font-family:'DejaVu Sans Mono',monospace}
+.port .sub{font-size:12px;color:#8b8b93;margin-top:8px}
+.gauge{flex:1;padding:22px 24px;display:flex;align-items:center;gap:24px}
+.gtxt .lbl{font-size:11px;letter-spacing:2.5px;color:#7c7c84;font-weight:700}
+.gtxt .h{font-size:24px;font-weight:800;margin-top:6px}
+.gtxt .b{font-size:12.5px;color:#a6a6ad;margin-top:8px;line-height:1.5}
+.mo{padding:20px 24px}
+.mo .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.mo .t{font-size:15px;font-weight:800}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.tile{background:#17171b;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 14px}
+.tile .s{font-size:14px;font-weight:800}
+.tile .p{font-size:13px;color:#d4d4da;margin-top:3px;font-family:'DejaVu Sans Mono',monospace}
+.tile .c{font-size:11.5px;margin-top:2px;font-family:'DejaVu Sans Mono',monospace}
+.opps{flex:1;padding:20px 24px}
+.opp{display:flex;align-items:center;gap:16px;background:#17171b;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:13px 16px;margin-top:10px}
+.ring{width:52px;height:52px;flex:none}
+.opp .mid{flex:1}
+.opp .sym{font-size:16px;font-weight:800}
+.opp .tag{font-size:9.5px;letter-spacing:1px;background:rgba(34,197,94,.15);color:#4ade80;border-radius:4px;padding:2px 6px;margin-left:8px;font-weight:800}
+.opp .why{font-size:12px;color:#9b9ba3;margin-top:3px}
+.opp .lv{font-size:11.5px;color:#8b8b93;margin-top:4px;font-family:'DejaVu Sans Mono',monospace}
+.side{flex:1;display:flex;flex-direction:column;gap:18px}
+.panel{padding:20px 24px}
+.panel .t{font-size:13px;letter-spacing:2.5px;font-weight:800}
+.panel .b{font-size:12.5px;color:#a6a6ad;margin-top:8px;line-height:1.5}
+.subpill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;border-radius:4px;padding:3px 7px}
+.warn{background:#17130a;border:1px solid rgba(245,165,36,.3);border-radius:10px;padding:14px 16px;margin-top:10px}
+.warn .h{font-size:12.5px;font-weight:800;color:#f5a524}
+.warn .b{font-size:11.5px;color:#b8a98a;margin-top:5px;line-height:1.45}
+.annos{width:430px;display:flex;flex-direction:column;gap:12px}
+.anno{background:#121215;border:1px solid rgba(255,255,255,.07);border-left:3px solid #ef312e;border-radius:10px;padding:13px 16px}
+.anno .h{font-size:13.5px;font-weight:800}
+.anno .b{font-size:12px;color:#a6a6ad;margin-top:3px;line-height:1.45}
+.foot{margin-top:22px;display:flex;justify-content:space-between;font-size:12px;color:#6f6f77}
+</style></head><body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="logo">D</div><div><div class="wordmark">DeeYoung <span class="red">Pro</span></div><div class="tagline">READ THE MARKET. MOVE FIRST.</div></div></div>
+    <div class="scenetag"><div class="k">DESIGN FRAME 03 / 08</div><div class="t">The terminal dashboard</div><div class="s">Regime · opportunities · paper portfolio · catalysts — one screen</div></div>
+  </div>
+  <div class="cols">
+    <div class="main">
+      <div class="row2">
+        <div class="card port"><div class="lbl">YOUR PORTFOLIO (PAPER)</div><div class="big">$100,000</div><div class="sub">0.00% · $0 total · 0 positions · $100,000 cash</div><div class="sub" style="margin-top:14px;color:#4ade80">● PAPER — your money never moves here</div></div>
+        <div class="card gauge">
+          <svg width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="58" fill="none" stroke="#1c1c21" stroke-width="10"/><circle cx="75" cy="75" r="58" fill="none" stroke="#22c55e" stroke-width="10" stroke-dasharray="249 365" stroke-linecap="round" transform="rotate(-90 75 75)"/><text x="75" y="70" text-anchor="middle" fill="#8b8b93" font-size="11" letter-spacing="3">REGIME</text><text x="75" y="95" text-anchor="middle" fill="#4ade80" font-size="20" font-weight="800">Momentum</text></svg>
+          <div class="gtxt"><div class="lbl">MARKET REGIME · 92% CONF</div><div class="h">Momentum</div><div class="b">Short-term momentum is strong (SPY 10-day rate of change 5.0%). Momentum-continuation setups get priority; mean-reversion fades are penalized.</div></div>
+        </div>
+      </div>
+      <div class="card mo">
+        <div class="head"><div class="t">Market overview <span style="font-size:11px;color:#7c7c84;font-weight:400">· delayed per exchange terms</span></div><span class="subpill" style="background:rgba(245,165,36,.15);color:#f5a524">DELAYED</span></div>
+        <div class="tiles">
+          <div class="tile"><div class="s">SPY</div><div class="p">$770.78</div><div class="c" style="color:#ef312e">-0.31%</div></div>
+          <div class="tile"><div class="s">QQQ</div><div class="p">$718.75</div><div class="c" style="color:#22c55e">+0.15%</div></div>
+          <div class="tile"><div class="s">SMH</div><div class="p">$566.23</div><div class="c" style="color:#22c55e">+2.47%</div></div>
+          <div class="tile"><div class="s">XAUUSD</div><div class="p">$4,488</div><div class="c" style="color:#ef312e">-1.13%</div></div>
+          <div class="tile"><div class="s">BTCUSD</div><div class="p">$79,562</div><div class="c" style="color:#ef312e">-2.14%</div></div>
+          <div class="tile"><div class="s">EURUSD</div><div class="p">$1.1625</div><div class="c" style="color:#ef312e">-0.05%</div></div>
+        </div>
+      </div>
+      <div class="row2" style="flex:1">
+        <div class="card opps">
+          <div class="mo head" style="margin-bottom:4px"><div class="t">Top opportunities</div><span style="font-size:12px;color:#ef312e;font-weight:700">All markets ›</span></div>
+          <div class="opp"><svg class="ring" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" fill="none" stroke="#2a2a30" stroke-width="5"/><circle cx="26" cy="26" r="21" fill="none" stroke="#f5a524" stroke-width="5" stroke-dasharray="89 132" stroke-linecap="round" transform="rotate(-90 26 26)"/><text x="26" y="31" text-anchor="middle" fill="#fafafa" font-size="15" font-weight="800">67</text></svg><div class="mid"><div class="sym">COIN<span class="tag">LONG</span></div><div class="why">Building bullish setup · 8 factors aligned</div><div class="lv">Entry $651.23 · Stop $638.89 · Target $669.75 · R:R 1.5</div></div></div>
+          <div class="opp"><svg class="ring" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" fill="none" stroke="#2a2a30" stroke-width="5"/><circle cx="26" cy="26" r="21" fill="none" stroke="#f5a524" stroke-width="5" stroke-dasharray="86 132" stroke-linecap="round" transform="rotate(-90 26 26)"/><text x="26" y="31" text-anchor="middle" fill="#fafafa" font-size="15" font-weight="800">65</text></svg><div class="mid"><div class="sym">TSLA<span class="tag">LONG</span></div><div class="why">Building bullish setup · 7 factors aligned</div><div class="lv">Entry $505.10 · Stop $492.19 · Target $524.47 · R:R 1.5</div></div></div>
+          <div class="opp"><svg class="ring" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" fill="none" stroke="#2a2a30" stroke-width="5"/><circle cx="26" cy="26" r="21" fill="none" stroke="#f5a524" stroke-width="5" stroke-dasharray="83 132" stroke-linecap="round" transform="rotate(-90 26 26)"/><text x="26" y="31" text-anchor="middle" fill="#fafafa" font-size="15" font-weight="800">63</text></svg><div class="mid"><div class="sym">GBPUSD<span class="tag">LONG</span></div><div class="why">Building bullish setup · 7 factors aligned</div><div class="lv">Entry 1.2564 · Stop 1.2363 · Target 1.2864 · R:R 1.5</div></div></div>
+        </div>
+        <div class="side">
+          <div class="card panel"><div class="t">AI MORNING BRIEFING</div><div class="b">A grounded morning read of regime, names and risk — part of Pro. Generated from the same feeds the terminal shows; nothing invented.</div></div>
+          <div class="card panel" style="flex:1"><div class="t">CATALYSTS <span class="subpill" style="background:rgba(239,49,46,.15);color:#ff6b64;margin-left:6px">UNAVAILABLE</span></div>
+            <div class="warn"><div class="h">NEWS DATA UNAVAILABLE</div><div class="b">The catalyst feed needs a free news API key (BYOK). Until one is connected, DeeYoung will not display or infer any news — fabricated headlines are the #1 trust killer in market tools.</div></div>
+            <div class="b" style="margin-top:10px">Volume-based catalysts continue to feed signals from real market data.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annos">
+      <div class="anno"><div class="h">Regime before anything</div><div class="b">The day starts with the tape's personality and a confidence number — every threshold downstream adapts to it.</div></div>
+      <div class="anno"><div class="h">Scores you can audit</div><div class="b">Every opportunity shows the score ring, the aligned factor count, and the full entry / stop / target / R:R math on the card.</div></div>
+      <div class="anno"><div class="h">Paper, stated everywhere</div><div class="b">The portfolio is labeled PAPER with the standing promise: your money never moves here.</div></div>
+      <div class="anno"><div class="h">Gaps are announced, never papered over</div><div class="b">No news key? The catalyst panel turns amber and explains itself. Delayed tape gets a DELAYED chip. You always know what you're looking at.</div></div>
+      <div class="anno"><div class="h">Pro upsell without dark patterns</div><div class="b">The briefing panel says what it is and which plan unlocks it — one line, no nagging.</div></div>
+    </div>
+  </div>
+  <div class="foot"><span class="mono">deeyoung-production.up.railway.app</span><span>UI/UX design set · paper trading only — your money never moves here</span></div>
+</div>
+</body></html>

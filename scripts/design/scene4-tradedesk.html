@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#0a0a0b;color:#fafafa;font-family:'Noto Sans','DejaVu Sans',sans-serif;position:relative}
+body::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.red{color:#ef312e}.mono{font-family:'DejaVu Sans Mono',monospace}
+.frame{position:absolute;inset:0;padding:52px 72px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:10px;background:#ef312e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+.wordmark{font-weight:800;font-size:22px}
+.tagline{font-size:10px;letter-spacing:3px;color:#8b8b93;margin-top:2px}
+.scenetag{text-align:right}
+.scenetag .k{font-size:11px;letter-spacing:4px;color:#ef312e;font-weight:700}
+.scenetag .t{font-size:26px;font-weight:800;margin-top:6px}
+.scenetag .s{font-size:13px;color:#8b8b93;margin-top:4px}
+.cols{display:flex;gap:40px;flex:1;min-height:0}
+.left{flex:1;display:flex;flex-direction:column;gap:18px}
+.ask{background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px 26px}
+.ask .lbl{font-size:11px;letter-spacing:2.5px;color:#7c7c84;font-weight:700;margin-bottom:10px}
+.qrow{display:flex;gap:12px}
+.qbox{flex:1;background:#0d0d10;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 16px;font-size:15px;color:#d4d4da}
+.go{background:#ef312e;color:#fff;font-weight:800;font-size:15px;border-radius:10px;padding:14px 24px;white-space:nowrap}
+.chips{display:flex;gap:10px;margin-top:14px}
+.chip{font-size:12px;color:#c8c8cf;border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:7px 14px}
+.plan{background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px 26px}
+.phead{display:flex;align-items:center;gap:12px}
+.bias{font-size:11px;letter-spacing:1.5px;background:#26262c;border-radius:6px;padding:6px 10px;font-weight:800}
+.psym{font-size:22px;font-weight:800}
+.pinv{font-size:12px;color:#8b8b93}
+.grounded{margin-left:auto;font-size:11.5px;color:#ff6b64;border:1px solid rgba(239,49,46,.4);border-radius:999px;padding:6px 12px;font-weight:700}
+.lvls{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.lvl{background:#17171b;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.lvl .k{font-size:10px;letter-spacing:2px;color:#7c7c84;font-weight:700}
+.lvl .v{font-size:20px;font-weight:800;margin-top:6px;font-family:'DejaVu Sans Mono',monospace}
+.lvl.g .v{color:#22c55e}.lvl.r .v{color:#ef312e}.lvl.a .v{color:#f5a524}
+.meta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.mchip{font-size:12px;background:#17171b;border:1px solid rgba(255,255,255,.09);border-radius:8px;padding:7px 12px}
+.mchip b{color:#ef312e}
+.narr{font-size:14px;line-height:1.55;color:#d4d4da;margin-top:16px}
+.inval{font-size:13.5px;color:#f5a524;font-weight:700;margin-top:10px}
+.risks{display:flex;gap:18px;margin-top:18px}
+.rk{flex:1.4;background:#17171b;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px}
+.rk .h{font-size:11px;letter-spacing:2px;color:#7c7c84;font-weight:700}
+.rk ul{list-style:none;margin-top:10px}
+.rk li{font-size:13px;color:#d4d4da;padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.rk li:last-child{border-bottom:none}
+.disc{flex:1;background:#141418;border:1px dashed rgba(255,255,255,.16);border-radius:12px;padding:16px 18px;font-size:12px;color:#9b9ba3;line-height:1.5}
+.disc b{color:#fafafa}
+.right{width:470px;display:flex;flex-direction:column;gap:14px}
+.anno{background:#121215;border:1px solid rgba(255,255,255,.07);border-left:3px solid #ef312e;border-radius:10px;padding:14px 17px}
+.anno .h{font-size:14px;font-weight:800}
+.anno .b{font-size:12.5px;color:#a6a6ad;margin-top:4px;line-height:1.5}
+.flow{background:#101013;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 20px}
+.flow .h{font-size:11px;letter-spacing:2.5px;color:#7c7c84;font-weight:700;margin-bottom:12px}
+.fstep{display:flex;gap:12px;align-items:flex-start;padding:7px 0}
+.fnum{width:22px;height:22px;border-radius:50%;background:#ef312e;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.fstep .t{font-size:13px;font-weight:700}
+.fstep .d{font-size:11.5px;color:#8b8b93;margin-top:1px}
+.foot{margin-top:auto;display:flex;justify-content:space-between;font-size:12px;color:#6f6f77}
+</style></head><body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="logo">D</div><div><div class="wordmark">DeeYoung <span class="red">Pro</span></div><div class="tagline">READ THE MARKET. MOVE FIRST.</div></div></div>
+    <div class="scenetag"><div class="k">DESIGN FRAME 04 / 08</div><div class="t">Trade Desk — ask, get a grounded plan</div><div class="s">Plain-English questions in · disciplined trade plans out · nothing invented</div></div>
+  </div>
+  <div class="cols">
+    <div class="left">
+      <div class="ask">
+        <div class="lbl">ASK THE DESK BOT</div>
+        <div class="qrow"><div class="qbox">Should I short gold here?</div><div class="go">➤ Ask the bot</div></div>
+        <div class="chips"><span class="chip">Should I short gold here?</span><span class="chip">Give me a 2-day plan with tight risk</span><span class="chip">What invalidates the bearish case?</span></div>
+      </div>
+      <div class="plan">
+        <div class="phead"><span class="bias">NEUTRAL</span><span class="psym">XAUUSD</span><span class="pinv">intraday · Gold — COMEX front-month proxy</span><span class="grounded">✦ AI · grounded on live data</span></div>
+        <div class="lvls">
+          <div class="lvl"><div class="k">ENTRY</div><div class="v">$4,488.60</div></div>
+          <div class="lvl r"><div class="k">STOP</div><div class="v">$4,537.80</div></div>
+          <div class="lvl g"><div class="k">TARGET 1</div><div class="v">$4,412.00</div></div>
+          <div class="lvl g"><div class="k">TARGET 2</div><div class="v">$4,400.00</div></div>
+        </div>
+        <div class="meta"><span class="mchip">R:R <b>1:0.5</b></span><span class="mchip">Conviction <b>35 / 100</b></span><span class="mchip">Regime: Momentum</span><span class="mchip">Live $4,488.60 · -1.13%</span></div>
+        <div class="narr">Engine suggests LONG but price is below key levels. Day range shows 4412–4537.8 with current price at 4488.6. Momentum regime but conflicting signals.</div>
+        <div class="inval">Invalidation: break above 4537.8 invalidates neutral bias.</div>
+        <div class="risks">
+          <div class="rk"><div class="h">RISKS ON THIS PLAN</div><ul><li>↯ Break above 4537.8</li><li>↯ Strong support at 4412 breaks</li><li>↯ Unexpected volatility</li></ul></div>
+          <div class="disc"><b>Paper analysis only — not financial advice.</b> DeeYoung never routes live orders, and levels shift with delayed data. The bot proposes; nothing executes without you.</div>
+        </div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="flow">
+        <div class="h">WHAT THE BOT DOES WITH YOUR QUESTION</div>
+        <div class="fstep"><div class="fnum">1</div><div><div class="t">Pulls the live quote &amp; day range</div><div class="d">same delayed feed the terminal uses — no side channel</div></div></div>
+        <div class="fstep"><div class="fnum">2</div><div><div class="t">Reads the signal engine's factor math</div><div class="d">the seven-factor score for your symbol</div></div></div>
+        <div class="fstep"><div class="fnum">3</div><div><div class="t">Checks the regime call</div><div class="d">momentum · chop · stress, with confidence</div></div></div>
+        <div class="fstep"><div class="fnum">4</div><div><div class="t">Returns a disciplined plan</div><div class="d">direction · entry · stop · two targets · R:R · invalidation</div></div></div>
+        <div class="fstep"><div class="fnum">5</div><div><div class="t">States the risks in writing</div><div class="d">and refuses to route anything live, ever</div></div></div>
+      </div>
+      <div class="anno"><div class="h">Numbers first, story second</div><div class="b">Entry, stop and targets are real numbers off the live tape. The conviction score says when the engine is unsure — 35/100 means stand aside.</div></div>
+      <div class="anno"><div class="h">Conviction is a dial, not a dice roll</div><div class="b">Low conviction reads get labeled low. The product would rather tell you "no trade" than invent a confident one.</div></div>
+      <div class="anno"><div class="h">Every plan carries its own disclaimer</div><div class="b">Paper analysis only. Nothing routes to a real broker. If the market is closed, orders are rejected — not simulated.</div></div>
+    </div>
+  </div>
+  <div class="foot"><span class="mono">deeyoung-production.up.railway.app</span><span>UI/UX design set · paper trading only — your money never moves here</span></div>
+</div>
+</body></html>

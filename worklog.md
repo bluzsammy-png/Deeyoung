@@ -286,3 +286,22 @@ Work Log:
 Stage Summary:
 - The film now speaks clear English in every scene at broadcast level; drums stay as the bed, ducked under the voice.
 - Once the Railway GitHub App re-grant + deploy lands, the film is live at /ad-film.mp4 and the Media Kit (if NEXT_PUBLIC_MEDIA_KIT=on + media dir present) serves the full kit with Range streaming.
+
+---
+Task ID: 17 (site verify walkthrough + UI/UX design set + VO prompt)
+Agent: main (Super Z)
+Task: User asked — verify the site end-to-end (sign in/out, every screen, paper/live/demo currency), then produce UI/UX design pictures of app + site layout + how everything works, then the voice over prompt. Clarified the earlier "scenes" message now targets THIS project as a design-set + VO deliverable.
+
+Work Log:
+- Probe check: latest runs (cca8fee, 5cb9056) still 12/12 HTTP 429 from GitHub egress; twin domain 404 — Railway edge still blocks all DC networks; browser remains the only window; bridge fix steps unchanged.
+- Walked the ACTUAL deploy-bound code on localhost:3000 with headless Chromium: landing (hero/disclosure/badges/levels/pricing/footer), sign-UP (MX layer correctly rejected fake domain; real-MX account created; TRIAL·48H chip on), dashboard (regime 92% momentum, scored opportunities w/ entry/stop/target/R:R, DELAYED/STALE chips, honest NEWS DATA UNAVAILABLE), Trade Desk AI (grounded XAUUSD NEUTRAL plan, conviction 35/100), Markets (26+ heatmap), Signals (honest empty state), Portfolio (risk composite, scenario shocks, trade ticket), SENTINEL + Research (correct Pro gates), Learn, Settings, /status.
+- Paper-order honesty test: NVDA BUY 10 → REJECTED "Market closed — order not simulated", rejection row visible in RECENT ORDERS + dashboard audit trail. BTCUSD also rejected: upstream quote feed reports marketState=CLOSED for ALL symbols on Saturday (engine account unaffected — Binance 24/7 feed). Tuning item, fail-safe by design.
+- BUG FOUND+FIXED: Settings tab crashed — ReferenceError: useToast is not defined (settings.tsx:270 MetaTraderCard). One-line import fix, verified Settings now renders (broker/MT connect/BYOK/notifications/health). Pushed 8893edb.
+- Sign-OUT → landing clean; sign-IN round-trip restored session + audit trail intact.
+- Built 8 UI/UX design frames (1920x1080, HTML/CSS → Playwright PNG, real product copy, on-brand): site-layout blueprint, the loop, dashboard, trade desk, paper-engine venue ladder (PAPER→OKX demo→OKX live + rails), SENTINEL levels+kill switch, mobile 3-phone layout, architecture. Sources in scripts/design/, PNGs in download/design-frames/.
+- Wrote download/deeyoung-design-voiceover-script.txt: 8-scene timed VO script (~100s), copy-paste TTS prompt block, scene/image map, production notes (-16 LUFS, ducked bed).
+
+Stage Summary:
+- Verdict: the product IS up to date with paper trading (PAPER_PRIMARY ACTIVE, gate-65/70, honest labels everywhere); live/demo are adapter-ready and correctly OFF (PENDING_KEYS/PENDING_BRIDGE); one Settings crash fixed and pushed; one weekend marketState quirk logged for tuning.
+- Deliverables: download/design-frames/ (8 PNGs), download/deeyoung-design-voiceover-script.txt, download/verify-screens/ (30 walkthrough captures).
+- Deploy status: still waiting on user's 3-step GitHub App re-grant; 8893edb will deploy + probe automatically once restored.

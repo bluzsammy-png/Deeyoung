@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#0a0a0b;color:#fafafa;font-family:'Noto Sans','DejaVu Sans',sans-serif;position:relative}
+body::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.red{color:#ef312e}.mono{font-family:'DejaVu Sans Mono',monospace}
+.frame{position:absolute;inset:0;padding:52px 72px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:10px;background:#ef312e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+.wordmark{font-weight:800;font-size:22px}
+.tagline{font-size:10px;letter-spacing:3px;color:#8b8b93;margin-top:2px}
+.scenetag{text-align:right}
+.scenetag .k{font-size:11px;letter-spacing:4px;color:#ef312e;font-weight:700}
+.scenetag .t{font-size:26px;font-weight:800;margin-top:6px}
+.scenetag .s{font-size:13px;color:#8b8b93;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.kpi{background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 18px}
+.kpi .k{font-size:10px;letter-spacing:2px;color:#7c7c84;font-weight:700}
+.kpi .v{font-size:23px;font-weight:800;margin-top:8px;font-family:'DejaVu Sans Mono',monospace}
+.curve{background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px 24px;margin-top:16px}
+.curve .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.curve .t{font-size:13px;letter-spacing:2.5px;font-weight:800}
+.venue{display:flex;gap:16px;margin-top:16px;flex:1}
+.vcard{flex:1.25;background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:22px 26px}
+.vcard .h{font-size:14px;font-weight:800;display:flex;align-items:center;gap:10px}
+.live{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e}
+.vcard .sub{font-size:12.5px;color:#a6a6ad;margin-top:10px;line-height:1.55}
+.bridge{display:flex;align-items:center;gap:0;margin-top:24px}
+.vnode{width:270px;border-radius:14px;padding:18px 20px;border:1px solid rgba(255,255,255,.1);background:#17171b;text-align:center}
+.vnode.on{border-color:rgba(34,197,94,.5);background:#101a12}
+.vnode .k{font-size:10px;letter-spacing:2px;color:#7c7c84;font-weight:700}
+.vnode .n{font-size:18px;font-weight:800;margin-top:6px}
+.vnode .d{font-size:11px;color:#8b8b93;margin-top:6px;line-height:1.4}
+.vnode .pill{display:inline-block;margin-top:10px;font-size:10px;font-weight:800;letter-spacing:1px;border-radius:5px;padding:4px 8px}
+.pG{background:rgba(34,197,94,.15);color:#4ade80}
+.pA{background:rgba(245,165,36,.15);color:#f5a524}
+.varrow{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.varrow .l{font-size:9.5px;letter-spacing:1.5px;color:#7c7c84;font-weight:700}
+.rails{flex:1;background:#121215;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:22px 26px}
+.rails .h{font-size:14px;font-weight:800}
+.rail{display:flex;justify-content:space-between;background:#17171b;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 16px;margin-top:10px}
+.rail .k{font-size:13px;color:#d4d4da}
+.rail .v{font-size:13px;font-weight:800;font-family:'DejaVu Sans Mono',monospace}
+.note{margin-top:14px;background:#17130a;border:1px solid rgba(245,165,36,.28);border-radius:10px;padding:13px 16px;font-size:12px;color:#d8c496;line-height:1.5}
+.foot{margin-top:22px;display:flex;justify-content:space-between;font-size:12px;color:#6f6f77}
+</style></head><body>
+<div class="frame">
+  <div class="topbar">
+    <div class="brand"><div class="logo">D</div><div><div class="wordmark">DeeYoung <span class="red">Pro</span></div><div class="tagline">READ THE MARKET. MOVE FIRST.</div></div></div>
+    <div class="scenetag"><div class="k">DESIGN FRAME 05 / 08</div><div class="t">Paper Engine — the execution venue ladder</div><div class="s">Paper today · OKX demo mirror when keys land · live only when you flip it</div></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="k">SETTLED EQUITY</div><div class="v">$10,000.00</div></div>
+    <div class="kpi"><div class="k">REALIZED P&amp;L</div><div class="v">+$0.00</div></div>
+    <div class="kpi"><div class="k">FEES PAID</div><div class="v">$0.00</div></div>
+    <div class="kpi"><div class="k">MAX DRAWDOWN</div><div class="v">0.00%</div></div>
+    <div class="kpi"><div class="k">OPEN / CLOSED</div><div class="v">0 / 0</div></div>
+    <div class="kpi"><div class="k">WIN RATE</div><div class="v">—</div></div>
+  </div>
+  <div class="curve">
+    <div class="head"><div class="t">EQUITY CURVE (MARKED EVERY CYCLE)</div><span style="font-size:11.5px;color:#7c7c84" class="mono">feed: binance · 24/7 · auto-refresh</span></div>
+    <svg width="100%" height="150" viewBox="0 0 1500 150" preserveAspectRatio="none">
+      <line x1="0" y1="30" x2="1500" y2="30" stroke="#1c1c21" stroke-width="1"/>
+      <line x1="0" y1="75" x2="1500" y2="75" stroke="#1c1c21" stroke-width="1"/>
+      <line x1="0" y1="120" x2="1500" y2="120" stroke="#1c1c21" stroke-width="1"/>
+      <path d="M0 112 L120 108 L240 96 L360 100 L480 86 L600 90 L720 74 L840 80 L960 62 L1080 70 L1200 52 L1320 60 L1440 44 L1500 48 L1500 150 L0 150 Z" fill="rgba(34,197,94,.10)"/>
+      <path d="M0 112 L120 108 L240 96 L360 100 L480 86 L600 90 L720 74 L840 80 L960 62 L1080 70 L1200 52 L1320 60 L1440 44 L1500 48" fill="none" stroke="#22c55e" stroke-width="3"/>
+    </svg>
+  </div>
+  <div class="venue">
+    <div class="vcard">
+      <div class="h"><span class="live"></span> EXECUTION VENUE — PAPER <span style="font-size:10.5px;color:#4ade80;letter-spacing:1.5px">PAPER_PRIMARY</span></div>
+      <div class="sub">The own paper engine is the execution-of-record: fills at observed market price with 2bps slippage per side and 10bps taker fee per side. Every row is written from a real observed price — nothing simulated or invented. The mirror counters (open 0 · filled 0 · failed 0) prove the venue bridge is quiet until keys land.</div>
+      <div class="bridge">
+        <div class="vnode on"><div class="k">VENUE #1 · ACTIVE</div><div class="n">Paper Engine</div><div class="d">fills at observed price, fees &amp; slippage modeled</div><span class="pill pG">RUNNING NOW</span></div>
+        <div class="varrow"><span class="l">EVERY FILL MIRRORED</span><svg width="80" height="20" viewBox="0 0 80 20"><path d="M2 10h68M62 3l10 7-10 7" stroke="#ef312e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="vnode"><div class="k">VENUE #2 · KEYS PENDING</div><div class="n">OKX Demo</div><div class="d">x-simulated-trading: 1 · adapter live-tested (time ✓ price ✓ instruments ✓)</div><span class="pill pA">PENDING_BRIDGE</span></div>
+        <div class="varrow"><span class="l">ONE FLAG FLIP</span><svg width="80" height="20" viewBox="0 0 80 20"><path d="M2 10h68M62 3l10 7-10 7" stroke="#7c7c84" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="vnode"><div class="k">VENUE #3 · OFF BY DEFAULT</div><div class="n">OKX Live</div><div class="d">OKX_ENV=live + EXECUTION_VENUE=okx-live — your explicit choice</div><span class="pill pA">OFF</span></div>
+      </div>
+      <div class="note"><b>Mirror failures never touch this ledger.</b> The paper book stays the source of truth; venue errors raise alerts, they don't rewrite history.</div>
+    </div>
+    <div class="rails">
+      <div class="h">HARD RISK RAILS — ALWAYS ON</div>
+      <div class="rail"><span class="k">Max notional per trade</span><span class="v">≤ $100</span></div>
+      <div class="rail"><span class="k">Max open positions</span><span class="v">≤ 3</span></div>
+      <div class="rail"><span class="k">Daily stop</span><span class="v">-3R</span></div>
+      <div class="rail"><span class="k">Slippage alert</span><span class="v">30 bps</span></div>
+      <div class="note" style="margin-top:16px">Entry discipline: only gate-65/70 signals that pass every playbook guard. The engine waits — quality over count.</div>
+    </div>
+  </div>
+  <div class="foot"><span class="mono">deeyoung-production.up.railway.app</span><span>UI/UX design set · paper trading only — your money never moves here</span></div>
+</div>
+</body></html>
