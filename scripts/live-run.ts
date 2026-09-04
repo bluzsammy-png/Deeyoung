@@ -194,11 +194,12 @@ async function main() {
   }
 
   let lastMinuteRefresh = 0; let lastFlush = 0;
+  const CHUNK_START = Date.now(); // chunk limit measures THIS process, not campaign start
   const g65Total = () => s.trades.filter((t) => t.gate === 65).length;
 
   while (true) {
     const now = Date.now();
-    if ((now - s.startedAt) / 60_000 >= MAX_MINUTES) {
+    if ((now - CHUNK_START) / 60_000 >= MAX_MINUTES) {
       await saveState(s, brain);
       await Bun.write(`${OUT_DIR}liverun-summary.json`, JSON.stringify(summaryOf(s), null, 1));
       log(`chunk complete: ${s.trades.length} closed, ${Object.keys(s.open).length} open — state flushed, exiting cleanly`);
