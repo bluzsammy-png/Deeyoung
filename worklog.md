@@ -200,3 +200,20 @@ Stage Summary:
 - Blocker fully root-caused: scoped-token trap, upstream-documented. Waiting on ONE account token created with "No workspace".
 - Everything else GREEN: GitHub synced (PAT works), local engine ACTIVE on real Binance feed, venue+risk rails live in /api/engine/status, OKX target proven reachable.
 - On valid token arrival: read deploy+boot logs, verify [bridge] lines, set env vars (TWELVEDATA_API_KEY when user supplies, OKX_* when user creates account), confirm 28f3414 deploy SUCCESS.
+
+---
+Task ID: 15-e (3rd token + full forensic discrimination)
+Agent: main (Super Z)
+Task: User pasted a 3rd Railway UUID (a81ebefa-…). Determine definitively: bad token type vs sandbox-egress block.
+
+Work Log:
+- Token 3 rejected identically: curl backboard .app/.com + Railway CLI v5.49.1 (real @railway/cli — the npm "railway" package is an unrelated IaC tool) in BOTH RAILWAY_API_TOKEN and RAILWAY_TOKEN modes. All → "Not Authorized"/INTERNAL_SERVER_ERROR.
+- Eliminated: rate-limiting (docs: limits return HTTP 429, never Not Authorized), domain quirk, CLI fingerprint, GitHub Actions vantage (repo has ZERO workflows; PAT lacks workflow scope to add one).
+- Response-header forensics: ratelimit-policy present (request reaches Railway's app layer), but X-RateLimit-Remaining/Limit/Reset (documented as sent on every token-identified request) ABSENT on all attempts → Railway never matched ANY pasted UUID to a token record. Docs table confirms Not Authorized + INTERNAL_SERVER_ERROR = authorization denial.
+- Railway docs (docs.railway.com/integrations/api.md, saved to /tmp/rwapi.md) re-confirmed: Account token = "No workspace" selected; Workspace/Project tokens are scoped (deploy-oriented). GraphiQL playground (railway.com/graphiql, Headers tab, Bearer token) = the browser-only discriminator for the user.
+- All 3 UUIDs are well-formed v4 → they ARE being created/copied somewhere, but never recognized. Leading theories: (a) values copied from somewhere other than the create-modal's one-time reveal (URL-bar UUIDs, list rows), (b) my sandbox egress denied regardless of token (undisprovable from here).
+- Tokens 2 and 3 recorded in .env per "do not scrub until i say so".
+
+Stage Summary:
+- Decision: stop burning user patience on token pastes. Next user interaction = ONE GraphiQL test that discriminates both theories in 60 seconds from their browser.
+- Mission-critical reframe: Railway token was only my automation convenience. The real pending items all live on the user's side anyway: (1) open /status in browser → deploy verification, (2) OKX account on residential IP → keys, (3) keys into Railway Variables UI (or via me once token works). Nothing in the build is blocked on the token.
