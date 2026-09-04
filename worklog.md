@@ -355,3 +355,20 @@ Stage Summary:
 - LIVE: https://deeyoung-production.up.railway.app now serves engine-ui-v3 @ 02277df; auto-deploy on push CONFIRMED working; GitHub Actions probe remains the tripwire per push.
 - /api/dev-pair route: local-only, uncommitted, delete after ops need ends.
 - User to-dos unchanged: Twelve Data free key + OKX demo keys (~10 min).
+
+---
+Task ID: 19 (Twelve Data key → production, verified in boot log)
+Agent: main (Super Z)
+Task: User delivered TWELVEDATA_API_KEY; set it live and verify.
+
+Work Log:
+- Key validated against api.twelvedata.com BEFORE shipping: AAPL 320.85, XAU/USD 4422.2964 (code ok).
+- Exact env name confirmed in code (twelvedata.ts / feed.ts / instrumentation.ts read TWELVEDATA_API_KEY).
+- railway variables --set on Deeyoung (production) → auto-redeploy d8016d58 → BUILDING → DEPLOYING → SUCCESS 17:44:29. Local .env parity added.
+- CLI `railway logs --deployment` WORKS (unlike the 400-ing GraphQL logs): boot shows Next 16.1.3 Ready 73ms, Prisma→Postgres (supabase pooler) in sync.
+- SMOKING-GUN LINE: "[bridge] TWELVEDATA → KEY_VALID in 144ms — 3 bars BTC/USD lastClose=79492.71" — feed switched keyless-Binance → authenticated Twelve Data in production.
+- Also confirmed in same log: "[bridge] PAPER → OPERATIONAL", "[engine] Railway detected — autonomous paper engine starts in 30s", OKX line still PENDING keys (honest).
+
+Stage Summary:
+- Production state: LIVE @ engine-ui-v3, paper engine OPERATIONAL + autonomous, TWELVEDATA KEY_VALID, OKX = only remaining bridge (user 10-min signup).
+- New ops capability unlocked: `railway logs --deployment <id>` = full boot/deploy logs on demand.
