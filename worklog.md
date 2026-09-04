@@ -46,3 +46,22 @@ Stage Summary:
 - Bybit demo adapter committed locally (e9ed1c2), NOT pushed (no PAT).
 - Awaiting from user: (1) Bybit demo API key + secret (generated in Demo Trading mode, Read+Contract), (2) GitHub fine-grained PAT re-paste, (3) Railway token re-paste.
 - After keys: set BYBIT_* on Railway + local, push, verify boot self-check logs KEYS_VALID, then wire live-run mirror mode to place real demo orders.
+
+---
+Task ID: 11
+Agent: main (Super Z)
+Task: Bybit website geo-blocked from user's PC (Nigeria) → pivot primary venue to Alpaca paper.
+
+Work Log:
+- Verified via official docs: Bybit demo API flow was correct (mainnet login → Demo Trading → avatar → API), but user cannot reach bybit.com at all from Nigeria. Declined VPN workaround (ToS violation risk on KYC'd account).
+- Offered reachability test list (testnet.bybit.com, alpaca.markets, okx.com, kucoin.com). User confirmed alpaca.markets loads → Alpaca paper = primary venue.
+- Clarified user's pasted OAuth client_credentials snippet: not needed — paper API uses plain APCA-API-KEY-ID / APCA-API-SECRET-KEY headers.
+- Built src/lib/brokers/alpaca.ts: /v2/account summary (CONNECTED/PENDING_BRIDGE/ERROR), /v2/clock, market orders (equities: day + bracket TP/SL at broker; crypto "BTC/USD": gtc plain market, exits engine-managed — Alpaca has no crypto brackets), fractional crypto qty, /v2/positions, DELETE position close. ALPACA_ENV=paper|live.
+- Flipped diag route + boot self-check to Alpaca-primary; Bybit/OANDA dormant-silent; MetaApi retired. Type-check clean on all touched files.
+- .env.example documents ALPACA_KEY_ID / ALPACA_SECRET_KEY / ALPACA_ENV.
+- Commit: "feat: Alpaca paper adapter (primary venue)".
+
+Stage Summary:
+- Still blocked on push/deploy: GitHub PAT + Railway token lost in sandbox reset, not re-supplied yet.
+- Awaiting from user: (1) Alpaca Key ID + Secret (paper account), (2) GitHub PAT, (3) Railway token.
+- After arrival: set ALPACA_* on Railway + local .env, push, verify boot log KEYS_VALID, then wire live-run mirror mode to Alpaca paper orders (symbols BTCUSD→BTC/USD mapping already defined).
