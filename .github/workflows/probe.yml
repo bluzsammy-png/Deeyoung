@@ -1,0 +1,57 @@
+# DEEYOUNG PRO — Railway app probe.
+# Runs from GitHub's egress (different IP space than the sandbox, whose DC egress
+# Railway's edge 429s). Prints HTTP status + body head for every key surface so
+# the Actions log itself becomes our eyes on which build is live.
+# No secrets: every probed surface is a public audit endpoint by design.
+
+name: railway-probe
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe correct domain (deeyoung-production)
+        run: |
+          for path in "/" "/status" "/api/engine/status" "/api/brokers/metaapi-diag"; do
+            echo "=================================================="
+            echo "GET https://deeyoung-production.up.railway.app${path}"
+            echo "=================================================="
+            for attempt in 1 2 3; do
+              code=$(curl -s -o /tmp/body -w "%{http_code}" -m 20 \
+                -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" \
+                "https://deeyoung-production.up.railway.app${path}" || echo "curl-error")
+              echo "attempt ${attempt}: HTTP ${code}"
+              if [ "${code}" != "429" ] && [ "${code}" != "curl-error" ]; then break; fi
+              sleep 4
+            done
+            echo "--- body head (400 chars) ---"
+            head -c 400 /tmp/body || true
+            echo
+            echo
+          done
+
+      - name: Probe twin domain (deyoung-site-production)
+        run: |
+          echo "=================================================="
+          echo "GET https://deyoung-site-production.up.railway.app/"
+          echo "=================================================="
+          code=$(curl -s -o /tmp/body2 -w "%{http_code}" -m 20 \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" \
+            "https://deyoung-site-production.up.railway.app/" || echo "curl-error")
+          echo "HTTP ${code}"
+          echo "--- body head (200 chars) ---"
+          head -c 200 /tmp/body2 || true
+          echo
+
+      - name: Verdict
+        run: |
+          echo "Probe complete. Read the sections above:"
+          echo "  * 200 + engine-ui-v3 marker  -> new build IS live (user-side cache/domain issue)"
+          echo "  * 200 + old content          -> stale build confirmed (GitHub App re-grant + manual deploy needed)"
+          echo "  * 429 everywhere             -> Railway edge blocks GitHub egress too (fall back to user's browser)"
+          echo "  * 404 Application not found  -> service/domain itself is dead on Railway"
