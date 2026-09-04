@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Activity, Bell, BookOpen, Bot, FlaskConical, Gauge, LayoutDashboard, LineChart, MessagesSquare,
+  Activity, Bell, BookOpen, Bot, Cpu, FlaskConical, Gauge, LayoutDashboard, LineChart, MessagesSquare,
   PauseCircle, Play, Settings, ShieldCheck, Wallet, X,
 } from "lucide-react";
 import { useApp, type TerminalView } from "@/lib/store";
@@ -21,6 +21,7 @@ import { DashboardView } from "@/components/quantedge/terminal/dashboard";
 import { MarketsView } from "@/components/quantedge/terminal/markets";
 import { PortfolioView } from "@/components/quantedge/terminal/portfolio";
 import { SentinelView } from "@/components/quantedge/terminal/sentinel-view";
+import { EngineView } from "@/components/quantedge/terminal/engine";
 import { ResearchView } from "@/components/quantedge/terminal/research";
 import { SignalsView } from "@/components/quantedge/terminal/signals-view";
 import { TradeDeskView } from "@/components/quantedge/terminal/trade-desk";
@@ -36,6 +37,7 @@ const NAV: { id: TerminalView; label: string; icon: typeof LayoutDashboard }[] =
   { id: "markets", label: "Markets", icon: LineChart },
   { id: "signals", label: "Signals", icon: Activity },
   { id: "portfolio", label: "Portfolio", icon: Wallet },
+  { id: "engine", label: "Paper Engine", icon: Cpu },
   { id: "sentinel", label: "SENTINEL", icon: Bot },
   { id: "research", label: "Research", icon: FlaskConical },
   { id: "learn", label: "Learn", icon: BookOpen },
@@ -43,6 +45,7 @@ const NAV: { id: TerminalView; label: string; icon: typeof LayoutDashboard }[] =
 ];
 
 const MOBILE_NAV: TerminalView[] = ["dashboard", "markets", "signals", "portfolio", "sentinel"];
+const MOBILE_OVERFLOW: TerminalView[] = ["engine", "research", "learn", "settings"];
 
 interface TickerState { quote: Quote }
 
@@ -267,6 +270,7 @@ export function Terminal() {
               {view === "desk" && <PremiumGate feature="desk"><TradeDeskView /></PremiumGate>}
               {view === "signals" && <PremiumGate feature="signals"><SignalsView /></PremiumGate>}
               {view === "portfolio" && <PremiumGate feature="portfolio"><PortfolioView /></PremiumGate>}
+              {view === "engine" && <EngineView />}
               {view === "sentinel" && <PremiumGate feature="sentinel"><SentinelView /></PremiumGate>}
               {view === "research" && <PremiumGate feature="research"><ResearchView /></PremiumGate>}
               {view === "learn" && <LearnView />}
@@ -297,7 +301,7 @@ export function Terminal() {
           </div>
           {/* overflow row */}
           <div className="flex justify-center gap-1 border-t border-hairline px-2 py-1">
-            {[...(["research", "learn", "settings"] as TerminalView[]), ...(isAdmin ? (["admin"] as TerminalView[]) : [])].map((id) => {
+            {[...MOBILE_OVERFLOW, ...(isAdmin ? (["admin"] as TerminalView[]) : [])].map((id) => {
               const n = id === "admin"
                 ? { id: "admin" as TerminalView, label: "Admin & Trust", icon: ShieldCheck }
                 : NAV.find((x) => x.id === id)!;

@@ -14,6 +14,8 @@ import { oandaConfigured, oandaAccountSummary } from "@/lib/brokers/oanda";
 import { bybitConfigured, bybitAccountSummary, bybitEnvLabel } from "@/lib/brokers/bybit";
 import { alpacaConfigured, alpacaAccountSummary, alpacaEnvLabel } from "@/lib/brokers/alpaca";
 import { binanceTestnetAccountSummary } from "@/lib/brokers/binance-testnet";
+import { okxConfigured, okxAccountSummary, okxEnvLabel } from "@/lib/brokers/okx";
+import { venueMode } from "@/lib/engine/venue";
 import { twelvedataConfigured, twelvedataStatus } from "@/lib/market/twelvedata";
 import { feedSource } from "@/lib/engine/feed";
 import { db } from "@/lib/db";
@@ -65,7 +67,25 @@ export async function GET() {
     };
   }
 
-  // ── BINANCE_TESTNET (dormant — venue kept for future keys) ────────────────────
+  // ── OKX (live venue — 2026-09-04 "go" build; demo-first ramp) ────────────
+  {
+    const s = await okxAccountSummary();
+    out.OKX = {
+      configured: okxConfigured(),
+      env: okxEnvLabel(),
+      executionVenue: venueMode(),
+      verdict: s.verdict,
+      detail:
+        s.verdict === "PENDING_KEYS"
+          ? "OKX_API_KEY / OKX_API_SECRET / OKX_API_PASSPHRASE not set. Create OKX demo API keys (Demo Trading → API) and set them on Railway to arm the live mirror; paper engine stays primary until then."
+          : s.verdict === "KEYS_VALID"
+            ? `keys valid in ${s.latencyMs}ms (${s.env}); mirror armed with hard rails: LIVE_MAX_NOTIONAL_USD, LIVE_MAX_OPEN, LIVE_DAILY_R_STOP`
+            : s.detail,
+      ...(s.usdtCashBal ? { usdtCashBal: s.usdtCashBal } : {}),
+    };
+  }
+
+  // ── BINANCE_TESTNET (dormant — venue kept for future keys) ────────────────
   {
     const s = await binanceTestnetAccountSummary();
     out.BINANCE_TESTNET = {

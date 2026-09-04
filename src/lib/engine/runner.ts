@@ -24,6 +24,7 @@ import {
 import { LearningMemory } from "@/lib/brain/memory";
 import { evaluateOpenGuards, type OpenGuardInput } from "@/lib/brain/playbook";
 import { db } from "@/lib/db";
+import { mirrorOnEntry, mirrorOnExit, mirrorCycle, openMirrorCount, venueMode } from "@/lib/engine/venue";
 
 export const SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "BNBUSD", "AVAXUSD", "LINKUSD", "DOTUSD"];
 const GATES = [65, 70];
@@ -243,14 +244,24 @@ async function loopBody(
             const verdict = evaluateOpenGuards(guardIn, brain.deadHours(hzName));
             if (!verdict.allowed) continue;
 
+            const entryOid = `E_${bookKey}_${Math.floor(now / 60_000)}`;
             const res = await paperEntry({
               bookKey, symbol: sym, gate, horizonMin: h,
               refPrice: price, stop: sig.stop, target: sig.target,
               atrPct: (sig.atr / price) * 100, score: sig.score, rr: sig.rr,
               notionalUsd: NOTIONAL,
               factors: sig.factors.map((f) => ({ key: f.key, name: f.name, contribution: f.contribution })),
+              clientOid: entryOid,
             });
             if (res.status === "FILLED") {
+              // real-venue mirror (OKX demo/live): fire-and-forget — never blocks
+              // the loop, never touches the paper ledger; hard risk rails inside.
+              void mirrorOnEntry({
+                engineOid: entryOid, symbol: sym, refPrice: price,
+                notionalUsd: NOTIONAL,
+                openMirrorCount: await openMirrorCount(),
+                todayNetR: todayNetRCache.size ? Math.min(...todayNetRCache.values()) : 0,
+              });
               const factorsJson = JSON.stringify(sig.factors.map((f) => ({ key: f.key, name: f.name, contribution: f.contribution })));
               open.set(bookKey, {
                 id: res.positionId!, bookKey, symbol: sym, gate, horizonMin: h,
@@ -284,6 +295,7 @@ async function loopBody(
     }
 
     if (now - lastFlush >= 60_000) { lastFlush = now; await brain.persist(); }
+    if (venueMode() !== "paper") void mirrorCycle(); // reconcile + queued exits; never throws
     await sleep(pollMs);
   }
   await brain.persist();
@@ -302,18 +314,22 @@ async function manageBars(
     const targetHit = bar.h >= p.targetPrice && price >= p.targetPrice;
     if (stopHit) {
       const fill = price <= p.stopPrice ? price : p.stopPrice;
-      const r = await paperExit({ positionId: p.id, exitRefPrice: fill, reason: "STOP" });
-      if (r.status === "FILLED") { open.delete(key); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      const exitOid = `X_${p.id}_STOP_${Math.floor(now / 60_000)}`;
+      const r = await paperExit({ positionId: p.id, exitRefPrice: fill, reason: "STOP", clientOid: exitOid });
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: fill, reason: "STOP" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
       continue;
     }
     if (targetHit) {
-      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET" });
-      if (r.status === "FILLED") { open.delete(key); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      const exitOid = `X_${p.id}_TARGET_${Math.floor(now / 60_000)}`;
+      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET", clientOid: exitOid });
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
       continue;
     }
     if (now - p.openedAt.getTime() >= p.horizonMin * 60_000) {
-      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: p.horizonMin === 10 ? "TIME_10M" : "TIME_30M" });
-      if (r.status === "FILLED") { open.delete(key); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      const timeReason = p.horizonMin === 10 ? "TIME_10M" : "TIME_30M";
+      const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
+      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     }
   }
 }
@@ -326,14 +342,18 @@ async function manageTick(
   for (const [key, p] of [...open.entries()]) {
     if (p.symbol !== sym) continue;
     if (price <= p.stopPrice) {
-      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "STOP" });
-      if (r.status === "FILLED") { open.delete(key); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      const exitOid = `X_${p.id}_STOP_${Math.floor(now / 60_000)}`;
+      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "STOP", clientOid: exitOid });
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "STOP" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     } else if (price >= p.targetPrice) {
-      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET" });
-      if (r.status === "FILLED") { open.delete(key); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      const exitOid = `X_${p.id}_TARGET_${Math.floor(now / 60_000)}`;
+      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET", clientOid: exitOid });
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     } else if (now - p.openedAt.getTime() >= p.horizonMin * 60_000) {
-      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: p.horizonMin === 10 ? "TIME_10M" : "TIME_30M" });
-      if (r.status === "FILLED") { open.delete(key); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      const timeReason = p.horizonMin === 10 ? "TIME_10M" : "TIME_30M";
+      const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
+      const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     }
   }
 }

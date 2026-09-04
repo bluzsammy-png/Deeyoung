@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getOrCreateRun } from "@/lib/engine/paper";
 import { feedSource } from "@/lib/engine/feed";
 import { twelvedataStatus } from "@/lib/market/twelvedata";
+import { venueStatus } from "@/lib/engine/venue";
 
 export function bookStats(rows: Array<{ gate: number; horizonMin: number; netPnlUsd: number | null; netR: number | null; grossPnlUsd: number | null }>) {
   const books: Record<string, { n: number; wins: number; netSum: number; rSum: number }> = {};
@@ -86,5 +87,6 @@ export async function buildEngineSnapshot() {
     books: bookStats(closedAll),
     equityCurve: curve.slice(-96),
     brainScope: "global",
+    venue: await venueStatus(),
   };
 }

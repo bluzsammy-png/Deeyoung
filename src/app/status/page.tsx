@@ -2,6 +2,7 @@
 // autonomous paper engine. Same data as /api/engine/status (shared snapshot
 // builder). Aggregates only — no secrets, no keys, no account detail beyond
 // the engine's own paper ledger. Every number is real or the page says so.
+// Auto-refreshes every 15s via meta refresh (works with zero client JS).
 
 import { buildEngineSnapshot } from "@/lib/engine/status-snapshot";
 
@@ -10,10 +11,28 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "DeeYoung — Paper Engine Status",
   description: "Live audit surface of the autonomous paper trading engine",
+  other: { refresh: "15" },
 };
 
 function usd(n: number) {
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Server-rendered SVG sparkline of the equity curve (no client JS). */
+function Sparkline({ points }: { points: Array<{ t: number; e: number }> }) {
+  if (points.length < 2) return null;
+  const W = 560, H = 56, PAD = 2;
+  const es = points.map((p) => p.e);
+  const min = Math.min(...es), max = Math.max(...es);
+  const span = max - min || 1;
+  const step = (W - PAD * 2) / (points.length - 1);
+  const path = points.map((p, i) => `${(PAD + i * step).toFixed(1)},${(H - PAD - ((p.e - min) / span) * (H - PAD * 2)).toFixed(1)}`).join(" ");
+  const up = es[es.length - 1] >= es[0];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-14 w-full" preserveAspectRatio="none" role="img" aria-label="Equity sparkline">
+      <polyline points={path} fill="none" stroke={up ? "#34d399" : "#fb7185"} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
 }
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" | "warn" }) {
@@ -51,6 +70,7 @@ export default async function StatusPage() {
   const { engine, account } = snap;
   const pnlTone = account.realizedPnlUsd > 0 ? "good" : account.realizedPnlUsd < 0 ? "bad" : undefined;
   const td = engine.dataVenue.twelvedata;
+  const venue = snap.venue as { mode: string; verdict: string; mirror: { open: number; filled: number; failed: number } };
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 font-sans text-zinc-200">
@@ -86,10 +106,18 @@ export default async function StatusPage() {
           {td.lastError ? <span className="ml-1 font-mono text-rose-400">{td.lastError}</span> : null}
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm">
-          <span className="text-zinc-500">Day book: </span>
-          <span className="font-mono text-zinc-100">{account.dayKey ?? "—"} · {account.dayPnlR.toFixed(2)}R</span>
-          <span className="text-zinc-500"> · learning brain: {snap.brainScope}</span>
+          <span className="text-zinc-500">Execution venue: </span>
+          <span className="font-mono text-zinc-100">{venue.mode}</span>
+          <span className="text-zinc-500"> · {venue.verdict} · mirror open {venue.mirror.open} / filled {venue.mirror.filled} / failed {venue.mirror.failed}</span>
         </div>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-3">
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-zinc-500">
+          <span>Equity curve (last {snap.equityCurve.length} marks)</span>
+          <span className="normal-case text-zinc-600">auto-refresh 15s</span>
+        </div>
+        <Sparkline points={snap.equityCurve} />
       </div>
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-400">Open positions</h2>

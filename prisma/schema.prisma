@@ -519,3 +519,35 @@ model PaperEnginePosition {
   @@index([runId, status])
   @@index([bookKey, status])
 }
+
+// DEEYOUNG PRO — live-venue mirror ledger (2026-09-04 "go" build).
+// One row per REAL order fired at an external venue (OKX demo/live) mirroring
+// a paper-engine fill. Paper ledger stays the execution-of-record; this table
+// is the honest audit trail of what the venue actually received/filled.
+model VenueMirrorOrder {
+  id         String    @id @default(cuid())
+  clientOid  String    @unique // engine order id (E_…/X_…) — the paper side
+  clOrdId    String    @unique // derived venue-safe id actually sent to OKX
+  venue      String // okx-demo | okx-live
+  instId     String // BTC-USDT
+  symbol     String // engine symbol (BTCUSD)
+  side       String // BUY | SELL
+  kind       String // ENTRY | EXIT_STOP | EXIT_TARGET | EXIT_TIME_10M | EXIT_TIME_30M | RISK_FLAT
+  refPrice   Float // observed market price at submission
+  sz         Float? // requested size (quote ccy for spot market BUY, base ccy for SELL)
+  venueOrdId String?
+  exitFor    String? // for SELL rows: clientOid of the BUY row this closes
+  state      String    @default("SUBMITTED") // SUBMITTED | LIVE | FILLED | CANCELED | FAILED
+  fillPx     Float?
+  fillSz     Float?
+  feeCost    Float?
+  slipBps    Float?
+  alert      String?
+  raw        String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([venue, createdAt])
+  @@index([state])
+  @@index([symbol, side, state])
+}

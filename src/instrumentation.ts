@@ -46,6 +46,22 @@ async function checkTwelveData(): Promise<void> {
   }
 }
 
+async function checkOkx(): Promise<void> {
+  const mode = (process.env.EXECUTION_VENUE || "paper").trim().toLowerCase();
+  if (!process.env.OKX_API_KEY || !process.env.OKX_API_SECRET || !process.env.OKX_API_PASSPHRASE) {
+    console.log(`[bridge] OKX keys not set — live mirror dormant (EXECUTION_VENUE=${mode}); paper engine is execution-of-record. Create OKX demo API keys to arm.`);
+    return;
+  }
+  const t0 = Date.now();
+  try {
+    const { okxAccountSummary } = await import("@/lib/brokers/okx");
+    const s = await okxAccountSummary();
+    console.log(`[bridge] OKX → ${s.verdict} env=${s.env} in ${Date.now() - t0}ms (EXECUTION_VENUE=${mode})${s.detail ? ` — ${s.detail.slice(0, 80)}` : ""}`);
+  } catch (e) {
+    console.log(`[bridge] OKX → UNREACHABLE in ${Date.now() - t0}ms — ${String(e).slice(0, 100)}`);
+  }
+}
+
 async function checkBinanceTestnet(): Promise<void> {
   const key = process.env.BINANCE_TESTNET_KEY;
   if (!key || !process.env.BINANCE_TESTNET_SECRET) {
@@ -179,6 +195,7 @@ async function checkOanda(): Promise<void> {
 export async function register() {
   await checkPaperEngine();
   await checkTwelveData();
+  await checkOkx();
   await checkBinanceTestnet();
   await checkAlpaca();
   await checkBybit();
