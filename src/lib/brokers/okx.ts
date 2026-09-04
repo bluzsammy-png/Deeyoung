@@ -16,6 +16,16 @@
 const BASE = process.env.OKX_BASE_URL || "https://www.okx.com";
 const TIMEOUT_MS = 12_000;
 
+/** True when the adapter targets the SELF-HOSTED OKX-wire simulator
+ *  (/api/sim/okx route in this same app) instead of real OKX. Used purely
+ *  for honest labeling — behavior is identical either way. */
+export function okxSimMode(): boolean {
+  return BASE.includes("/api/sim/okx");
+}
+export function okxTargetLabel(): string {
+  return okxSimMode() ? "okx-sim (self-hosted simulator)" : (process.env.OKX_BASE_URL || "okx.com");
+}
+
 export interface OkxCreds {
   key: string;
   secret: string;
@@ -36,6 +46,7 @@ export function okxConfigured(): boolean {
 }
 
 export function okxEnvLabel(): string {
+  if (okxSimMode()) return "sim (self-hosted)";
   const c = okxCreds();
   if (!c) return "unset";
   return c.demo ? "demo (x-simulated-trading)" : "LIVE";
@@ -75,6 +86,10 @@ async function signedFetch<T>(
 
   const res = await fetch(`${BASE}${requestPath}`, {
     method,
+    // AUDIT FIX (sim-caught, 2026-09-04): the signed body was never attached
+    // to the request — POSTs went out bodyless, so every market order would
+    // have been rejected (bad-signature/params) on real OKX too.
+    ...(method === "POST" && bodyStr ? { body: bodyStr } : {}),
     headers: {
       "OKX-ACCESS-KEY": creds.key,
       "OKX-ACCESS-SIGN": sign,

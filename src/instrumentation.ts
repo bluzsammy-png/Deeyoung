@@ -54,9 +54,11 @@ async function checkOkx(): Promise<void> {
   }
   const t0 = Date.now();
   try {
-    const { okxAccountSummary } = await import("@/lib/brokers/okx");
+    const { okxAccountSummary, okxSimMode } = await import("@/lib/brokers/okx");
+    const sim = okxSimMode();
     const s = await okxAccountSummary();
-    console.log(`[bridge] OKX → ${s.verdict} env=${s.env} in ${Date.now() - t0}ms (EXECUTION_VENUE=${mode})${s.detail ? ` — ${s.detail.slice(0, 80)}` : ""}`);
+    const where = sim ? "self-hosted OKX-wire simulator" : "okx.com";
+    console.log(`[bridge] OKX → ${s.verdict} env=${s.env} target=${where} in ${Date.now() - t0}ms (EXECUTION_VENUE=${mode})${sim ? " — mirror exercises full signing path; no external venue" : ""}${s.detail ? ` — ${s.detail.slice(0, 80)}` : ""}`);
   } catch (e) {
     console.log(`[bridge] OKX → UNREACHABLE in ${Date.now() - t0}ms — ${String(e).slice(0, 100)}`);
   }

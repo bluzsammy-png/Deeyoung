@@ -15,7 +15,7 @@
 
 import { db } from "@/lib/db";
 import {
-  okxCreds, okxMarketOrder, okxOrderInfo, okxAccountSummary,
+  okxCreds, okxMarketOrder, okxOrderInfo, okxAccountSummary, okxSimMode, okxTargetLabel,
   engineSymbolToInstId, toClOrdId,
 } from "@/lib/brokers/okx";
 
@@ -40,6 +40,20 @@ const DAILY_R_STOP = () => {
 };
 const SLIP_ALERT_BPS = 30;
 
+/** Normalize venue (OKX) states → this layer's enums. OKX reports lowercase
+ *  live / partially_filled / filled / canceled; the DB queries here use
+ *  FILLED / LIVE / SUBMITTED / FAILED. Without this, exit matching and the
+ *  open-position rail silently see zero rows (sim audit catch #2). */
+function normState(s: string | undefined): string {
+  switch ((s || "live").toLowerCase()) {
+    case "filled": return "FILLED";
+    case "live":
+    case "partially_filled": return "LIVE";
+    case "canceled": return "FAILED";
+    default: return "SUBMITTED";
+  }
+}
+
 export interface MirrorEntryInput {
   engineOid: string; // same oid as the paper order row (E_…)
   symbol: string; // engine symbol BTCUSD
@@ -57,6 +71,7 @@ export interface MirrorExitInput {
 }
 
 function venueTag(): string {
+  if (okxSimMode()) return "okx-sim";
   return venueMode() === "okx-live" ? "okx-live" : "okx-demo";
 }
 
@@ -132,7 +147,7 @@ export async function mirrorOnEntry(input: MirrorEntryInput): Promise<void> {
     await db.venueMirrorOrder.updateMany({
       where: { clientOid: input.engineOid },
       data: {
-        state: info.state ?? "LIVE",
+        state: normState(info.state),
         venueOrdId: res.venueOrdId,
         ...(info.avgPx !== undefined ? { fillPx: info.avgPx } : {}),
         ...(info.accFillSz !== undefined ? { fillSz: info.accFillSz } : {}),
@@ -140,7 +155,7 @@ export async function mirrorOnEntry(input: MirrorEntryInput): Promise<void> {
         ...(alert ? { alert } : {}),
       },
     });
-    console.log(`[venue] ENTRY MIRROR ${input.engineOid} ${venueTag()} BUY ${engineSymbolToInstId(input.symbol)} ~$${notional} state=${info.state ?? "?"} avgPx=${info.avgPx ?? "?"}${alert ? ` ALERT=${alert}` : ""}`);
+    console.log(`[venue] ENTRY MIRROR ${input.engineOid} ${venueTag()} BUY ${engineSymbolToInstId(input.symbol)} ~$${notional} state=${normState(info.state)} avgPx=${info.avgPx ?? "?"}${alert ? ` ALERT=${alert}` : ""}`);
   } catch (e) {
     console.log(`[venue] mirror entry error ${input.engineOid}: ${String(e).slice(0, 120)} — paper ledger unaffected`);
   }
@@ -205,13 +220,13 @@ export async function mirrorOnExit(input: MirrorExitInput): Promise<void> {
     await db.venueMirrorOrder.updateMany({
       where: { clientOid: input.engineOid },
       data: {
-        state: info.state ?? "LIVE",
+        state: normState(info.state),
         venueOrdId: res.venueOrdId,
         ...(info.avgPx !== undefined ? { fillPx: info.avgPx } : {}),
         ...(info.accFillSz !== undefined ? { fillSz: info.accFillSz } : {}),
       },
     });
-    console.log(`[venue] EXIT MIRROR ${input.engineOid} ${venueTag()} SELL ${engineSymbolToInstId(input.symbol)} qty=${target.fillSz.toFixed(6)} reason=${input.reason} state=${info.state ?? "?"} avgPx=${info.avgPx ?? "?"}`);
+    console.log(`[venue] EXIT MIRROR ${input.engineOid} ${venueTag()} SELL ${engineSymbolToInstId(input.symbol)} qty=${target.fillSz.toFixed(6)} reason=${input.reason} state=${normState(info.state)} avgPx=${info.avgPx ?? "?"}`);
   } catch (e) {
     console.log(`[venue] mirror exit error ${input.engineOid}: ${String(e).slice(0, 120)} — paper ledger unaffected`);
   }
@@ -232,11 +247,11 @@ export async function mirrorCycle(): Promise<void> {
     });
     for (const row of inflight) {
       const info = await okxOrderInfo(row.instId, row.clOrdId);
-      if (info.ok && info.state && info.state !== row.state) {
+      if (info.ok && info.state && normState(info.state) !== row.state) {
         await db.venueMirrorOrder.update({
           where: { id: row.id },
           data: {
-            state: info.state,
+            state: normState(info.state),
             ...(info.avgPx !== undefined ? { fillPx: info.avgPx } : {}),
             ...(info.accFillSz !== undefined ? { fillSz: info.accFillSz } : {}),
           },
@@ -262,13 +277,13 @@ export async function mirrorCycle(): Promise<void> {
         await db.venueMirrorOrder.update({
           where: { id: s.id },
           data: {
-            state: info.state ?? "LIVE",
+            state: normState(info.state),
             venueOrdId: res.venueOrdId,
             sz: buy.fillSz,
             ...(info.avgPx !== undefined ? { fillPx: info.avgPx } : {}),
           },
         });
-        console.log(`[venue] queued EXIT placed ${s.clientOid} qty=${buy.fillSz.toFixed(6)} state=${info.state ?? "?"}`);
+        console.log(`[venue] queued EXIT placed ${s.clientOid} qty=${buy.fillSz.toFixed(6)} state=${normState(info.state)}`);
       } else {
         await db.venueMirrorOrder.update({
           where: { id: s.id },
@@ -306,11 +321,13 @@ export async function venueStatus(): Promise<Record<string, unknown>> {
       db.venueMirrorOrder.count({ where: { state: "FAILED" } }),
     ]);
     const acct = mode === "paper" || !hasKeys ? null : await okxAccountSummary();
+    const sim = okxSimMode();
     return {
       mode,
       keys: hasKeys ? "present" : "none",
-      env: mode === "paper" ? null : (okxCreds()?.demo ? "demo" : "live"),
+      env: mode === "paper" ? null : (okxCreds()?.demo ? (sim ? "sim (self-hosted)" : "demo") : "live"),
       verdict: mode === "paper" ? "PAPER_PRIMARY" : (acct?.verdict ?? "PENDING_KEYS"),
+      ...(mode !== "paper" ? { target: okxTargetLabel(), simulator: sim } : {}),
       riskRails: {
         maxNotionalUsd: MAX_NOTIONAL(),
         maxOpen: MAX_OPEN(),
