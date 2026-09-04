@@ -430,3 +430,94 @@ model BrainMemory {
   stateJson String
   updatedAt DateTime @updatedAt
 }
+
+// ─── OWN PAPER TRADING ENGINE (2026-09-04) ────────────────────────────────────
+// Run-scoped execution-of-record for the autonomous bot (no User relation).
+// Every fill derives from a real observed market price at a real timestamp —
+// never invented. Auditable from /api/engine/status.
+
+model EngineRun {
+  id        String   @id @default(cuid())
+  label     String   @unique
+  status    String   @default("ACTIVE") // ACTIVE | STOPPED
+  startedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account   PaperEngineAccount?
+  orders    PaperEngineOrder[]
+  positions PaperEnginePosition[]
+}
+
+model PaperEngineAccount {
+  id          String   @id @default(cuid())
+  runId       String   @unique
+  cashUsd     Float    @default(10000)
+  startingUsd Float    @default(10000)
+  realizedPnl Float    @default(0)
+  feesUsd     Float    @default(0)
+  peakEquity  Float    @default(10000)
+  maxDdPct    Float    @default(0)
+  dayKey      String?
+  dayPnlR     Float    @default(0)
+  equityCurve String   @default("[]")
+  updatedAt   DateTime @updatedAt
+
+  run EngineRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+}
+
+model PaperEngineOrder {
+  id           String    @id @default(cuid())
+  runId        String
+  clientOid    String    @unique
+  bookKey      String
+  symbol       String
+  side         String
+  kind         String    @default("ENTRY")
+  refPrice     Float
+  fillPrice    Float?
+  slippageBps  Float?
+  feeUsd       Float?
+  qty          Float?
+  notionalUsd  Float?
+  status       String    @default("FILLED")
+  rejectReason String?
+  positionId   String?
+  createdAt    DateTime  @default(now())
+  filledAt     DateTime?
+
+  run EngineRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+}
+
+model PaperEnginePosition {
+  id          String    @id @default(cuid())
+  runId       String
+  bookKey     String
+  symbol      String
+  gate        Int
+  horizonMin  Int
+  side        String    @default("LONG")
+  qty         Float
+  entryPrice  Float
+  stopPrice   Float
+  targetPrice Float
+  atrPct      Float
+  score       Float
+  rr          Float
+  notionalUsd Float
+  factors     String    @default("[]")
+  status      String    @default("OPEN")
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  exitPrice   Float?
+  exitReason  String?
+  grossPnlUsd Float?
+  netPnlUsd   Float?
+  netR        Float?
+
+  run EngineRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, status])
+  @@index([bookKey, status])
+}

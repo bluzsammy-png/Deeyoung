@@ -1,11 +1,50 @@
 // DEEYOUNG PRO — runtime instrumentation (§60 boot diagnostics).
-// Runs once when the server process starts (before serving traffic).
-// Self-checks the PRIMARY execution bridge (Binance SPOT TESTNET since
-// 2026-09-04: GitHub-OAuth keys, engine-identical symbols) and any dormant
-// fallback venues (Alpaca shelved, Bybit geo-blocked, OANDA no-NG).
-// Logs ONE aggregate line per venue to stdout (visible via deployment logs) —
-// never echoes keys or any account detail. Never fatal: trading must boot
-// even when a bridge is down.
+// 2026-09-04: PRIMARY execution path = the OWN PAPER ENGINE (Postgres-backed
+// fills at observed market prices — no third-party broker dependency). Data:
+// Twelve Data when a key is set, keyless Binance public feed otherwise.
+// Boot self-checks log ONE aggregate line per subsystem to stdout (visible in
+// deployment logs) — never echo keys or any account detail. Never fatal:
+// trading must boot even when a subsystem is down.
+//
+// 24/7 AUTONOMOUS ENGINE: when running on Railway (RAILWAY_ENVIRONMENT is
+// auto-injected by the platform) and ENGINE_DISABLED != "1", the paper
+// engine loop starts ~30s after boot and runs until the process dies.
+// Self-heals after fatal errors. Locally: start it explicitly via
+// bun scripts/engine-run.ts --max-minutes N (sandbox reaps background jobs).
+
+async function checkPaperEngine(): Promise<void> {
+  const t0 = Date.now();
+  try {
+    const { db } = await import("@/lib/db");
+    const [openN, closedN, orderN] = await Promise.all([
+      db.paperEnginePosition.count({ where: { status: "OPEN" } }),
+      db.paperEnginePosition.count({ where: { status: "CLOSED" } }),
+      db.paperEngineOrder.count(),
+    ]);
+    console.log(`[bridge] PAPER → OPERATIONAL in ${Date.now() - t0}ms — open=${openN} closed=${closedN} orders=${orderN} (fills at observed market prices; audit at /api/engine/status)`);
+  } catch (e) {
+    console.log(`[bridge] PAPER → DB_ERROR in ${Date.now() - t0}ms — ${String(e).slice(0, 120)}`);
+  }
+}
+
+async function checkTwelveData(): Promise<void> {
+  if (!process.env.TWELVEDATA_API_KEY) {
+    console.log("[bridge] TWELVEDATA → PENDING_KEY — data feed = keyless Binance public REST (proven from Railway); set TWELVEDATA_API_KEY to switch (user-directed venue; signup Turnstile-gated from datacenter IPs, verified 2026-09-04)");
+    return;
+  }
+  const t0 = Date.now();
+  try {
+    const { twelvedataKlines } = await import("@/lib/market/twelvedata");
+    const bars = await twelvedataKlines("BTCUSD", { limit: 3, timeoutMs: 12_000 });
+    if (bars.length) {
+      console.log(`[bridge] TWELVEDATA → KEY_VALID in ${Date.now() - t0}ms — ${bars.length} bars BTC/USD lastClose=${bars[bars.length - 1].c}`);
+    } else {
+      console.log(`[bridge] TWELVEDATA → EMPTY in ${Date.now() - t0}ms — falling back to Binance public feed`);
+    }
+  } catch (e) {
+    console.log(`[bridge] TWELVEDATA → ERROR in ${Date.now() - t0}ms — ${String(e).slice(0, 100)} (engine falls back to Binance public feed)`);
+  }
+}
 
 async function checkBinanceTestnet(): Promise<void> {
   const key = process.env.BINANCE_TESTNET_KEY;
@@ -138,8 +177,29 @@ async function checkOanda(): Promise<void> {
 }
 
 export async function register() {
+  await checkPaperEngine();
+  await checkTwelveData();
   await checkBinanceTestnet();
   await checkAlpaca();
   await checkBybit();
   await checkOanda();
+
+  // 24/7 autonomous engine on Railway — starts once, runs forever, self-heals.
+  // Sandbox/local hosts do NOT autorun (no RAILWAY_ENVIRONMENT); use the CLI.
+  if (process.env.RAILWAY_ENVIRONMENT && process.env.ENGINE_DISABLED !== "1") {
+    console.log("[engine] Railway detected — autonomous paper engine starts in 30s (ENGINE_DISABLED=1 to suppress)");
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          const { startEngineLoop } = await import("@/lib/engine/runner");
+          startEngineLoop({
+            log: (l) => console.log(l),
+          });
+        } catch (e) {
+          console.log(`[engine] autorun failed to start: ${String(e).slice(0, 120)}`);
+        }
+      })();
+    }, 30_000);
+    if (typeof t.unref === "function") t.unref();
+  }
 }

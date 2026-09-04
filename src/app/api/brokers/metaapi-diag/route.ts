@@ -1,7 +1,8 @@
 // DEEYOUNG PRO — broker bridge diagnostics (§broker-bridge).
 // GET /api/brokers/metaapi-diag — kept for continuity; reports ALL venues:
-//   BINANCE_TESTNET (PRIMARY since 2026-09-04: GitHub-OAuth paper keys,
-//     symbols identical to the engine feed, cloud-reachable),
+//   PAPER (PRIMARY execution path since 2026-09-04: OWN Postgres paper engine),
+//   TWELVEDATA (user-directed data venue; keyless public feed is the fallback),
+//   BINANCE_TESTNET (dormant — signup unreachable from datacenter IP),
 //   Alpaca (dormant — user shelved venue 2026-09-04),
 //   Bybit (dormant — website geo-blocked from user's location),
 //   OANDA (dormant — no Nigerian onboarding), MetaApi (retired).
@@ -13,13 +14,58 @@ import { oandaConfigured, oandaAccountSummary } from "@/lib/brokers/oanda";
 import { bybitConfigured, bybitAccountSummary, bybitEnvLabel } from "@/lib/brokers/bybit";
 import { alpacaConfigured, alpacaAccountSummary, alpacaEnvLabel } from "@/lib/brokers/alpaca";
 import { binanceTestnetAccountSummary } from "@/lib/brokers/binance-testnet";
+import { twelvedataConfigured, twelvedataStatus } from "@/lib/market/twelvedata";
+import { feedSource } from "@/lib/engine/feed";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const out: Record<string, unknown> = {};
 
-  // ── BINANCE_TESTNET (PRIMARY — GitHub-OAuth paper venue) ────────────────────
+  // ── PAPER (PRIMARY — own engine, Postgres execution-of-record) ───────────────
+  {
+    const t0 = Date.now();
+    try {
+      const [openN, closedN, orderN] = await Promise.all([
+        db.paperEnginePosition.count({ where: { status: "OPEN" } }),
+        db.paperEnginePosition.count({ where: { status: "CLOSED" } }),
+        db.paperEngineOrder.count(),
+      ]);
+      out.PAPER = {
+        configured: true,
+        primary: true,
+        verdict: "OPERATIONAL",
+        detail: `own paper engine live: ${openN} open, ${closedN} closed, ${orderN} orders persisted — fills at observed market prices, 2bps slip + 10bps fee per side`,
+        counts: { open: openN, closed: closedN, orders: orderN },
+        dbLatencyMs: Date.now() - t0,
+        audit: "/api/engine/status",
+      };
+    } catch (e) {
+      out.PAPER = {
+        configured: true,
+        primary: true,
+        verdict: "ERROR",
+        detail: `paper engine tables unreachable: ${String(e).slice(0, 120)}`,
+      };
+    }
+  }
+
+  // ── TWELVEDATA (data venue — user-directed; signup Cloudflare-gated from DC IPs) ─
+  {
+    const s = twelvedataStatus();
+    out.TWELVEDATA = {
+      configured: s.configured,
+      verdict: s.configured ? (s.lastError ? "DEGRADED_FALLBACK" : "ACTIVE") : "PENDING_KEY",
+      detail: s.configured
+        ? `key present; used ${s.dayUsed}/780 daily, ${s.minuteUsed}/7 per-min credits${s.lastError ? `; lastError=${s.lastError}` : ""}`
+        : "no TWELVEDATA_API_KEY — signup form is Cloudflare-Turnstile-gated from datacenter IPs (verified 2026-09-04); keyless Binance public feed is the active data source, adapter lights up the moment a key is set",
+      activeFeed: feedSource(),
+      ...(s.lastOkAt ? { lastOkAt: new Date(s.lastOkAt).toISOString() } : {}),
+    };
+  }
+
+  // ── BINANCE_TESTNET (dormant — venue kept for future keys) ────────────────────
   {
     const s = await binanceTestnetAccountSummary();
     out.BINANCE_TESTNET = {
@@ -28,7 +74,7 @@ export async function GET() {
       verdict: s.verdict,
       detail:
         s.verdict === "PENDING_BRIDGE"
-          ? "BINANCE_TESTNET_KEY / BINANCE_TESTNET_SECRET not set. Paper bridge dormant by design."
+          ? "BINANCE_TESTNET_KEY / BINANCE_TESTNET_SECRET not set. Dormant: own paper engine is the primary execution path since 2026-09-04."
           : `accountType=${s.accountType ?? "?"} canTrade=${String(s.canTrade)} balancesOverZero=${s.balancesOverZero ?? "?"} in ${s.latencyMs ?? "?"}ms`,
       ...(s.errorDetail ? { errorDetail: s.errorDetail } : {}),
     };
