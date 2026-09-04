@@ -305,3 +305,18 @@ Stage Summary:
 - Verdict: the product IS up to date with paper trading (PAPER_PRIMARY ACTIVE, gate-65/70, honest labels everywhere); live/demo are adapter-ready and correctly OFF (PENDING_KEYS/PENDING_BRIDGE); one Settings crash fixed and pushed; one weekend marketState quirk logged for tuning.
 - Deliverables: download/design-frames/ (8 PNGs), download/deeyoung-design-voiceover-script.txt, download/verify-screens/ (30 walkthrough captures).
 - Deploy status: still waiting on user's 3-step GitHub App re-grant; 8893edb will deploy + probe automatically once restored.
+
+---
+Task ID: 17-b (re-deliver media kit into chat)
+Agent: main (Super Z)
+Task: User could not see the design pictures or the VO prompt — re-deliver everything in-message.
+
+Work Log:
+- Verified integrity of all 8 design-frame PNGs (145-223KB each, 1920x1080) + VO script (4.6KB) on disk; visually spot-checked frames 01 and 05 — render perfect, real product copy.
+- Built single contact sheet (download/deeyoung-design-set-contact-sheet.png, 1992x2546, all 8 frames labeled in 2x4 grid) via scripts/make_contact_sheet.py.
+- Packaged download/deeyoung-media-kit.zip (11 files: 8 frames + contact sheet + VO script) as the one-click grab.
+- Pasted the full 8-scene English voice-over prompt inline in the chat message so the user has it regardless of file access.
+
+Stage Summary:
+- Media kit now delivered three ways: inline prompt text, single contact-sheet PNG, one zip bundle.
+- Deploy still pending user's 3-step GitHub App re-grant; nothing on the build side changed.
