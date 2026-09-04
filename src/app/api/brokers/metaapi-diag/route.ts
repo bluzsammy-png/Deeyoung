@@ -1,18 +1,36 @@
 // DEEYOUNG PRO — broker bridge diagnostics (§broker-bridge).
-// GET /api/brokers/metaapi-diag — kept for continuity; now reports BOTH venues:
-//   OANDA (primary FX execution venue since 2026-09-04) and MetaApi (dormant).
+// GET /api/brokers/metaapi-diag — kept for continuity; reports ALL venues:
+//   Bybit (PRIMARY since 2026-09-04: demo trading, Nigeria-compatible),
+//   OANDA (dormant — not available to Nigerian residents), MetaApi (retired).
 // Returns ONLY aggregate facts (status codes, counts, verdict words). Never
-// echoes tokens, account ids or balances — health-route presence-boolean pattern.
+// echoes keys, secrets, account ids or balances — health-route presence-boolean pattern.
 
 import { NextResponse } from "next/server";
 import { oandaConfigured, oandaAccountSummary } from "@/lib/brokers/oanda";
+import { bybitConfigured, bybitAccountSummary, bybitEnvLabel } from "@/lib/brokers/bybit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const out: Record<string, unknown> = {};
 
-  // ── OANDA (primary) ──────────────────────────────────────────────────────────
+  // ── Bybit (PRIMARY — demo trading venue) ─────────────────────────────────────
+  if (!bybitConfigured()) {
+    out.BYBIT = {
+      configured: false, verdict: "NO_KEYS",
+      detail: "BYBIT_API_KEY / BYBIT_API_SECRET not set. Demo bridge dormant by design.",
+    };
+  } else {
+    const s = await bybitAccountSummary();
+    out.BYBIT = {
+      configured: true, venue: bybitEnvLabel(),
+      verdict: s.status === "CONNECTED" ? "KEYS_VALID" : s.status,
+      detail: s.detail,
+      ...(s.status === "CONNECTED" ? { accountType: s.accountType } : {}),
+    };
+  }
+
+  // ── OANDA (dormant 2026-09-04 — unavailable to Nigerian residents) ──────────
   if (!oandaConfigured()) {
     out.OANDA = {
       configured: false, verdict: "NO_TOKEN",

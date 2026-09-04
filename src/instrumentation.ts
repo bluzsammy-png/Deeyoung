@@ -1,17 +1,57 @@
 // DEEYOUNG PRO — runtime instrumentation (§60 boot diagnostics).
 // Runs once when the server process starts (before serving traffic).
-// The MetaApi bridge self-check proves, from the production network itself,
-// whether METAAPI_TOKEN is accepted by the MetaApi provisioning endpoint.
-// Logs ONE aggregate line to stdout (visible via deployment logs) — never
-// echoes the token or any account detail. Never fatal: trading must boot
-// even when the bridge is unreachable.
+// Self-checks the PRIMARY execution bridge (Bybit demo trading since 2026-09-04;
+// Nigeria-compatible) and any dormant fallback venues. Logs ONE aggregate line
+// per venue to stdout (visible via deployment logs) — never echoes keys or any
+// account detail. Never fatal: trading must boot even when a bridge is down.
 
-export async function register() {
-  const token = process.env.OANDA_TOKEN;
-  if (!token) {
-    console.log("[bridge] OANDA_TOKEN not set — FX bridge dormant (PENDING_BRIDGE by design; MetaApi retired 2026-09-04)");
+async function checkBybit(): Promise<void> {
+  const key = process.env.BYBIT_API_KEY;
+  if (!key || !process.env.BYBIT_API_SECRET) {
+    console.log("[bridge] BYBIT keys not set — demo bridge dormant (PENDING_BRIDGE by design; OANDA retired for Nigeria 2026-09-04)");
     return;
   }
+  const base = process.env.BYBIT_ENV === "live"
+    ? "https://api.bybit.com"
+    : process.env.BYBIT_ENV === "testnet"
+      ? "https://api-testnet.bybit.com"
+      : "https://api-demo.bybit.com";
+  const t0 = Date.now();
+  try {
+    const { createHmac } = await import("crypto");
+    const ts = Date.now().toString();
+    const recv = "20000";
+    const sign = createHmac("sha256", process.env.BYBIT_API_SECRET as string)
+      .update(`${ts}${key}${recv}`).digest("hex");
+    const res = await fetch(`${base}/v5/account/wallet-balance?accountType=UNIFIED`, {
+      headers: {
+        "X-BAPI-API-KEY": key,
+        "X-BAPI-TIMESTAMP": ts,
+        "X-BAPI-RECV-WINDOW": recv,
+        "X-BAPI-SIGN": sign,
+        "X-BAPI-SIGN-TYPE": "2",
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const j = (await res.json().catch(() => null)) as { retCode?: number; retMsg?: string; result?: { list?: { accountType?: string }[] } } | null;
+    if (res.status === 401 || res.status === 403 || j?.retCode === 10003 || j?.retCode === 10005) {
+      console.log(`[bridge] BYBIT → KEYS_REJECTED http=${res.status} retCode=${j?.retCode} in ${Date.now() - t0}ms — regenerate the key in Demo Trading mode (Read + Contract permissions)`);
+      return;
+    }
+    if (!res.ok || j?.retCode !== 0) {
+      console.log(`[bridge] BYBIT → http=${res.status} retCode=${j?.retCode} ${String(j?.retMsg ?? "").slice(0, 60)} in ${Date.now() - t0}ms`);
+      return;
+    }
+    console.log(`[bridge] BYBIT → KEYS_VALID account=${j?.result?.list?.[0]?.accountType ?? "UNIFIED"} in ${Date.now() - t0}ms`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.log(`[bridge] BYBIT → UNREACHABLE in ${Date.now() - t0}ms — ${msg.slice(0, 100)}`);
+  }
+}
+
+async function checkOanda(): Promise<void> {
+  const token = process.env.OANDA_TOKEN;
+  if (!token) return; // dormant venue — stay silent when unset
   const base = process.env.OANDA_ENV === "live"
     ? "https://api-fxtrade.oanda.com/v3"
     : "https://api-fxpractice.oanda.com/v3";
@@ -23,21 +63,20 @@ export async function register() {
       signal: AbortSignal.timeout(10_000),
     });
     if (res.status === 401 || res.status === 403) {
-      console.log(`[bridge] OANDA → TOKEN_REJECTED http=${res.status} in ${Date.now() - t0}ms — generate a fresh practice token (Manage API Access)`);
-      return;
-    }
-    if (res.status === 404) {
-      console.log(`[bridge] OANDA → ACCOUNT_NOT_FOUND http=404 in ${Date.now() - t0}ms — check OANDA_ACCOUNT_ID (practice ids look like 101-001-1234567-001)`);
+      console.log(`[bridge] OANDA(dormant) → TOKEN_REJECTED http=${res.status} in ${Date.now() - t0}ms`);
       return;
     }
     if (!res.ok) {
-      console.log(`[bridge] OANDA → http=${res.status} in ${Date.now() - t0}ms`);
+      console.log(`[bridge] OANDA(dormant) → http=${res.status} in ${Date.now() - t0}ms`);
       return;
     }
-    const j = (await res.json().catch(() => null)) as { account?: { currency?: string } } | null;
-    console.log(`[bridge] OANDA → TOKEN_VALID account=${acct.slice(0, 8)}… currency=${j?.account?.currency ?? "?"} in ${Date.now() - t0}ms`);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.log(`[bridge] OANDA → UNREACHABLE in ${Date.now() - t0}ms — ${msg.slice(0, 100)}`);
+    console.log(`[bridge] OANDA(dormant) → TOKEN_VALID in ${Date.now() - t0}ms`);
+  } catch {
+    console.log(`[bridge] OANDA(dormant) → UNREACHABLE in ${Date.now() - t0}ms`);
   }
+}
+
+export async function register() {
+  await checkBybit();
+  await checkOanda();
 }
