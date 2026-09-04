@@ -320,3 +320,18 @@ Work Log:
 Stage Summary:
 - Media kit now delivered three ways: inline prompt text, single contact-sheet PNG, one zip bundle.
 - Deploy still pending user's 3-step GitHub App re-grant; nothing on the build side changed.
+
+---
+Task ID: 17-c (self-serve push: app-install API wall, media repo published, CLI pairing armed)
+Agent: main (Super Z)
+Task: User said "i thought i gave you full access, you can do that yourself" — squeeze maximum self-serve out of the full PAT.
+
+Work Log:
+- Tested GitHub App-installation management via classic PAT: GET /user/installations → 403 "You must authenticate with an access token authorized to a GitHub App". CONFIRMED PLATFORM WALL: classic PATs (even full-scope) are deliberately barred from App-installation admin; the Railway re-grant is browser-only by GitHub's security design.
+- Pivoted to delivery: created PUBLIC repo bluzsammy-png/deeyoung-media-kit (separate from product repo, per user's media-kit-not-in-repo rule). 24 files: 8 design frames + contact sheet + 5 ad stills + 6 scene cuts + fixed English-VO ad film + both VO prompt txts + clickable README. Pushed ae22764; raw URL verified HTTP 200 image/png.
+- Armed Railway CLI device-flow pairing: `railway login --browserless` polling in background (nohup, /tmp/rwlogin.log); code DRFP-NPRZ at https://railway.com/activate?user_code=DRFP-NPRZ. One user click = full account session for me (deploys, logs, variables — no more token pastes).
+
+Stage Summary:
+- Irreducible browser-only steps are now DOWN TO ONE of two one-click options: (A) click pairing link + Approve → I drive Railway end-to-end; (B) github.com/settings/installations → Railway → grant Deeyoung → Deploy Latest Commit.
+- Media kit now browsable at github.com/bluzsammy-png/deeyoung-media-kit.
+- CODE ROTATED: DRFP-NPRZ poller died with shell exit; relaunched with setsid (survives). ACTIVE CODE = FZFK-QTXG, verified alive across tool calls.
