@@ -232,3 +232,19 @@ Work Log:
 Stage Summary:
 - User gets: exact correct URL (double-e dee-young), root-load test to distinguish wrong-domain vs stale-build, 30-second dashboard fix (Deeyoung → Deployments → Deploy Latest Commit), optional GraphiQL token test still on the table.
 - If stale-build confirmed: root cause is Railway auto-deploy not firing since 74cc036 — manual deploy button fixes it immediately; token (once working) lets me automate + verify from boot logs onward.
+
+---
+Task ID: 15-g (ROOT CAUSE: Railway GitHub App lost repo access)
+Agent: main (Super Z)
+Task: User reported Railway says the repo "doesn't exist" when it tries to read it.
+
+Work Log:
+- User's report closes the case: pushes verified green on GitHub (main HEAD 2e3ddec, only branch, default branch, pushed_at current) while Railway cannot pull → "repo doesn't exist" from Railway despite the repo being PUBLIC and API-readable at this moment.
+- Verified repo-side health: hooks 0 (GitHub App integration uses no classic hooks — expected), HEAD current, PAT reads/writes fine.
+- Diagnosis: Railway's GitHub App installation lost authorization/access to bluzsammy-png/Deeyoung (revoked install, expired grant, or repo removed from the app's repository-access list). This is why NO deploy fired since 74cc036 and the user's 404 persisted across 8 pushes.
+- Fix handed to user (browser-only): (1) github.com/settings/installations → Railway → Configure → grant repository access to Deeyoung (or All repositories); (2) Railway dashboard → Deeyoung → Settings → Source → reconfirm/relink repo if flagged; (3) Deployments → Deploy Latest Commit; (4) verify /status footer shows "build engine-ui-v3 · commit <sha>".
+- Build marker (b6b192f) already in the tree, so the first successful deploy is self-proving.
+
+Stage Summary:
+- 404 root cause chain fully closed: stale build ← Railway can't read repo ← GitHub App access severed. Not a code problem, not a PAT problem (PAT is for MY pushes; the Railway GitHub App is a separate grant the user must renew in browser).
+- All code for paper engine + venue layer + UI is on main and deploys the moment the bridge is restored.
