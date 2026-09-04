@@ -372,3 +372,24 @@ Work Log:
 Stage Summary:
 - Production state: LIVE @ engine-ui-v3, paper engine OPERATIONAL + autonomous, TWELVEDATA KEY_VALID, OKX = only remaining bridge (user 10-min signup).
 - New ops capability unlocked: `railway logs --deployment <id>` = full boot/deploy logs on demand.
+
+---
+Task ID: 20 (OKX-free alternative: self-hosted OKX-wire simulator — built, audited, deployed)
+Agent: main (Super Z)
+Task: User asked for a FREE zero-signup alternative to the OKX demo account that I could build, audit and verify myself.
+
+Work Log:
+- Built /api/sim/okx/[...path] — OKX REST v5 subset (public/time, account/balance, trade/order GET+POST) with REAL OKX-ACCESS-SIGN HMAC-SHA256 verification (timingSafeEqual), ±30s timestamp drift (50102), wrong key/passphrase (50111), tampered sign (50113), idempotent clOrdId replay, fills at LIVE Binance public price ±4bps sim slippage, 10bps taker fee (base-ccy on buys — matches adapter SELL sizing rule), in-memory order ring (500 cap).
+- Honest labeling: okxSimMode()/okxTargetLabel() in adapter; venueTag→"okx-sim"; venue block carries target + simulator:true; env label "sim (self-hosted)".
+- AUDIT (scripts/audit_sim.ts, bun, 15 checks): 15/15 after fixes. Caught:
+  * FIX 1 (P0): okx.ts signedFetch SIGNED the body but never attached it to POST fetch → every market order would have failed on real OKX. Fixed + comment.
+  * FIX 2: OKX lowercase states (filled/live/canceled) vs layer enums (FILLED/LIVE/FAILED) — added normState() at all 5 assignment points; without it exit matching + open-position rail silently saw zero rows.
+  * FIX 3: instrumentation-time self-fetch deadlocks (listener not serving during register()) → 12s timeout in prod; deferred sim probe to +35s post-boot with unref.
+- E2E via dev-only route (uncommitted): entry $50 → FILLED @79596.85 sz=0.0006275374277 (fee-adjusted) slippage alert fired (30bps guard, synthetic refPrice) → exit SELL exact fillSz → FILLED @79533.19, exitFor linked. Mirror ledger: filled=2 open=0 failed=0.
+- Deployed: 3397b53 + probe-defer fix; Railway env set (OKX_API_KEY/SECRET/PASSPHRASE sim creds, OKX_BASE_URL=http://127.0.0.1:8080/api/sim/okx, OKX_ENV=demo, EXECUTION_VENUE=okx-demo). Prod boot: "OKX → SIMULATOR armed" + "OKX(sim) delayed probe → KEYS_VALID in 39ms". Auto-deploy on push confirmed again (2/2).
+- Tuning item: Twelve Data free plan (8 credits/min) → 14 TD_RATE_LIMIT degradations per cycle on alt symbols; engine degrades honestly and cycle still completes feed=clean. Needs symbol pacing/priority.
+
+Stage Summary:
+- Venue ladder NOW: paper (execution-of-record, OPERATIONAL) → okx-sim (ARMED, KEYS_VALID, full signing path exercised, zero external venue) → okx demo/live (unchanged upgrade path: unset OKX_BASE_URL + real keys).
+- Real-money exposure: ZERO (sim creds only valid against own simulator; OKX_ENV=demo; rails unchanged $100/3/−3R).
+- Remaining user steps: NONE for the venue. Optional: real OKX keys whenever; Twelve Data paid tier or pacing for alt coverage.
