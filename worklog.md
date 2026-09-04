@@ -163,3 +163,21 @@ Stage Summary:
 - Paper mode remains ACTIVE (venue=paper): zero behavior change until user arms the mirror.
 - To arm live mirror (the ONLY human steps): create OKX account (user's residential IP) → Demo Trading → API keys → set OKX_API_KEY/OKX_API_SECRET/OKX_API_PASSPHRASE + EXECUTION_VENUE=okx-demo on Railway Deeyoung → boot log shows [bridge] OKX → KEYS_VALID. Live = OKX_ENV=live + EXECUTION_VENUE=okx-live.
 - Deploy verification from sandbox still edge-blocked (429/Turnstile on all DC egress) — user's browser on /status is the vantage point, or a Railway token re-paste lets me read deploy logs + set all env vars myself.
+
+---
+Task ID: 15-c (credential verification addendum)
+Agent: main (Super Z)
+Task: User delivered Railway token + GitHub PAT ("do not scrub until i say so"). Verify push/deploy state, use Railway token for deploy logs.
+
+Work Log:
+- Re-established ground truth: Task 15 build was COMPLETE and pushed. GitHub main HEAD = 5df9852 (venue layer) verified via API with the user's PAT (login bluzsammy-png, scope: repo only).
+- Pushed the one unpushed local commit (28f3414, worklog) → main now 0/0 in lockstep with origin. Remote URL carries the fresh PAT (kept per user directive).
+- Railway token (UUID as pasted) REJECTED by backboard.railway.app/graphql/v2: identical "Not Authorized"/INTERNAL_SERVER_ERROR for `projects`, `project(id: graceful-happiness)`, and `me` — byte-identical to a garbage-token control probe. Verdict: not an authenticating API credential (revoked / truncated / wrong field copied — possibly an environment ID, given the garbled message). No Railway-side access from sandbox.
+- GitHub Actions outside-probe (Task 13-b fallback) still blocked: fresh PAT has `repo` scope only, missing `workflow` scope — .github/workflows/* pushes rejected.
+- Local verification sweep GREEN: venue.ts/okx.ts/status surfaces present in tree; dev server root 200; /api/engine/status → engine ACTIVE, run=primary, feed=binance, venue block {mode:paper, verdict:PAPER_PRIMARY, riskRails: maxNotional 100 / maxOpen 3 / dailyRStop -3R / slippageAlert 30bps, mirror audit exposed}, equity curve 7 real marks. Fresh sqlite run after sandbox reset (prior plumbing-trade row lost with reset, documented honestly).
+- Credentials preserved per user order: PAT in .git/config remote + .env; pasted Railway UUID in .env (RAILWAY_TOKEN_PASTED) for reference. NEVER written to worklog. User rotates all keys at wrap-up.
+
+Stage Summary:
+- Code: 100% delivered and pushed. GitHub: GREEN (PAT verified). Local engine: GREEN.
+- Railway deploy confirmation + deploy-log reading: BLOCKED on a valid Railway token (the pasted UUID fails auth). Exact re-issue path given to user: Railway dashboard → account avatar → Account Settings → API Tokens → Create New Token → copy value shown ONCE (a full UUID, not a URL fragment).
+- User-side 10-second verification while token is re-issued: open https://deeyoung-production.up.railway.app/status — if the engine page renders with the venue panel, the new build swapped (404 mystery resolved); Railway dashboard → Deeyoung → Deployments should show commit 28f3414 SUCCESS.
