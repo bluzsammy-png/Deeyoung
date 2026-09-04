@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -13,15 +12,6 @@ export const dynamic = "force-dynamic";
  *   UNBAN    → restore ACTIVE (appeals outcome)
  * Every action lands in the audit trail with the acting admin attached.
  */
-
-async function requireAdmin() {
-  const h = await headers();
-  const session = await auth.api.getSession({ headers: h });
-  if (!session?.user) return null;
-  const admin = await db.user.findUnique({ where: { id: session.user.id } });
-  if (!admin || admin.role !== "ADMIN" || admin.status === "BANNED" || admin.status === "SUSPENDED") return null;
-  return admin;
-}
 
 /** GET /api/admin/users — user list + moderation state */
 export async function GET() {

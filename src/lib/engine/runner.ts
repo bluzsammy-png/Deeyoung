@@ -16,7 +16,8 @@
 
 import { computeSignal } from "@/lib/engine/signals";
 import type { Bar } from "@/lib/engine/indicators";
-import { fetchKlinesAny, type FeedBar } from "@/lib/engine/feed";
+import { fetchKlinesAny, setFeedUniverse, type FeedBar } from "@/lib/engine/feed";
+import { getEngineControl } from "@/lib/engine/control";
 import {
   paperEntry, paperExit, paperMarkToMarket, paperLastClose, paperTodayNetR,
   paperLastLossAtMs, paperClosedCount, paperOpenCount, getOrCreateRun,
@@ -121,6 +122,8 @@ async function loopBody(
   log(`[engine] run=${run.label} id=${run.id} — paper engine of record`);
   const pollMs = opts.pollMs ?? POLL_MS;
   let lastFlush = 0;
+  setFeedUniverse(SYMBOLS); // feed fair-share rotation knows the universe
+  let wasPaused = await (async () => { const c = await getEngineControl(); if (c.paused) log(`[engine] CONTROL starting PAUSED (${c.reason ?? "no reason given"}) — new entries blocked, exits still managed`); return c.paused; })();
 
   // seed buffers
   const buf: Record<string, FeedBar[]> = {};
@@ -166,6 +169,14 @@ async function loopBody(
 
     brain.refresh();
 
+    // admin console lever: pause blocks NEW entries only — open positions are
+    // still managed to their exits below (stop/target/time), cycle keeps marking.
+    const control = await getEngineControl();
+    if (control.paused !== wasPaused) {
+      wasPaused = control.paused;
+      log(`[engine] CONTROL ${control.paused ? "PAUSED" : "RESUMED"}${control.reason ? ` (${control.reason})` : ""} by ${control.updatedBy ?? "admin"}`);
+    }
+
     // one OPEN-positions read per cycle (single query; entries update locally)
     const openRows = (await db.paperEnginePosition.findMany({ where: { runId: run.id, status: "OPEN" } })) as unknown as PositionRow[];
     const open = new Map(openRows.map((r) => [r.bookKey, rowToPos(r)]));
@@ -199,6 +210,8 @@ async function loopBody(
         // live tick-level management against current price
         await manageTick(open, sym, price, now, brain, log);
 
+        // paused: no signal scans, no new entries — exits keep being managed above
+        if (control.paused) continue;
         if (now - (lastScan[sym] ?? 0) < SCAN_STRIDE_MS) continue;
         lastScan[sym] = now;
 

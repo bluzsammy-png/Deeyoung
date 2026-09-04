@@ -30,6 +30,18 @@ export function twelvedataConfigured(): boolean {
   return Boolean(process.env.TWELVEDATA_API_KEY);
 }
 
+/**
+ * True when at least one Twelve Data credit remains in BOTH the minute and day
+ * budgets. Feed callers check this BEFORE attempting a TD call so a planned
+ * Binance share never burns a failed call or pollutes the error counters.
+ */
+export function tdBudgetAvailable(): boolean {
+  const now = Date.now();
+  if (budget.dayKey !== dayKeyOf(now)) return true; // day window rolls over
+  if (now - budget.minuteStart >= 60_000) return true; // minute window rolls over
+  return budget.minuteUsed < TD_PER_MIN && budget.dayUsed < TD_PER_DAY;
+}
+
 function dayKeyOf(now: number): string {
   return new Date(now).toISOString().slice(0, 10);
 }

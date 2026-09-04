@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Bot, Lock, Newspaper, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Bot, Cpu, Lock, Newspaper, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { fmtInstrument, fmtMoney, fmtPct, fmtAgo } from "@/lib/format";
 import { authClient, type SessionUser } from "@/lib/auth-client";
@@ -21,6 +21,89 @@ interface SignalsPayload {
   signals: (SignalResult & { name: string; sector: string; lastPrice: number; changePct: number })[];
   account: { equity: number; cash: number; broker: string };
   sentinel: { mode: string; state: string; killSwitch: boolean };
+}
+
+// Live autonomous-engine strip (public audit surface, same snapshot as /status).
+interface EngineStatus {
+  engine: {
+    status: string; elapsedHours: number;
+    dataVenue: { primary: string; twelvedata: { configured: boolean; minuteUsed: number; dayUsed: number } };
+    feedMap: Record<string, { source: string; at: number }>;
+    control: { paused: boolean };
+  };
+  account: { settledEquityUsd: number; realizedPnlUsd: number; openCount: number; closedCount: number; winRatePct: number | null; maxDrawdownPct: number };
+  venue: { mode: string; verdict: string; mirror: { open: number; filled: number; failed: number } };
+  build: { marker: string; sha: string | null };
+  equityCurve: Array<{ t: number; e: number }>;
+}
+
+function EngineStrip() {
+  const setView = useApp((s) => s.setView);
+  const [eng, setEng] = useState<EngineStatus | null>(null);
+  useEffect(() => {
+    const load = () => fetch("/api/engine/status", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j && setEng(j))
+      .catch(() => {});
+    const t = setTimeout(load, 0);
+    const iv = setInterval(load, 30_000);
+    return () => { clearInterval(iv); clearTimeout(t); };
+  }, []);
+  if (!eng) return null; // never blocks the dashboard
+  const a = eng.account;
+  const feed = Object.entries(eng.engine.feedMap ?? {});
+  const tdCount = feed.filter(([, v]) => v.source === "twelvedata").length;
+  const pnlPos = a.realizedPnlUsd >= 0;
+  return (
+    <section>
+      <SectionHead
+        title="Bot performance — live paper engine"
+        sub="Autonomous engine trading real market prices 24/7"
+        right={
+          <button onClick={() => setView("engine")} className="group inline-flex items-center gap-1 text-xs font-semibold text-brand-hi">
+            Engine detail <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </button>
+        }
+      />
+      <div className="qe-panel p-4">
+        {eng.engine.control.paused && (
+          <p className="mb-3 rounded-lg border border-warn/30 bg-warn/[0.08] px-3 py-1.5 text-[11px] font-semibold text-warn">PAUSED by admin — no new entries; exits still managed</p>
+        )}
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <MiniStat label="Win rate" value={a.winRatePct === null ? "—" : `${a.winRatePct}%`} tone={a.winRatePct !== null && a.winRatePct >= 50 ? "text-pos" : undefined} />
+          <MiniStat label="Closed" value={String(a.closedCount)} />
+          <MiniStat label="Realized P&L" value={`${pnlPos ? "+" : ""}$${Math.abs(a.realizedPnlUsd).toFixed(2)}`} tone={pnlPos ? "text-pos" : "text-neg"} />
+          <MiniStat label="Equity" value={`$${a.settledEquityUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`} />
+          <MiniStat label="Open" value={String(a.openCount)} />
+          <MiniStat label="Max DD" value={`${a.maxDrawdownPct.toFixed(1)}%`} />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-hairline pt-3 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${eng.engine.status === "ACTIVE" ? "bg-pos qe-pulse-dot" : "bg-warn"}`} />
+            engine {eng.engine.status.toLowerCase()} · {eng.engine.elapsedHours}h
+          </span>
+          <span>
+            feed: <b className="text-foreground/80">{eng.engine.dataVenue.primary}</b>
+            {eng.engine.dataVenue.twelvedata.configured && feed.length > 0 && (
+              <> · authenticated Twelve Data on {tdCount}/{feed.length} symbols (free-plan share) · Binance covers the rest</>
+            )}
+            {!eng.engine.dataVenue.twelvedata.configured && " · keyless public"}
+          </span>
+          <span>venue: <b className="text-foreground/80">{eng.venue.mode}</b> · {eng.venue.verdict}</span>
+          <span className="font-mono">build {eng.build.marker}{eng.build.sha ? ` · ${String(eng.build.sha).slice(0, 7)}` : ""}</span>
+          <a href="/status" target="_blank" rel="noreferrer" className="ml-auto underline decoration-dotted hover:text-foreground">full audit → /status</a>
+        </div>
+      </div>
+    </section>
+  );}
+
+function MiniStat({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="rounded-xl border border-hairline bg-panel-2 px-3 py-2.5">
+      <p className="text-[9.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">{label}</p>
+      <p className={`qe-num mt-0.5 text-base font-bold ${tone ?? ""}`}>{value}</p>
+    </div>
+  );
 }
 
 export function DashboardView() {
@@ -179,6 +262,9 @@ export function DashboardView() {
           lockedPanel("Portfolio risk is part of every paid plan", "Equity, P&L, concentration and correlation — included with every plan, starting at Starter.")
         )}
       </div>
+
+      {/* ── Bot performance: live autonomous engine ── */}
+      <EngineStrip />
 
       {/* ── Market overview ── */}
       <section>

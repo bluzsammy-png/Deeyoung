@@ -4,9 +4,10 @@
 
 import { db } from "@/lib/db";
 import { getOrCreateRun } from "@/lib/engine/paper";
-import { feedSource } from "@/lib/engine/feed";
+import { feedSource, feedProvenance, feedStats } from "@/lib/engine/feed";
 import { twelvedataStatus } from "@/lib/market/twelvedata";
 import { venueStatus } from "@/lib/engine/venue";
+import { getEngineControl } from "@/lib/engine/control";
 
 export function bookStats(rows: Array<{ gate: number; horizonMin: number; netPnlUsd: number | null; netR: number | null; grossPnlUsd: number | null }>) {
   const books: Record<string, { n: number; wins: number; netSum: number; rSum: number }> = {};
@@ -44,6 +45,7 @@ export async function buildEngineSnapshot() {
 
   const wins = closedAll.filter((r) => (r.netPnlUsd ?? 0) > 0).length;
   const t0 = run.startedAt.getTime();
+  const [control, prov] = [await getEngineControl(), feedProvenance()];
 
   return {
     engine: {
@@ -54,6 +56,9 @@ export async function buildEngineSnapshot() {
       elapsedHours: +((Date.now() - t0) / 3_600_000).toFixed(2),
       executionModel: "own paper engine — fills at observed market price, 2bps slippage/side + 10bps taker fee/side",
       dataVenue: { primary: feedSource(), twelvedata: twelvedataStatus() },
+      feedMap: prov,
+      feedCounters: feedStats(),
+      control,
     },
     account: {
       startingUsd: acct.startingUsd,

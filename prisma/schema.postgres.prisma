@@ -549,3 +549,14 @@ model VenueMirrorOrder {
   @@index([state])
   @@index([symbol, side, state])
 }
+
+// DEEYOUNG PRO — runtime engine control (admin console lever).
+// Singleton row: paused = no NEW entries; open positions are ALWAYS still
+// managed to their exits (stop/target/time) regardless of this flag.
+model EngineControl {
+  id        String   @id @default("singleton")
+  paused    Boolean  @default(false)
+  reason    String?
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}

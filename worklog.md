@@ -393,3 +393,26 @@ Stage Summary:
 - Venue ladder NOW: paper (execution-of-record, OPERATIONAL) → okx-sim (ARMED, KEYS_VALID, full signing path exercised, zero external venue) → okx demo/live (unchanged upgrade path: unset OKX_BASE_URL + real keys).
 - Real-money exposure: ZERO (sim creds only valid against own simulator; OKX_ENV=demo; rails unchanged $100/3/−3R).
 - Remaining user steps: NONE for the venue. Optional: real OKX keys whenever; Twelve Data paid tier or pacing for alt coverage.
+
+---
+Task ID: 21 (feed fairness + dashboard strip + standalone /admin control room)
+Agent: main (Super Z)
+Task: User asked (1) "you used binance what about twelve data API?", (2) "dashboard wasn't upgraded", (3) "/admin panel as a separate side where I can control everything users", (4) success rate vs real data.
+
+Work Log:
+- Sandbox reset discovered (~/.railway, railway CLI, scripts/rw_*, .env secrets all wiped; git remote PAT in URL survived; origin/main = 2d65ca4 = Task 20 state, nothing lost).
+- FEED FIX: 10 engine symbols vs 7/min Twelve Data free budget made the old error-driven fallback burn TD then throw TD_RATE_LIMIT for the rest each cycle. New feed.ts: per-minute rotated TD share (rank = (idx+minuteBucket)%10 < 7) + tdBudgetAvailable() pre-check + planned handoff to Binance with zero wasted calls; per-symbol provenance map + counters (feedMap/feedCounters) exported into the engine snapshot; runner registers SYMBOLS universe via setFeedUniverse().
+- ENGINE CONTROL: EngineControl singleton model added to BOTH prisma schemas (boot db push applies it); src/lib/engine/control.ts (raw-SQL on purpose — Turbopack dev dep-cache held a pre-EngineControl client; raw queries are dialect-aware sqlite/postgres and immune); runner checks it per cycle: paused blocks NEW entries only, exits (stop/target/time) always managed; transitions logged [engine] CONTROL PAUSED/RESUMED.
+- ADMIN: shared gate src/lib/admin.ts (role=ADMIN OR email in ADMIN_EMAILS; self-promotes env-listed rows; banned/suspended refused); /api/admin/users refactored onto it; NEW /api/admin/engine (GET full snapshot+control, POST PAUSE/RESUME with required reason + auditEvent row).
+- /ADMIN SIDE: standalone route at /admin with its own layout (no main-app chrome): sign-in gate → three tabs — Overview (win rate/closed/PnL/equity/open/maxDD, feed panel with per-symbol TD/BIN chips + budget counters, venue panel + mirror ledger + risk rails, per-book table), Engine (pause/resume control, open/closed/orders tables), Users (stats + moderation ladder warn/suspend/ban/unban with reason dialog). Server-side gate renders sign-in/403 — never a blank page.
+- DASHBOARD: live "Bot performance" strip on the main dashboard tab (win rate, closed, realized P&L, equity, open, max DD, engine status/elapsed, feed provenance line, venue + verdict, build marker, /status link), 30s refresh, renders null until data (never blocks).
+- PROBE: probe.yml extended to dump FULL /api/engine/status JSON (20KB) + /api/brokers/metaapi-diag — Actions log becomes the production ledger readout for success-rate reporting (sandbox egress is still 429-blocked by Railway edge).
+- db.ts: staleness guard — rebuilds the global Prisma client if it lacks a new model (survives schema upgrades without dev-server restarts).
+- LOCAL E2E (agent-browser): seeded admin via real /api/auth/sign-up (ADMIN_EMAILS local parity); /admin sign-in → console renders; PAUSE with reason → control row {paused:true, reason, updatedBy:admin email} + PAUSED banner → RESUME → paused:false; Users tab lists users; dashboard strip renders all tiles; /status renders. lint: only pre-existing bybit error remains; tsc clean on touched files.
+
+Stage Summary:
+- Answer to (1): production feed is Twelve Data PRIMARY (KEY_VALID, set 17:44 yesterday); free plan = 7 credits/min so Binance takes the planned remainder — now deterministic, fair, zero wasted calls, with per-symbol provenance visible on /status, /admin and the dashboard.
+- (3) DELIVERED: /admin = separate side (own layout, own gate, own look) controlling users + engine + venue/feed visibility.
+- (2) DELIVERED: dashboard upgraded with live bot-performance strip.
+- (4) evidence path: extended Actions probe dumps the production ledger JSON on every push — read it via GitHub API to report the real win rate.
+- Push → auto-deploy applies new EngineControl table at boot (proven non-fatal pattern).

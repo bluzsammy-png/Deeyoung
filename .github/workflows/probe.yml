@@ -35,6 +35,31 @@ jobs:
             echo
           done
 
+      - name: Full engine status dump (win rate, ledger, feed, venue)
+        run: |
+          echo "=================================================="
+          echo "FULL /api/engine/status JSON (public audit surface)"
+          echo "=================================================="
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /tmp/engine -w "%{http_code}" -m 25 \
+              -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" \
+              "https://deeyoung-production.up.railway.app/api/engine/status" || echo "curl-error")
+            echo "attempt ${attempt}: HTTP ${code}"
+            if [ "${code}" != "429" ] && [ "${code}" != "curl-error" ]; then break; fi
+            sleep 4
+          done
+          head -c 20000 /tmp/engine || true
+          echo
+          echo "=================================================="
+          echo "FULL /api/brokers/metaapi-diag JSON (venue ladder)"
+          echo "=================================================="
+          code2=$(curl -s -o /tmp/diag -w "%{http_code}" -m 25 \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" \
+            "https://deeyoung-production.up.railway.app/api/brokers/metaapi-diag" || echo "curl-error")
+          echo "HTTP ${code2}"
+          head -c 6000 /tmp/diag || true
+          echo
+
       - name: Probe twin domain (deyoung-site-production)
         run: |
           echo "=================================================="
