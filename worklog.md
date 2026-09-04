@@ -142,3 +142,24 @@ Stage Summary:
 - User-facing fix: after this deploy, https://deeyoung-production.up.railway.app/status shows the paper engine at a glance (and /api/engine/status returns raw JSON) — the 404 source disappears once the new build swaps in.
 - Local preview surface green: / 200, /api/engine/status 200, /status 200, PAPER OPERATIONAL.
 - Pending: confirm Railway deploy swap + read live /status from residential IP (user) or Railway token; post-deploy edge verification from sandbox blocked as before.
+
+---
+Task ID: 15
+Agent: main (Super Z)
+Task: User said "go" — build live mode (real broker API) per approved recommendations. Deliver venue abstraction, OKX demo-first adapter, hard risk rails, engine UI.
+
+Work Log:
+- Architecture: paper engine STAYS execution-of-record (ledger/P&L/brain/playbook untouched). New src/lib/engine/venue.ts mirrors every paper fill to a real venue (OKX demo-first) — shadow semantics, mirror failures never touch the paper ledger.
+- Risk rails (user-approved defaults, env-overridable): LIVE_MAX_NOTIONAL_USD=100, LIVE_MAX_OPEN=3, LIVE_DAILY_R_STOP=-3R (blocks NEW real exposure; in-flight positions close via normal paper-managed exits → zero desync), 30bps slippage alert.
+- src/lib/brokers/okx.ts: full REST adapter — HMAC-SHA256 access sign (verified against INDEPENDENT Python-computed vectors), x-simulated-trading demo header, balance probe, market BUY in quote ccy (notional) / SELL in base ccy (REAL fill size — spot buy fees charge in base, selling paper qty would bounce), clOrdId="DY"+sha256(oid)[0:14] (≤32 alnum, OKX-safe), PENDING_KEYS honesty with no keys.
+- Prisma VenueMirrorOrder (both schemas): audit-first (row persisted BEFORE submission), exitFor BUY→SELL linkage, clOrdId unique, reconcile states SUBMITTED/LIVE/FILLED/FAILED + slippage alerts. Postgres schema valid; start.sh pushes at boot (proven pattern).
+- Runner: order ids now generated once and shared paper↔mirror (E_/X_ oids), mirror fire-and-forget (never blocks the loop), per-cycle mirrorCycle() reconcile + queued SELL intents.
+- Surfaces: diag OKX block (PENDING_KEYS until keys), instrumentation boot check, /api/engine/status venue block, terminal "Paper Engine" tab (equity AreaChart, per-book R BarChart, positions, audit ledger, mirror panel, sonner fill toasts, 15s poll), /status public page + SVG sparkline + meta-refresh 15s.
+- Tests: okx-selftest 16/16 PASS (signature vectors, clOrdId charset, instId map, rails parsing, mirror idempotency). Regression: 2-min production-loop chunk on sqlite — 10 symbols seeded real Binance data, 5+ cycles feed=clean, guards honestly refused sub-gate entries in chop, clean exit. Production build exit 0 (crypto/Edge warnings pre-existing, shipped in every prior green deploy).
+- Sandbox note: scripts/paper-selftest.ts + engine-run.ts + plumbing-check.ts were reaped (untracked); compact successor scripts/engine-chunk.ts committed. Results of the lost harnesses are documented in Task 13.
+- Pushed 5df9852 to main (verified via GitHub API) → Railway redeploys with abe566c (public /status + engine routes) AND 5df9852 (venue layer) together.
+
+Stage Summary:
+- Paper mode remains ACTIVE (venue=paper): zero behavior change until user arms the mirror.
+- To arm live mirror (the ONLY human steps): create OKX account (user's residential IP) → Demo Trading → API keys → set OKX_API_KEY/OKX_API_SECRET/OKX_API_PASSPHRASE + EXECUTION_VENUE=okx-demo on Railway Deeyoung → boot log shows [bridge] OKX → KEYS_VALID. Live = OKX_ENV=live + EXECUTION_VENUE=okx-live.
+- Deploy verification from sandbox still edge-blocked (429/Turnstile on all DC egress) — user's browser on /status is the vantage point, or a Railway token re-paste lets me read deploy logs + set all env vars myself.
