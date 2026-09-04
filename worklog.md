@@ -26,3 +26,23 @@ Stage Summary:
 - Awaiting from user: OANDA practice token (signup → Manage API Access → generate), account id auto-discovered by me via /v3/accounts.
 - Live paper run harness ready; run `bun scripts/live-run.ts --max-minutes 9` (+ `resume`) each session to accumulate real trades for the brain.
 - Secrets handling: MetaApi token (rejected anyway) scrubbed from Railway; never written to worklog; user rotates all keys at wrap-up.
+
+---
+Task ID: 10
+Agent: main (Super Z)
+Task: OANDA unavailable in Nigeria → pivot primary venue to Bybit demo trading; rebuild creds after sandbox reset.
+
+Work Log:
+- User confirmed OANDA signup blocked from Nigeria; verified via web search: Nigeria NOT on Bybit restricted-countries list (US/CN/HK/SG/CA are). User holds KYC-verified Bybit account with $0 — irrelevant for Demo Trading (simulated funds, production data).
+- Verified reachable from terminal: api-demo.bybit.com (time + klines OK), api-testnet.bybit.com 200, paper-api.alpaca.markets 401(live), binance data 200. data-api.alpaca.markets DNS-blocked in sandbox only.
+- Built src/lib/brokers/bybit.ts: v5 HMAC-SHA256 signed fetch (timestamp+key+recvWindow+payload), wallet-balance proof, klines (oldest-first conversion), instruments-info qtyStep rounding, market orders with attached TP/SL (marketUnit=baseCoin, tpslMode=Full), position list, set-leverage (110043=idempotent success). Honest PENDING_BRIDGE when keys absent. BYBIT_ENV: demo|testnet|live.
+- Flipped diag route (/api/brokers/metaapi-diag) + boot self-check (instrumentation.ts) to Bybit-primary, OANDA dormant, MetaApi retired. Type-check clean for all touched files (5 pre-existing errors elsewhere).
+- .env.example documents BYBIT_API_KEY/SECRET/ENV.
+- Commits: e9ed1c2 (adapter+diag+self-check), fix commit (live-run chunk limit from CHUNK_START not campaign startedAt — resume was exiting instantly at first loop iteration).
+- Ran 9-min resume chunk: full duration, state flushed clean. 0 closed trades; top signal score 31 vs gate 65 (choppy market — playbook correctly refusing low-conviction entries).
+- Sandbox reset lost GitHub PAT + Railway token: NOT recoverable from disk (verified). Cannot push/deploy until user re-pastes.
+
+Stage Summary:
+- Bybit demo adapter committed locally (e9ed1c2), NOT pushed (no PAT).
+- Awaiting from user: (1) Bybit demo API key + secret (generated in Demo Trading mode, Read+Contract), (2) GitHub fine-grained PAT re-paste, (3) Railway token re-paste.
+- After keys: set BYBIT_* on Railway + local, push, verify boot self-check logs KEYS_VALID, then wire live-run mirror mode to place real demo orders.
