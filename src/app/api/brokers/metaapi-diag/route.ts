@@ -1,66 +1,39 @@
-// DEEYOUNG PRO — MetaApi bridge diagnostics (§broker-bridge).
-// GET /api/brokers/metaapi-diag — proves, from the production network, whether
-// METAAPI_TOKEN is accepted by the MetaApi provisioning endpoint and how many
-// trading accounts are linked. Deliberately returns ONLY aggregate facts:
-// HTTP status code, account count, and a verdict word. Never echoes the token,
-// account ids, balances or server names — the health-route presence-boolean
-// pattern (§60) applies here.
+// DEEYOUNG PRO — broker bridge diagnostics (§broker-bridge).
+// GET /api/brokers/metaapi-diag — kept for continuity; now reports BOTH venues:
+//   OANDA (primary FX execution venue since 2026-09-04) and MetaApi (dormant).
+// Returns ONLY aggregate facts (status codes, counts, verdict words). Never
+// echoes tokens, account ids or balances — health-route presence-boolean pattern.
 
 import { NextResponse } from "next/server";
-import { bridgeConfigured } from "@/lib/brokers/metaapi";
+import { oandaConfigured, oandaAccountSummary } from "@/lib/brokers/oanda";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!bridgeConfigured()) {
-    return NextResponse.json({
-      configured: false,
-      status: "PENDING_BRIDGE",
-      verdict: "NO_TOKEN",
-      detail: "METAAPI_TOKEN is not set on the server. Bridge dormant by design.",
-    });
-  }
-  const api = process.env.METAAPI_API_URL || "https://api.metaapi.cloud";
-  try {
-    const res = await fetch(`${api}/accounts-api/v2.0/accounts`, {
-      headers: {
-        "auth-token": process.env.METAAPI_TOKEN as string,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (res.status === 401 || res.status === 403) {
-      return NextResponse.json({
-        configured: true,
-        httpStatus: res.status,
-        verdict: "TOKEN_REJECTED",
-        detail: "The bridge token was rejected by MetaApi. Generate a new token from the MetaApi section (not Manager API) of the dashboard.",
-      });
-    }
-    if (!res.ok) {
-      return NextResponse.json({
-        configured: true,
-        httpStatus: res.status,
-        verdict: "BRIDGE_ERROR",
-        detail: "Bridge endpoint answered with an unexpected status.",
-      });
-    }
-    const list = (await res.json().catch(() => null)) as unknown[] | null;
-    const count = Array.isArray(list) ? list.length : null;
-    return NextResponse.json({
+  const out: Record<string, unknown> = {};
+
+  // ── OANDA (primary) ──────────────────────────────────────────────────────────
+  if (!oandaConfigured()) {
+    out.OANDA = {
+      configured: false, verdict: "NO_TOKEN",
+      detail: "OANDA_TOKEN / OANDA_ACCOUNT_ID not set. FX bridge dormant by design.",
+    };
+  } else {
+    const s = await oandaAccountSummary();
+    out.OANDA = {
       configured: true,
-      httpStatus: res.status,
-      accountCount: count,
-      verdict: count === null ? "BRIDGE_ERROR" : "TOKEN_VALID",
-      detail: count === null
-        ? "Bridge answered but the payload shape was unexpected."
-        : `Token accepted. Trading accounts linked to the bridge: ${count}.`,
-    });
-  } catch {
-    return NextResponse.json({
-      configured: true,
-      verdict: "BRIDGE_UNREACHABLE",
-      detail: "Couldn't reach the MetaApi bridge from this server. Retry shortly.",
-    });
+      verdict: s.status === "CONNECTED" ? "TOKEN_VALID" : s.status,
+      detail: s.detail,
+      ...(s.status === "CONNECTED" ? { currency: s.currency } : {}),
+    };
   }
+
+  // ── MetaApi (abandoned 2026-09-04 — kept dormant for the MT4/MT5 UI flow) ────
+  out.METAAPI = {
+    configured: Boolean(process.env.METAAPI_TOKEN),
+    verdict: process.env.METAAPI_TOKEN ? "UNKNOWN" : "RETIRED",
+    detail: "MetaApi path retired after token rejection + unreachable api.metaapi.cloud from production networks.",
+  };
+
+  return NextResponse.json(out);
 }
