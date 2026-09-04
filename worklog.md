@@ -217,3 +217,18 @@ Work Log:
 Stage Summary:
 - Decision: stop burning user patience on token pastes. Next user interaction = ONE GraphiQL test that discriminates both theories in 60 seconds from their browser.
 - Mission-critical reframe: Railway token was only my automation convenience. The real pending items all live on the user's side anyway: (1) open /status in browser → deploy verification, (2) OKX account on residential IP → keys, (3) keys into Railway Variables UI (or via me once token works). Nothing in the build is blocked on the token.
+
+---
+Task ID: 15-f (user reports "still 404")
+Agent: main (Super Z)
+Task: User still sees 404 on the app. Determine which 404 and hand the shortest self-fix.
+
+Work Log:
+- Re-probed both domains from sandbox: correct deeyoung-production → 429 "rate limited" (DC-egress edge block, unchanged); twin deyoung-site-production → 404 "Application not found" (dead service, unchanged). Relays: r.jina.ai → Turnstile CAPTCHA page; allorigins/codetabs → 522. Sandbox remains blind to the app.
+- 404 ambiguity persists: (a) stale build on correct domain (old build 74cc036 has no /status → 404; root would load) vs (b) user on dead twin domain (root itself 404s "Application not found").
+- Deployed a permanent discriminator: build marker block added to status-snapshot.ts (/api/engine/status JSON) + /status page footer — echoes RAILWAY_GIT_COMMIT_SHA (Railway-injected) + marker "engine-ui-v3". First 200 ever served from the new build instantly proves which commit is live. Local verify: build block present ({sha:null,source:local,marker:engine-ui-v3}).
+- Pushed b6b192f to main (8th push since the last confirmed-good deploy 74cc036 — every push has been a deploy trigger if auto-deploy is alive).
+
+Stage Summary:
+- User gets: exact correct URL (double-e dee-young), root-load test to distinguish wrong-domain vs stale-build, 30-second dashboard fix (Deeyoung → Deployments → Deploy Latest Commit), optional GraphiQL token test still on the table.
+- If stale-build confirmed: root cause is Railway auto-deploy not firing since 74cc036 — manual deploy button fixes it immediately; token (once working) lets me automate + verify from boot logs onward.
