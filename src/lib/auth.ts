@@ -71,6 +71,16 @@ export const auth = betterAuth({
         },
       }
     : {}),
+  // Account linking: a user who signed up with email+password can later "Continue
+  // with Google" on the SAME email and land in the same account (no duplicate rows,
+  // no "user already exists" wall). Google counts as a trusted provider because it
+  // returns verified emails only.
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24,

@@ -63,6 +63,14 @@ function digest(s: Record<string, unknown>): string {
     recentClosed: compactClosed(closed),
     books: s.books,
     venue: s.venue,
+    // Platform integrations the edge 429-wall hides from external probes — the
+    // running server reports its own runtime truth here every 15 minutes.
+    platform: {
+      googleAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      supportWidget: !!process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID,
+      billing: !!(process.env.PAYMENT_LINK_PRO || process.env.PAYMENT_LINK_STARTER || process.env.PAYMENT_LINK_ELITE),
+      adminList: (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean).length,
+    },
   };
   return JSON.stringify(out);
 }
