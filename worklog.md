@@ -827,3 +827,27 @@ Work Log:
 Stage Summary:
 - deyoungpro.site is LIVE: DNS propagated, verified, TLS valid, HTTPS redirect on, routing to the production deployment running the Twilio-style homepage.
 - www.deyoungpro.site BLOCKED by Hobby plan (1 custom domain per service). Options for owner: (a) upgrade Railway plan -> I add www via API in one command; (b) free Spaceship URL-forward www.deyoungpro.site -> https://deyoungpro.site; (c) leave apex only.
+
+---
+Task ID: 38
+Agent: Super Z (main)
+Task: Owner batch: moving chart behind campaign video, professional VO re-record, www free-forward steps, cross-market bot coverage, pro confluence gate, internet-verifying analyst, PostHog analytics routed to admin panel.
+
+Work Log:
+- Railway pairing verified: whoami = bluzsammy@gmail.com (device flow landed).
+- Moving chart restored: hero-scene.tsx (WebGL candlestick city) dynamically imported (ssr:false) into CampaignPanel as a pointer-events-none backdrop layer (-inset-y-16, opacity-60, vertical mask fade), video panel z-10 above it; verified 2 canvases live in browser, chart peeks above/below panel.
+- Voiceover: 3 premium TTS takes generated (jam 69.2s / kazi 77.9s / xiaochen 63.8s) from a rewritten professional script (118 words, no hype). Spliced jam take: loudnorm -16 LUFS, 4.2s lead-in, padded/trimmed to exactly 80s, video stream copied untouched (2400 frames verified), audio mean -21.5dB max -1.5dB. ffmpeg needed -nostdin in this sandbox (it was eating the wrapper's stdin and exiting 255 with a bogus interactive prompt).
+- Cross-market desk: NEW src/lib/engine/desk.ts (same deterministic 7-factor engine over 18 curated symbols: FX majors, metals, energy, indices, mega-cap stocks, crypto) with rotating cache (6 symbols/pass, 90s min gap, stale-first priority); NEW public GET /api/desk (s-maxage=120); landing engine-proof section gained the Cross-Market Playbook Desk strip (grouped chips per asset class, direction icons + scores, honest caption: research reads, ledger executes crypto). Verified in browser: FX EURUSD 45, XAUUSD 36, MSFT 28, BTCUSD 47 etc.
+- Engine pro gate: runner GATE_CONFLUENCE=4 - entries now additionally require >=4 of 7 technical factors aligned (denied counted as scanStats.denied["CONFLUENCE"], telemetry honest). One constant to revert.
+- Analyst upgrade: 6-playbook deterministic battery (Trend/Momentum/Mean-reversion/Breakout/Liquidity/Structure with numeric notes + swing-point structure detection) + live web verification via z-ai web_search (recency 7d, 12s timeout, fail-open). System prompt now mandates cross-playbook reconciliation (>=3 conflicts forces NEUTRAL <40 conviction) and host-only citation of web headlines (anti-fabrication clamps unchanged). Response exposes playbooks + webIntel.
+- PostHog: posthog-node installed; NEW src/lib/analytics.ts (client track, env-gated no-op without key); captures: signup_completed, login_completed (auth-view), checkout_opened (landing pricing), analyst_query (trade-desk), broker_connected (settings Deriv + MT bridge); NEW src/lib/posthog-server.ts + payment_verified capture in billing order PAID branch; NEW /api/admin/analytics (requireAdmin; DB truth layer always: users by plan, signups 7d, verified USDT payments USD sum, AI calls; PostHog layer: top events 7d, pageview trend, distinct users, honest not-configured state) + NEW admin AnalyticsTab with DB stats, pageview bars, event table; console wired with Analytics tab (BarChart3).
+- tsc: src clean (0 errors). Build exit 0. Local fresh-server verified: homepage renders, /api/desk 200 with real reads, strip renders (case-sensitive innerText trap: qe-label uppercases text), WebGL canvas live.
+- Deployed: commit 68fb103 pushed (includes package-lock.json for posthog-node; public/ad-film.mp4 force-added over gitignore).
+- Production pre-push state confirmed via ntfy: b7aff71 ACTIVE, equity 9971.9 preserved (early-morning 0f7c97f/1ac1a6c digests were the old anomaly window, not current).
+
+Stage Summary:
+- Homepage: Twilio layout now with living chart depth behind the campaign panel + cross-market desk proof strip (non-crypto visitors see FX/gold/index reads).
+- Film: professional British VO replaces the sloppy track; owner can still swap in a self-recorded take by sending an audio file (splice pipeline saved at scripts/vo_splice.sh, takes at scripts/vo_*.wav).
+- Bot: confluence-gated like a desk (4-of-7 aligned factors), analyst audits all 6 playbooks and verifies against the live web when users ask.
+- Analytics: PostHog activates the moment NEXT_PUBLIC_POSTHOG_KEY (+ POSTHOG_API_KEY for the admin panel) land in Railway; admin Control Room gains the Analytics tab either way (DB layer live immediately).
+- Pending: deploy verification of 68fb103 via ntfy; www.deyoungpro.site free Spaceship URL-forward steps handed to owner; PostHog keys from owner.
