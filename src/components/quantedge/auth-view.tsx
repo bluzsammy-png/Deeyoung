@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, KeyRound, Loader2, LockKeyhole, MailCheck, MailWarning, ShieldCheck } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { track } from "@/lib/analytics";
 import { EdgeMark } from "@/components/quantedge/landing";
 
 type Mode = "signin" | "signup" | "forgot" | "reset";
@@ -147,6 +148,8 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           } else {
             fail(err.message || "Couldn't create your account. Check your details and retry.");
           }
+        } else {
+          track("signup_completed", { method: "email" });
         }
       } else if (mode === "signin") {
         const { error: err } = await authClient.signIn.email({ email: email.trim(), password });
@@ -157,6 +160,8 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           } else {
             fail("No account matches that email and password. Double-check both, or create an account in 20 seconds.", "signup");
           }
+        } else {
+          track("login_completed", { method: "email" });
         }
       } else if (mode === "forgot") {
         // Always returns success (no account enumeration).

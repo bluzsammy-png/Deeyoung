@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight, Bot, Loader2, Minus, RefreshCw, Send, ShieldAlert } from "lucide-react";
 import { DataBadge, SectionHead } from "@/components/quantedge/ui-bits";
+import { track } from "@/lib/analytics";
 import { SymbolSearch } from "@/components/quantedge/symbol-search";
 import { fmtInstrument } from "@/lib/format";
 import type { Quote } from "@/lib/types";
@@ -91,6 +92,7 @@ export function TradeDeskView() {
         if (json.plan) setResult(json);
       } else {
         setResult(json);
+        track("analyst_query", { symbol, source: json.source ?? null });
       }
     } catch {
       setError("Couldn't reach the Trade Desk. Check your connection and retry.");

@@ -8,6 +8,7 @@ import { toast, useToast } from "@/hooks/use-toast";
 import { CreditCard, KeyRound, Plug, Plus, ShieldCheck } from "lucide-react";
 import { SectionHead, InfoTip } from "@/components/quantedge/ui-bits";
 import { useApp } from "@/lib/store";
+import { track } from "@/lib/analytics";
 import { authClient, type SessionUser } from "@/lib/auth-client";
 import { effectivePlan } from "@/lib/entitlements";
 import { BillingModal } from "@/components/quantedge/billing-modal";
@@ -464,6 +465,7 @@ function DerivCard() {
         toast({ title: "Deriv rejected that token", description: j.message ?? "Nothing was stored.", variant: "destructive" });
       } else {
         toast({ title: "Deriv connected", description: j.message ?? "Verified by reading your account." });
+        track("broker_connected", { platform: "DERIV" });
         setAdding(false);
         setApiToken("");
         load();
@@ -550,6 +552,7 @@ function MtBridgeCard() {
         toast({ title: "Could not issue a bridge key", description: j.message ?? "Retry in a moment.", variant: "destructive" });
       } else {
         setIssued({ token: j.bridgeToken, mq5: j.ea.mq5, mq4: j.ea.mq4 });
+        track("broker_connected", { platform });
         setAdding(false);
         setLabel(""); setServer(""); setLogin("");
         load();

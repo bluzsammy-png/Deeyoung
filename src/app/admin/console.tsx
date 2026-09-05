@@ -7,13 +7,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Activity, Ban, Bot, CheckCircle2, Cpu, Database, Gauge, Loader2, LogOut, MessageCircle, PauseCircle,
+  Activity, Ban, BarChart3, Bot, CheckCircle2, Cpu, Database, Gauge, Loader2, LogOut, MessageCircle, PauseCircle,
   Play, RefreshCw, ShieldAlert, ShieldCheck, Users as UsersIcon, Wallet, XCircle,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { SupportTab } from "./support-tab";
 import { BillingTab } from "./billing-tab";
+import { AnalyticsTab } from "./analytics-tab";
 
 // ── types (mirrors /api/admin/engine + /api/admin/users) ──
 interface Snapshot {
@@ -163,7 +164,7 @@ export function AdminForbidden({ reason }: { reason: string }) {
 
 export function AdminConsole({ adminEmail }: { adminEmail: string }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "engine" | "users" | "support" | "billing">("overview");
+  const [tab, setTab] = useState<"overview" | "engine" | "users" | "support" | "billing" | "analytics">("overview");
   const [data, setData] = useState<EnginePayload | null>(null);
   const [users, setUsers] = useState<UsersPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -205,6 +206,7 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
     { id: "engine" as const, label: "Engine", icon: Cpu },
     { id: "users" as const, label: "Users", icon: UsersIcon },
     { id: "billing" as const, label: "Billing", icon: Wallet },
+    { id: "analytics" as const, label: "Analytics", icon: BarChart3 },
     { id: "support" as const, label: "Support", icon: MessageCircle },
   ];
 
@@ -251,6 +253,8 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
         <SupportTab />
       ) : tab === "billing" ? (
         <BillingTab />
+      ) : tab === "analytics" ? (
+        <AnalyticsTab />
       ) : (
         <UsersTab users={users} onChanged={loadUsers} />
       )}

@@ -8,12 +8,14 @@
 //   ✓ Legal (ToS/Privacy/Refund) + support: deyongsltd@gmail.com
 
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, Gauge, Mail, Play,
-  Plus, Radar, ShieldCheck, Sparkles, TrendingUp,
+  Plus, Radar, ShieldCheck, Sparkles, TrendingDown, TrendingUp, Minus, TrendingUp as TrendIcon,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
+import { track } from "@/lib/analytics";
 import { DataBadge, Price, Pct } from "@/components/quantedge/ui-bits";
 import { Sparkline } from "@/components/quantedge/charts/core";
 import { AuroraBackdrop } from "@/components/quantedge/charts/aurora";
@@ -22,6 +24,10 @@ import { MediaKitModal } from "@/components/quantedge/media-kit";
 import { MEDIA_KIT_ENABLED } from "@/lib/kit";
 import { TiltCard } from "@/components/quantedge/three/tilt-card";
 import { EdgeMark } from "@/components/quantedge/edge-mark";
+
+// The moving market chart (WebGL candlestick city) — loaded lazily so it never
+// delays first paint, rendered BEHIND the campaign panel as living depth.
+const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"), { ssr: false });
 import { TIERS, CURRENCY_SYMBOL, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
 import { universeSymbols } from "@/lib/providers/market";
 import type { Quote } from "@/lib/types";
@@ -57,7 +63,7 @@ function HeroFilmCard() {
   );
 }
 
-/** Full-bleed cinematic brand panel, Twilio platform-story placement: ambient muted loop with the campaign headline overlaid left. */
+/** Full-bleed cinematic brand panel, Twilio platform-story placement: ambient muted loop with the campaign headline overlaid left. The moving market chart breathes behind the panel. */
 function CampaignPanel() {
   const vidRef = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
@@ -67,7 +73,14 @@ function CampaignPanel() {
   }, []);
   return (
     <section className="relative z-10 mt-2 px-2 sm:px-2.5">
-      <div className="relative h-[360px] w-full overflow-hidden rounded-2xl sm:h-[460px] lg:h-[560px]">
+      {/* moving market chart — peeks above and below the panel, melts at the edges */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-y-16 inset-x-0 z-0 opacity-60 [mask-image:linear-gradient(to_bottom,transparent,black_22%,black_78%,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_22%,black_78%,transparent)]"
+      >
+        <HeroScene />
+      </div>
+      <div className="relative z-10 h-[360px] w-full overflow-hidden rounded-2xl shadow-[0_36px_110px_-30px_rgba(0,0,0,0.9)] sm:h-[460px] lg:h-[560px]">
         <video
           ref={vidRef}
           autoPlay
@@ -96,6 +109,79 @@ function CampaignPanel() {
 
 const TICKERS = ["XAUUSD", "EURUSD", "NVDA", "AAPL", "MSFT", "TSLA", "GBPUSD", "META", "USDJPY", "SPY"];
 const SUPPORT_EMAIL = "deyongsltd@gmail.com";
+
+interface DeskRead {
+  symbol: string; name: string; assetClass: string;
+  direction: "LONG" | "SHORT" | "NEUTRAL"; score: number; rr: number;
+  entry: number; stop: number; target: number; dataState: string; computedAt: number;
+}
+
+/** Cross-market playbook desk: the same factor engine, read across FX, metals, energy, indices and stocks. Real computed reads only; missing symbols stay absent. */
+function DeskStrip() {
+  const [desk, setDesk] = useState<DeskRead[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await fetch("/api/desk", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (alive && Array.isArray(j.desk)) {
+          setDesk(j.desk);
+          setUpdatedAt(j.updatedAt ?? null);
+        }
+      } catch { /* honest silence until data returns */ }
+    };
+    load();
+    const iv = setInterval(load, 180_000);
+    return () => { alive = false; clearInterval(iv); };
+  }, []);
+  if (!desk.length) return null;
+  const groups: Array<{ label: string; match: (a: string) => boolean }> = [
+    { label: "FX", match: (a) => a === "FX" },
+    { label: "Metals & Energy", match: (a) => a === "METAL" || a === "ENERGY" },
+    { label: "Indices", match: (a) => a === "INDEX" },
+    { label: "Stocks", match: (a) => a === "EQUITY" },
+    { label: "Crypto", match: (a) => a === "CRYPTO" },
+  ];
+  const tone = (d: DeskRead["direction"]) => d === "LONG" ? "text-pos" : d === "SHORT" ? "text-neg" : "text-muted-foreground";
+  const Icon = (d: DeskRead["direction"]) => d === "LONG" ? TrendingUp : d === "SHORT" ? TrendingDown : Minus;
+  return (
+    <div className="mt-4 rounded-xl border border-hairline bg-panel-2 px-4 py-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="qe-label text-brand-hi"><TrendIcon className="mr-1 inline h-3.5 w-3.5" /> Cross-market playbook desk · live reads</p>
+        <p className="text-[10px] text-muted-foreground">
+          {updatedAt ? `computed ${Math.max(1, Math.round((Date.now() - updatedAt) / 60000))} min ago` : "computing"}
+        </p>
+      </div>
+      <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
+        {groups.map((g) => {
+          const rows = desk.filter((d) => g.match(d.assetClass));
+          if (!rows.length) return null;
+          return (
+            <div key={g.label} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{g.label}</span>
+              {rows.map((d) => {
+                const I = Icon(d.direction);
+                return (
+                  <span key={d.symbol} className="inline-flex items-center gap-1 text-[11px]">
+                    <I className={`h-3 w-3 ${tone(d.direction)}`} />
+                    <b className="qe-num font-semibold text-foreground/90">{d.symbol}</b>
+                    <span className={`qe-num font-bold ${tone(d.direction)}`}>{d.score}</span>
+                  </span>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2.5 border-t border-hairline pt-2 text-[10px] leading-relaxed text-muted-foreground">
+        The same 7-factor engine, run across 18 markets in 5 asset classes. The public paper ledger executes crypto majors; FX, metals, index and stock reads publish live so every plan can audit cross-market coverage. Research reads, not trade calls.
+      </p>
+    </div>
+  );
+}
 
 /** Location-aware pricing currency: auto-detected, manually overridable, persisted. */
 function usePricingCurrency(): [CurrencyCode, (c: CurrencyCode) => void] {
@@ -411,6 +497,9 @@ export function Landing() {
               <span>worst 10-trade stretch: <b className="qe-num text-foreground">6 wins</b></span>
               <span className="text-warn">Backtest ≠ promise: the live ledger above is the only record that counts.</span>
             </div>
+
+            {/* cross-market playbook desk — FX, metals, indices, stocks, crypto */}
+            <DeskStrip />
           </div>
         </div>
       </section>
@@ -628,6 +717,7 @@ export function Landing() {
                   </ul>
                   <a
                     href={`/checkout/${tier.key.toLowerCase()}`}
+                    onClick={() => track("checkout_opened", { tier: tier.key, currency: ccy, surface: "landing" })}
                     className={`qe-btn mt-5 w-full py-2.5 text-sm ${
                       tier.popular ? "qe-btn-primary" : "qe-btn-ghost"
                     }`}

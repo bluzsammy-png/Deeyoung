@@ -202,6 +202,14 @@ export const PATCH = withGuard(async (req: Request, { user }) => {
       data: { status: "PAID", paidAt: new Date(), provider: "USDT_TRC20" },
     });
     await db.user.update({ where: { id: order.userId }, data: { plan: order.tier } });
+    // product analytics: a real payment just landed (fire-and-forget, never blocks)
+    void import("@/lib/posthog-server").then((m) =>
+      m.captureServer("payment_verified", order.userId, {
+        tier: order.tier,
+        provider: "USDT_TRC20",
+        amountUsd: result.amount ?? null,
+      }),
+    ).catch(() => undefined);
     await db.auditEvent.create({
       data: {
         userId: user.id,

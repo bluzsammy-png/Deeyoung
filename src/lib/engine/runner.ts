@@ -36,6 +36,12 @@ const NOTIONAL = 1_000;      // 10% of the paper account per trade — risk-boun
 const TIME_STOP_MIN = 720;   // 12h — signal half-life is hours, not minutes
 const BTC_FILTER = true;     // longs only while BTC > its 60m EMA20 (regime gate)
 const COOLDOWN_MS = 30 * 60_000;
+// PRO CONFLUENCE GATE (owner directive: trade like a professional, not a signal
+// spammer): an entry needs at least 4 of the 7 technical factors pointing the
+// same way. 3 or fewer = a conflicted chart; the desk stays flat. One constant
+// to revert. Denied entries count in scanStats.denied["CONFLUENCE"] so the
+// telemetry keeps answering "why no trades" honestly.
+const GATE_CONFLUENCE = 4;
 const POLL_MS = 15_000;
 const SCAN_STRIDE_MS = 120_000;
 const SEED_PACE_MS = 1_000;
@@ -312,6 +318,9 @@ async function loopBody(
             scanStats.cross[gate] = (scanStats.cross[gate] ?? 0) + 1;
             liveScan.crossSinceBoot[gate] = (liveScan.crossSinceBoot[gate] ?? 0) + 1;
             if (BTC_FILTER && !btcUp) { noteDenied(["BTC_REGIME"]); continue; }
+            // professional confluence: factors must agree before money moves
+            const aligned = sig.factors.filter((f) => f.contribution > 0).length;
+            if (aligned < GATE_CONFLUENCE) { noteDenied(["CONFLUENCE"]); continue; }
             const bookKey = `${gate}_${h}_${sym}`;
             if (open.has(bookKey)) continue;
 
