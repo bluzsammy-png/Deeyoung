@@ -63,6 +63,7 @@ function digest(s: Record<string, unknown>, scan: Record<string, unknown> | null
     recentClosed: compactClosed(closed),
     books: s.books,
     venue: s.venue,
+    brokerMirror: s.brokerMirror ?? null,
     // Platform integrations the edge 429-wall hides from external probes — the
     // running server reports its own runtime truth here every 15 minutes.
     platform: {
