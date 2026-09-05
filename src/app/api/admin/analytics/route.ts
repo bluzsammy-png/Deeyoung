@@ -28,7 +28,10 @@ async function fetchPosthog(): Promise<PosthogPayload> {
       note: "PostHog is not connected yet. In Railway add NEXT_PUBLIC_POSTHOG_KEY (the PostHog Project API key, starts with phc_) to activate event capture, and POSTHOG_API_KEY (a PostHog Personal API key, starts with phx_) to power this panel. Client events already capture pageviews, signups, checkouts, payments, analyst queries and broker connections once the project key is live.",
     };
   }
-  const host = (process.env.POSTHOG_HOST || "https://us.i.posthog.com").replace(/\/$/, "");
+  // REST API host: the ingestion proxy (us.i.posthog.com) serves /events/ but
+  // 403s on /insights/trend/ (verified live) — REST reads must go through the
+  // API host. POSTHOG_HOST stays the ingestion host used by posthog-server.ts.
+  const host = (process.env.POSTHOG_API_HOST || "https://us.posthog.com").replace(/\/$/, "");
   const headers = { Authorization: `Bearer ${key}` };
   const after = new Date(Date.now() - 7 * 86_400_000).toISOString();
 

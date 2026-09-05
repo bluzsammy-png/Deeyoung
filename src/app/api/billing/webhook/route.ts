@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
+import { captureServer } from "@/lib/posthog-server";
 
 export const dynamic = "force-dynamic";
 
@@ -74,9 +75,14 @@ export async function POST(req: Request) {
   const row = await db.user.update({
     where: { email: email.toLowerCase() },
     data: { plan },
-    select: { email: true, plan: true },
+    select: { email: true, plan: true, id: true },
   }).catch(() => null);
   if (!row) return NextResponse.json({ error: "user not found for email" }, { status: 404 });
+
+  // analytics: webhook-paid upgrade (Cryptomus/LemonSqueezy rails). The USDT
+  // on-chain verification flow captures its own payment_verified event —
+  // different rails, no double counting. Fire-and-forget, never throws.
+  void captureServer("plan_upgrade", row.id, { email: row.email, plan: row.plan });
 
   return NextResponse.json({ ok: true, email: row.email, plan: row.plan });
 }

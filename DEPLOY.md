@@ -103,8 +103,11 @@ bypasses RLS — exactly what we want.)
 | `AGENTMAIL_INBOX` | optional | Sending inbox, e.g. `deeyoungsltd@agentmail.to`. Defaults to your org's first inbox |
 | `RESEND_API_KEY` | launch | When set, **email verification becomes required** + reset mails work. Get a free key at resend.com |
 | `EMAIL_FROM` | launch | `"DeeYoung <no-reply@yourdomain.com>"` after verifying your domain in Resend |
-| `NEXT_PUBLIC_POSTHOG_KEY` | recommended | PostHog project key |
-| `NEXT_PUBLIC_POSTHOG_HOST` | optional | `https://eu.i.posthog.com` or `us…` |
+| `NEXT_PUBLIC_POSTHOG_KEY` | recommended | PostHog project key (`phc_…`). Activates ALL event capture (client + server) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | optional | Ingestion host: `https://us.i.posthog.com` (default) or `https://eu.i.posthog.com` |
+| `POSTHOG_HOST` | optional | Ingestion host for server-side capture (posthog-node). Same value as NEXT_PUBLIC_POSTHOG_HOST |
+| `POSTHOG_API_KEY` | recommended | Personal API key (`phx_…`). Server-only — powers the admin Analytics tab. NEVER a `NEXT_PUBLIC_` var |
+| `POSTHOG_API_HOST` | optional | REST API host for admin reads: `https://us.posthog.com` (default). Do NOT point this at the `us.i.` ingestion proxy — it 403s on trend endpoints |
 | `TURNSTILE_SECRET_KEY` | launch | Free bot protection — get keys at dash.cloudflare.com |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | launch | Pairs with the secret |
 | `NEXT_PUBLIC_APP_URL` | optional | Canonical URL for metadata |
@@ -134,11 +137,39 @@ Admin access: any email in `ADMIN_EMAILS` gets `role=ADMIN` at signup →
 
 ---
 
-## 5. PostHog (analytics)
+## 5. PostHog (analytics) — keys issued, activation is configuration only
 
-1. Create a project at posthog.com (EU or US cloud — free tier is generous).
-2. Copy the project API key into `NEXT_PUBLIC_POSTHOG_KEY` on Railway and redeploy.
-3. Session replay + funnels can be enabled later from the PostHog dashboard.
+The PostHog project exists (US cloud, project id `595377`), both key types are
+issued and both were verified live (ingestion read-back + REST query). What
+remains is pure configuration on Railway:
+
+1. Open Railway → your service → **Variables**.
+2. Add these five variables:
+
+   | Variable | Value |
+   |---|---|
+   | `NEXT_PUBLIC_POSTHOG_KEY` | `phc_…` (Project API key, PostHog → Settings → Project) |
+   | `NEXT_PUBLIC_POSTHOG_HOST` | `https://us.i.posthog.com` |
+   | `POSTHOG_HOST` | `https://us.i.posthog.com` |
+   | `POSTHOG_API_KEY` | `phx_…` (Personal API key, PostHog → Settings → Personal API keys) |
+   | `POSTHOG_API_HOST` | `https://us.posthog.com` |
+
+3. Redeploy (Railway auto-redeploys on variable change).
+4. Verify: open the site, click around, then PostHog → Activity shows
+   `$pageview` events within a minute. The admin **Analytics** tab at `/admin`
+   flips from the setup card to live data.
+
+What is wired once activated:
+
+- Client: `$pageview` on every route change (SPA-aware), signed-in users identified by real user id (email + plan), plus `signup_completed`, `login_completed`, `checkout_opened`, `analyst_query`, `broker_connected` via the `track()` helper.
+- Server: `payment_verified` on USDT on-chain verification, `plan_upgrade` on webhook-paid billing callbacks (Cryptomus/Lemon Squeezy). All fire-and-forget; analytics can never break billing or auth.
+- Admin Analytics tab: two honest layers — platform DB truth (users by plan, signups, verified USDT payments, AI calls) always visible; PostHog layer (top events 7d, 7-day pageview trend, distinct users) live once `POSTHOG_API_KEY` is set.
+- Session replay + funnels can be enabled later from the PostHog dashboard (Settings → Session replay).
+
+Security note: the `phx_` personal key is read **only** inside the server route
+(`/api/admin/analytics`) from env. It is never bundled into client JS and never
+sent to a browser. Only the public `phc_` ingestion key reaches the browser,
+which is its designed purpose.
 
 ---
 
