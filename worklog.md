@@ -462,3 +462,21 @@ Stage Summary:
 - /status was telling the truth; the bug was arithmetic, not the UI or DB.
 - Success rate answer: no closed trades yet → win rate UNDEFINED, PnL $0, equity $10k — reported honestly, no invented numbers.
 - Production telemetry channel now permanent: deploy status, ledger, feed, venue all observable from sandbox without pairing.
+
+---
+Task ID: 24 (pairing landed — full production sweep verified)
+Agent: main (Super Z)
+
+Work Log:
+- User clicked pairing (GWKH-FZQJ, 47s response). ~/.railway/config.json restored; railway link re-established (project/service/env pinned). whoami = bluzsammy@gmail.com.
+- Sandbox had reset AGAIN (CLI gone, loop dead) — rebuilt: npm i -g @railway/cli --prefix /home/z/.npm-global (5.49.2); single-shot pairing script scripts/railway_pair_once.sh spawned via /api/dev-pair GET immune tree (route is GET, not POST).
+- GraphQL: Query.deployments takes input: DeploymentListInput! (fields: environmentId, serviceId, projectId, includeDeleted, status — NO limit/first; slice client-side). scripts/rw_deployments.py.
+- Deployments: a015baf2 (0f7c97f gate fix) SUCCESS + LIVE @03:49:14Z; older deploys REMOVED (superseded).
+- Boot log verified: Prisma postgres in sync, Ready 68ms, PAPER bridge OPERATIONAL, TWELVEDATA 429 at boot (free-plan cap; engine fell back to Binance for all seeds — 1000 bars each, feed=clean), OKX SIMULATOR armed + KEYS_VALID (28ms), telemetry armed, both ntfy publishes HTTP 200, engine cycles 1→45+ equity=$10000 open=0 closed=0.
+- Variables audit: TWELVEDATA_API_KEY set, EXECUTION_VENUE=okx-demo, ADMIN_EMAILS=deyoungsltd@agentmail.to, OKX sim wired, ENGINE/TELEMETRY enabled.
+- No [engine] OPEN yet as of sweep (gate-55 windows are momentum-dependent; standing watch via 15-min telemetry digests + on-demand railway logs).
+
+Stage Summary:
+- Full observability restored: deployment status, boot logs, live logs, variables — all on demand.
+- Everything previously shipped (feed fix, /admin, dashboard strip, EngineControl, telemetry) CONFIRMED live in production.
+- Ledger still empty (expected — gates were unreachable until 03:49 today); first entries now possible, watching.
