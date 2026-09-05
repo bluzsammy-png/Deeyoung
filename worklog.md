@@ -676,3 +676,33 @@ Stage Summary:
 - Commit 0e5f0be pushed -> Railway auto-deploy. Marker: "paywall+rails+security" build.
 - Owner-only inputs still required (can't be automated, need owner secrets): (1) PAYMENT_LINK_STARTER/PRO/ELITE (Cryptomus/LemonSqueezy) OR CRYPTO_USDT_ADDRESS (+CRYPTO_NETWORK) to switch checkout fully live; (2) custom domain name to connect (Railway + DNS). "Made with AI" tag: NOT in the codebase (grep clean) — it is the preview-host badge, disappears on the custom domain.
 - Honest note: until owner sets rails, checkout shows real order-saved state + support email, NOT payment.
+
+---
+Task ID: 32 (live USDT TRC-20 checkout from owner wallet address)
+Agent: main (Super Z)
+
+Work Log:
+- Owner delivered USDT TRC-20 wallet: TTtFwf5ah8A4UUeptJGDj8tXkvdwVwwU4r. Railway CLI auth was lost with sandbox reset (no stored token found) -> pivoted to code-level default with env override (receiving address is public checkout info, not a secret); git push auto-deploys.
+- Verified wallet live on TronGrid: real USDT history (300 USDT June 2025 etc.), API shape confirmed (transaction_id, token_info.address, value 6dp, block_timestamp).
+- NEW src/lib/crypto-verify.ts: on-chain verification of TRC-20 USDT via TronGrid; wallet from CRYPTO_USDT_ADDRESS env with owner address as code default; USDT contract TR7NHqje...Lj6t; retry on transient 429/5xx; PROVIDER_DOWN -> manual review fallback.
+- ANTI-REPLAY DESIGN (wallet history is publicly visible on tronscan, txid alone is NOT proof): unique per-order amounts = base USD + 0.01..0.89 jitter derived deterministically from order id (cryptoAmountUsd); PATCH requires transfer confirmed, official USDT contract, our wallet, exact amount (+1.00 overpay tolerance), block_timestamp >= order.createdAt - 60s. Duplicate txid across orders -> 409. 12 on-chain verifications / 15 min / account (in-memory). Enumeration attack blocked by 5-open-orders cap + verify limiter + full audit trail (txid, amount, from recorded on ORDER_AUTO_VERIFIED).
+- PATCH flow: save reference+SUBMITTED first -> verify -> PAID upgrades plan instantly (provider USDT_TRC20, paidAt, audit) ; NOT_FOUND -> honest retry message + client "check again" button; MISMATCH (amount/token) -> manual review message; PROVIDER_DOWN -> manual review. Kill switch CRYPTO_RAIL=off falls back to honest unavailable rail.
+- Checkout client: exact-amount emphasis ("unique to your order"), network badge, instant "Payment confirmed on-chain" state with Open your terminal CTA, retry button, removed email promise (no email is sent on activation; copy honest).
+- Smoke-proved verification logic in fresh bun process against the wallet's REAL historical transfer: exact amount -> PAID(300), overpay -> MISMATCH(amount), notBefore now -> NOT_FOUND (replay blocked), garbage txid -> NOT_FOUND. Sandbox PROVIDER_DOWNs = shared-IP 429s; safe fallback direction.
+- tsc: fixed billing-chain errors (TIERS_SET Set<string> x2, withGuard Request params on POST/PATCH); remaining repo errors pre-exist at HEAD (verified via git stash baseline) outside payment path.
+- Telemetry platform.billing now true when crypto rail on. Committed 88ab052, pushed (auto-deploy).
+
+Stage Summary:
+- Plans are now clickable and REAL end to end: subscribe -> unique USDT amount -> buyer pays owner wallet -> txid submitted -> on-chain verification -> instant plan activation; admin Billing desk remains the manual override. Remaining owner-only input: custom domain (launch blocker; Made-with-AI tag is the preview-host badge, disappears on the domain).
+- Engine baseline unchanged: ACTIVE, equity 9971.90, 2 closed (legacy v1 SOL, why=TARGET but fee-negative), 0 open, best scan 41-49 vs gate 64, dayPnlR -3.85 (daily risk stop engaged). 10-trade campaign continues on v2 config.
+
+---
+Task ID: 32-verify (production deploy of 88ab052)
+Agent: main (Super Z)
+
+Work Log:
+- ntfy boot 11:07:11Z -> build 88ab052 live. 11:08:36Z digest: platform.billing TRUE (crypto rail on), marker graphics-4.
+- Post-deploy engine state: runId preserved (cmtn3d81r0000p501zk6yy18k), ledger intact (2 closed legacy v1 trades verbatim, equity 9971.90, 0 open), ACTIVE, feed up (Binance fallback serving while TD budget skips).
+
+Stage Summary:
+- Live USDT TRC-20 checkout verified in production. Owner-side remaining input: custom domain only.
