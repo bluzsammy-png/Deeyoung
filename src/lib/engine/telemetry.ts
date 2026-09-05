@@ -109,7 +109,7 @@ async function tick() {
 // Pull the engine's live scan counters (accumulated since the last digest),
 // then reset the window. Dynamic import keeps the telemetry module loadable
 // without dragging the full runner graph into every entry point.
-async function scanSnapshot(): Promise<Record<string, unknown>> {
+async function scanSnapshot(): Promise<Record<string, unknown> | null> {
   try {
     const { scanStats } = await import("@/lib/engine/runner");
     const out = {
