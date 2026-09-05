@@ -706,3 +706,21 @@ Work Log:
 
 Stage Summary:
 - Live USDT TRC-20 checkout verified in production. Owner-side remaining input: custom domain only.
+
+---
+Task ID: 33 (per-user broker go-live: connect API -> verified -> auto live)
+Agent: main (Super Z)
+
+Work Log:
+- Owner directive: paper stays default; when a USER connects their broker, the platform reads that API and goes live for them automatically.
+- Explored execution stack: adapters existed (alpaca/bybit/oanda/binance-testnet/okx) but were GLOBAL-env only; BrokerLink model existed for MT4/MT5 via abandoned MetaApi bridge; user execution paths = /api/approvals (SENTINEL) + /api/trades (manual), both getExecutionProvider(account.broker).
+- Threaded optional per-call creds through alpaca (incl. new alpacaGetOrder fill confirmation), binance-testnet (+LIVE base), bybit (upgraded existing bybitMarketOrder: creds + TP/SL kept + broker fill confirmation), oanda (creds + fillPrice in orderFillTransaction).
+- NEW src/lib/brokers/user-venue.ts: resolveUserVenue (latest CONNECTED+FULL link, AES-GCM decrypt, fail-closed to paper) + verifyPlatformAccount (read account with user keys BEFORE storing anything) + executeUserOrder (per-platform dispatch; fills recorded ONLY at broker-confirmed prices; unconfirmed -> honest REJECTED without touching position book; symbol-class enforcement FX/crypto/equity per venue; symbol maps SOLUSD->SOL/USD, SOLUSDT, EUR_USD - verified via bun smoke, caught and fixed a lookahead-regex bug that produced SOLUSDUSDT).
+- /api/brokers rewritten: direct platforms verified on save (nothing stored on rejection), env field (PAPER/LIVE etc), INVESTOR=read-only vs FULL=live routing; MT4/MT5 legacy path intact.
+- approvals + trades routes now call executeUserOrder (market orders live-capable, LIMIT stays paper-honest); handlers typed Request (fixes pre-existing withGuard strictness errors in these files).
+- Settings: new Connect your broker card (platform chips, environment incl. LIVE real-money label, key/secret/token fields, read-only vs FULL toggle, live-routing badge, balance/equity snapshot); Broker picker copy updated.
+- Schema: BrokerLink +env +verifiedAt (both schemas), sqlite +bridgeAccountId parity; prisma db push at next boot is additive.
+- Landing copy: paper by default; verified broker keys route trades live through the user's own account. tsc clean on all touched files; commit 0ab4f4a pushed (auto-deploy).
+
+Stage Summary:
+- Product now matches the owner's model: paper default, per-user live execution the moment a broker is connected and verified. Owner engine unchanged (okx-demo). Deploy verification pending (telemetry boot).
