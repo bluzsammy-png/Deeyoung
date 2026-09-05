@@ -10,6 +10,13 @@
 
 export type OandaSide = "BUY" | "SELL";
 
+/** Per-user credentials (BYOK): when provided they override the server env. */
+export interface OandaCreds {
+  token: string;
+  accountId: string;
+  env: "PRACTICE" | "LIVE";
+}
+
 export interface OandaStatus {
   ok: boolean;
   status: "CONNECTED" | "PENDING_BRIDGE" | "ERROR";
@@ -23,17 +30,19 @@ export function oandaConfigured(): boolean {
   return Boolean(process.env.OANDA_TOKEN && process.env.OANDA_ACCOUNT_ID);
 }
 
-export function oandaBase(): string {
-  return process.env.OANDA_ENV === "live"
+export function oandaBase(c?: OandaCreds): string {
+  const env = c ? c.env : (process.env.OANDA_ENV === "live" ? "LIVE" : "PRACTICE");
+  return env === "LIVE"
     ? "https://api-fxtrade.oanda.com/v3"
     : "https://api-fxpractice.oanda.com/v3";
 }
 
-async function oandaFetch<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<{ ok: boolean; status: number; data: T | null; raw: string }> {
-  const res = await fetch(`${oandaBase()}${path}`, {
+async function oandaFetch<T>(path: string, init?: RequestInit & { timeoutMs?: number }, c?: OandaCreds): Promise<{ ok: boolean; status: number; data: T | null; raw: string }> {
+  const token = c ? c.token : (process.env.OANDA_TOKEN as string);
+  const res = await fetch(`${oandaBase(c)}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${process.env.OANDA_TOKEN as string}`,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
@@ -46,22 +55,22 @@ async function oandaFetch<T>(path: string, init?: RequestInit & { timeoutMs?: nu
 }
 
 /** Prove the token + account id by reading the live account summary. */
-export async function oandaAccountSummary(): Promise<OandaStatus> {
-  if (!oandaConfigured()) {
+export async function oandaAccountSummary(c?: OandaCreds): Promise<OandaStatus> {
+  if (!c && !oandaConfigured()) {
     return {
       ok: false, status: "PENDING_BRIDGE",
       detail: "Saved securely. Live FX execution activates when OANDA_TOKEN and OANDA_ACCOUNT_ID are configured on the server.",
     };
   }
-  const id = process.env.OANDA_ACCOUNT_ID as string;
-  const r = await oandaFetch<{ account?: { balance?: number; currency?: string; NAV?: number; unrealizedPL?: number } }>(`/accounts/${id}/summary`);
+  const id = c ? c.accountId : (process.env.OANDA_ACCOUNT_ID as string);
+  const r = await oandaFetch<{ account?: { balance?: number; currency?: string; NAV?: number; unrealizedPL?: number } }>(`/accounts/${id}/summary`, undefined, c);
   if (r.status === 401 || r.status === 403) return { ok: false, status: "ERROR", detail: "OANDA token rejected (401). Generate a fresh practice token (Manage API Access)." };
   if (r.status === 404) return { ok: false, status: "ERROR", detail: "OANDA account id not found (404). Check OANDA_ACCOUNT_ID — practice ids look like 101-001-1234567-001." };
   if (!r.ok || !r.data?.account) return { ok: false, status: "ERROR", detail: `OANDA answered ${r.status}. ${r.raw.slice(0, 120)}` };
   return {
     ok: true, status: "CONNECTED", accountId: id,
     balance: r.data.account.balance, currency: r.data.account.currency ?? "USD",
-    detail: `Connected to OANDA ${process.env.OANDA_ENV === "live" ? "LIVE" : "practice"} account ${id}.`,
+    detail: `Connected to OANDA ${c?.env === "LIVE" || (!c && process.env.OANDA_ENV === "live") ? "LIVE" : "practice"} account ${id}.`,
   };
 }
 
@@ -98,9 +107,10 @@ export function notionalToUnits(instrument: string, notionalUsd: number, mid: nu
 export async function oandaMarketOrder(
   instrument: string, side: OandaSide, units: number,
   stopLossPrice?: number, takeProfitPrice?: number, clientTag = "DEEYOUNG-PRO",
-): Promise<{ ok: boolean; detail: string; tradeId?: string }> {
-  if (!oandaConfigured()) return { ok: false, detail: "OANDA bridge not configured." };
-  const id = process.env.OANDA_ACCOUNT_ID as string;
+  c?: OandaCreds,
+): Promise<{ ok: boolean; detail: string; tradeId?: string; fillPrice?: number }> {
+  if (!c && !oandaConfigured()) return { ok: false, detail: "OANDA bridge not configured." };
+  const id = c ? c.accountId : (process.env.OANDA_ACCOUNT_ID as string);
   const signed = side === "BUY" ? Math.abs(units) : -Math.abs(units);
   const body: Record<string, unknown> = {
     order: {
@@ -115,15 +125,16 @@ export async function oandaMarketOrder(
   const order = body.order as Record<string, unknown>;
   if (stopLossPrice) order.stopLossOnFill = { price: stopLossPrice.toFixed(6), timeInForce: "GTC" };
   if (takeProfitPrice) order.takeProfitOnFill = { price: takeProfitPrice.toFixed(6), timeInForce: "GTC" };
-  const r = await oandaFetch<{ orderFillTransaction?: { id: string; tradeOpened?: { tradeID: string } }; orderRejectTransaction?: { reason: string } }>(
-    `/accounts/${id}/orders`, { method: "POST", body: JSON.stringify(body), timeoutMs: 20_000 },
+  const r = await oandaFetch<{ orderFillTransaction?: { id: string; price?: string; tradeOpened?: { tradeID: string } }; orderRejectTransaction?: { reason: string } }>(
+    `/accounts/${id}/orders`, { method: "POST", body: JSON.stringify(body), timeoutMs: 20_000 }, c,
   );
   if (!r.ok) {
     const reason = r.data?.orderRejectTransaction?.reason ?? r.raw.slice(0, 140);
     return { ok: false, detail: `OANDA rejected the order (${r.status}). ${reason}` };
   }
   const tradeId = r.data?.orderFillTransaction?.tradeOpened?.tradeID ?? r.data?.orderFillTransaction?.id;
-  return { ok: true, detail: `Market ${side} ${Math.abs(signed)} ${instrument} filled by OANDA.`, tradeId };
+  const fillPrice = r.data?.orderFillTransaction?.price ? +r.data.orderFillTransaction.price : undefined;
+  return { ok: true, detail: `Market ${side} ${Math.abs(signed)} ${instrument} filled by OANDA.`, tradeId, fillPrice };
 }
 
 /** Open positions snapshot for the account. */

@@ -411,11 +411,13 @@ model BrokerLink {
   credTag        String   // GCM auth tag (hex)
   mode           String   @default("INVESTOR") // INVESTOR (read-only) | FULL
   status         String   @default("PENDING_BRIDGE") // PENDING_BRIDGE | CONNECTED | ERROR
+  env            String   @default("PAPER") // ALPACA PAPER/LIVE, BINANCE TESTNET/LIVE, BYBIT DEMO/LIVE, OANDA PRACTICE/LIVE
   bridgeAccountId String?  // MetaApi cloud account id once provisioned
   statusDetail   String   @default("")
   currency       String   @default("USD")
   balance        Float?   // last known balance via bridge
   equity         Float?   // last known equity via bridge
+  verifiedAt     DateTime? // set when the broker API answered a read with the user's own keys
   lastCheckedAt  DateTime?
   createdAt      DateTime @default(now())
 

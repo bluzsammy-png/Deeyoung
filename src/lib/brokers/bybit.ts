@@ -18,6 +18,13 @@ import { createHmac } from "crypto";
 
 export type BybitSide = "Buy" | "Sell";
 
+/** Per-user credentials (BYOK): when provided they override the server env keys. */
+export interface BybitCreds {
+  key: string;
+  secret: string;
+  env: "DEMO" | "LIVE";
+}
+
 export interface BybitStatus {
   ok: boolean;
   status: "CONNECTED" | "PENDING_BRIDGE" | "ERROR";
@@ -55,16 +62,18 @@ async function bybitSigned<T>(
   method: "GET" | "POST",
   path: string,
   opts?: { query?: string; body?: Record<string, unknown>; timeoutMs?: number },
+  c?: BybitCreds,
 ): Promise<{ ok: boolean; httpStatus: number; retCode: number; retMsg: string; data: T | null; raw: string }> {
-  const key = process.env.BYBIT_API_KEY as string;
-  const secret = process.env.BYBIT_API_SECRET as string;
+  const key = c ? c.key : (process.env.BYBIT_API_KEY as string);
+  const secret = c ? c.secret : (process.env.BYBIT_API_SECRET as string);
   const ts = Date.now().toString();
   const recv = "20000";
   const payload = method === "GET" ? (opts?.query ?? "") : JSON.stringify(opts?.body ?? {});
   const sign = createHmac("sha256", secret).update(`${ts}${key}${recv}${payload}`).digest("hex");
+  const base = c ? (c.env === "LIVE" ? "https://api.bybit.com" : "https://api-demo.bybit.com") : bybitBase();
   const url = method === "GET"
-    ? `${bybitBase()}${path}${opts?.query ? `?${opts.query}` : ""}`
-    : `${bybitBase()}${path}`;
+    ? `${base}${path}${opts?.query ? `?${opts.query}` : ""}`
+    : `${base}${path}`;
   let res: Response;
   try {
     res = await fetch(url, {
@@ -98,15 +107,15 @@ async function bybitSigned<T>(
 }
 
 /** Prove the demo keys by reading the unified wallet balance. */
-export async function bybitAccountSummary(): Promise<BybitStatus> {
-  if (!bybitConfigured()) {
+export async function bybitAccountSummary(c?: BybitCreds): Promise<BybitStatus> {
+  if (!c && !bybitConfigured()) {
     return {
       ok: false, status: "PENDING_BRIDGE",
       detail: "Saved securely. Live demo execution activates when BYBIT_API_KEY and BYBIT_API_SECRET are configured on the server.",
     };
   }
   const r = await bybitSigned<{ list?: { totalEquity?: string; totalAvailableBalance?: string; accountType?: string }[] }>(
-    "GET", "/v5/account/wallet-balance", { query: "accountType=UNIFIED" },
+    "GET", "/v5/account/wallet-balance", { query: "accountType=UNIFIED" }, c,
   );
   if (r.retCode === 10003 || r.retCode === 10005 || r.httpStatus === 401 || r.httpStatus === 403) {
     return { ok: false, status: "ERROR", detail: "Bybit keys rejected (auth/permissions). Regenerate the key while in Demo Trading mode with Read + Contract permissions." };
@@ -118,7 +127,7 @@ export async function bybitAccountSummary(): Promise<BybitStatus> {
     ok: true, status: "CONNECTED", accountType: acct.accountType ?? "UNIFIED",
     equity: +((acct.totalEquity as string) ?? 0) || 0,
     available: +((acct.totalAvailableBalance as string) ?? 0) || 0,
-    detail: `Connected to Bybit ${bybitEnvLabel()} — unified account answering.`,
+    detail: `Connected to Bybit ${c ? (c.env === "LIVE" ? "LIVE" : "demo") : bybitEnvLabel()} — unified account answering.`,
   };
 }
 
@@ -154,12 +163,14 @@ export function roundToStep(qty: number, step: number): string {
   return stepped.toFixed(Math.min(decimals, 8));
 }
 
-/** Market order on USDT perps with attach TP/SL. qty is in BASE coin (marketUnit=baseCoin). */
+/** Market order on USDT perps with attach TP/SL. qty is in BASE coin (marketUnit=baseCoin).
+ *  Accepts per-user credentials; returns the broker-confirmed fill when available. */
 export async function bybitMarketOrder(
   symbol: string, side: BybitSide, qty: number,
   stopLossPrice?: number, takeProfitPrice?: number, clientTag = "DEEYOUNG-PRO",
-): Promise<{ ok: boolean; detail: string; orderId?: string }> {
-  if (!bybitConfigured()) return { ok: false, detail: "Bybit bridge not configured." };
+  c?: BybitCreds,
+): Promise<{ ok: boolean; detail: string; orderId?: string; avgFillPrice?: number; filledQty?: number }> {
+  if (!c && !bybitConfigured()) return { ok: false, detail: "Bybit bridge not configured." };
   const spec = await bybitInstrumentSpec(symbol);
   const step = spec?.qtyStep ?? 0.001;
   const qtyStr = roundToStep(qty, step);
@@ -177,9 +188,23 @@ export async function bybitMarketOrder(
   };
   if (stopLossPrice) body.stopLoss = stopLossPrice.toPrecision(10);
   if (takeProfitPrice) body.takeProfit = takeProfitPrice.toPrecision(10);
-  const r = await bybitSigned<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { body, timeoutMs: 20_000 });
+  const r = await bybitSigned<{ orderId?: string; orderLinkId?: string }>("POST", "/v5/order/create", { body, timeoutMs: 20_000 }, c);
   if (!r.ok) return { ok: false, detail: `Bybit rejected the order (retCode=${r.retCode}). ${r.retMsg.slice(0, 140)}` };
-  return { ok: true, detail: `Market ${side} ${qtyStr} ${symbol} accepted by Bybit ${bybitEnvLabel()}.`, orderId: r.data?.orderId };
+  // Bounded fill confirmation (market orders on linear usually fill at once).
+  const q = `category=linear&symbol=${symbol}${r.data?.orderId ? `&orderId=${r.data.orderId}` : ""}`;
+  const st = await bybitSigned<{ list?: { orderId: string; avgPrice?: string; cumExecQty?: string }[] }>(
+    "GET", "/v5/order/realtime", { query: q, timeoutMs: 10_000 }, c,
+  );
+  const row = st.data?.list?.find((x) => x.orderId === r.data?.orderId);
+  const avg = row?.avgPrice ? +row.avgPrice : undefined;
+  const filled = row?.cumExecQty ? +row.cumExecQty : undefined;
+  return {
+    ok: true,
+    detail: `Market ${side} ${qtyStr} ${symbol} accepted by Bybit ${c ? (c.env === "LIVE" ? "LIVE" : "demo") : bybitEnvLabel()}.`,
+    orderId: r.data?.orderId,
+    avgFillPrice: avg && avg > 0 ? avg : undefined,
+    filledQty: filled && filled > 0 ? filled : undefined,
+  };
 }
 
 /** Open USDT-perp positions snapshot. */

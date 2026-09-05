@@ -3,6 +3,7 @@ import { withGuard } from "@/lib/guard";
 import { parse } from "@/lib/sentinel";
 import { db } from "@/lib/db";
 import { getExecutionProvider, newRequestId } from "@/lib/providers/execution";
+import { executeUserOrder } from "@/lib/brokers/user-venue";
 import { marketProvider, UNIVERSE } from "@/lib/providers/market";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * Body: { symbol, side: BUY|SELL, qty, type?: MARKET|LIMIT, limitPrice?, requestId }
  * This is the user's own action — distinct from SENTINEL automation. Labeled simulated.
  */
-export const POST = withGuard(async (req: NextRequest, { user, account }) => {
+export const POST = withGuard(async (req: Request, { user, account }) => {
   const body = await req.json().catch(() => null);
   if (!body?.symbol || !["BUY", "SELL"].includes(body.side) || typeof body.qty !== "number" || body.qty <= 0) {
     return NextResponse.json({ error: "symbol, side (BUY|SELL), qty>0 required" }, { status: 400 });
@@ -34,12 +35,28 @@ export const POST = withGuard(async (req: NextRequest, { user, account }) => {
 
   const positions = await db.position.findMany({ where: { userId: user.id } });
   const currentQty = positions.find((p) => p.symbol === symbol)?.qty ?? 0;
-  const provider = getExecutionProvider(account.broker);
-  const exec = await provider.execute({
-    symbol, side: body.side, type: body.type === "LIMIT" ? "LIMIT" : "MARKET",
-    qty: body.qty, limitPrice: typeof body.limitPrice === "number" ? body.limitPrice : undefined,
-    quote, cashAvailable: account.cash, currentQty,
-  });
+  // Venue: the user's VERIFIED FULL broker routes this LIVE; otherwise paper.
+  // Live routing supports market orders; LIMIT stays paper-honest for now.
+  const liveType = body.type === "LIMIT" ? "LIMIT" : "MARKET";
+  const exec = liveType === "MARKET"
+    ? await executeUserOrder(user.id, {
+        symbol, side: body.side, qty: body.qty,
+        refPrice: quote.price, clientTag: "deeyoung-manual",
+      }, async (o) => {
+        const provider = getExecutionProvider(account.broker);
+        return provider.execute({
+          symbol: o.symbol, side: o.side, type: "MARKET", qty: o.qty,
+          quote, cashAvailable: account.cash, currentQty,
+        });
+      })
+    : await (async () => {
+        const provider = getExecutionProvider(account.broker);
+        return provider.execute({
+          symbol, side: body.side, type: "LIMIT" as const, qty: body.qty,
+          limitPrice: typeof body.limitPrice === "number" ? body.limitPrice : undefined,
+          quote, cashAvailable: account.cash, currentQty,
+        });
+      })();
 
   const order = await db.order.create({
     data: {

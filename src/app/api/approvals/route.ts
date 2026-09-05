@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { getExecutionProvider } from "@/lib/providers/execution";
+import { executeUserOrder } from "@/lib/brokers/user-venue";
 import { marketProvider } from "@/lib/providers/market";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  * Body: { approvalId, decision: "APPROVE" | "REJECT" }
  * Replay protection: approval status transitions are conditional (PENDING → decided exactly once §59).
  */
-export const POST = withGuard(async (req: NextRequest, { user }) => {
+export const POST = withGuard(async (req: Request, { user }) => {
   const body = await req.json().catch(() => null);
   if (!body?.approvalId || !["APPROVE", "REJECT"].includes(body.decision)) {
     return NextResponse.json({ error: "approvalId and decision (APPROVE|REJECT) required" }, { status: 400 });
@@ -52,10 +53,21 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
   const account = await db.paperAccount.findUnique({ where: { userId: user.id } });
   if (!account) return NextResponse.json({ error: "Account missing" }, { status: 500 });
   const quote = await marketProvider.getQuote(approval.symbol);
-  const provider = getExecutionProvider(account.broker);
-  const exec = await provider.execute({
-    symbol: approval.symbol, side: "BUY" as const, type: "MARKET", qty: approval.qty,
-    quote, cashAvailable: account.cash, currentQty: 0,
+  // Venue: the user's VERIFIED FULL broker routes this LIVE; otherwise paper.
+  const exec = await executeUserOrder(user.id, {
+    symbol: approval.symbol,
+    side: "BUY",
+    qty: approval.qty,
+    stopPrice: approval.stop ?? undefined,
+    targetPrice: approval.target ?? undefined,
+    refPrice: quote.price,
+    clientTag: "deeyoung-sentinel",
+  }, async (o) => {
+    const provider = getExecutionProvider(account.broker);
+    return provider.execute({
+      symbol: o.symbol, side: o.side, type: "MARKET", qty: o.qty,
+      stopPrice: o.stopPrice, quote, cashAvailable: account.cash, currentQty: 0,
+    });
   });
 
   if (!exec.ok || exec.filledQty === 0) {

@@ -1,29 +1,38 @@
 /**
- * Binance SPOT TESTNET adapter — paper venue (PRIMARY after Alpaca shelved).
+ * Binance SPOT adapter — TESTNET (paper) or LIVE, env keys or PER-USER keys.
  *
- * Base: https://testnet.binance.vision  (login via GitHub OAuth on the site,
- * "Generate HMAC Keys" → instant API key + secret; virtual funds, resettable).
- * API mirrors production Binance spot 1:1 → symbols are IDENTICAL to the
- * engine's feed symbols (BTCUSDT etc.) — zero symbol mapping needed.
+ * Testnet base: https://testnet.binance.vision (virtual funds, resettable).
+ * Live base: https://api.binance.com — ONLY used when the caller explicitly
+ * asks for LIVE with that user's keys. API mirrors production spot 1:1 →
+ * symbols identical (BTCUSDT etc.).
  *
  * Auth: HMAC-SHA256 over the signed query string, header X-MBX-APIKEY.
- * No keys configured → honest PENDING_BRIDGE (never fabricate).
+ * No keys anywhere → honest PENDING_BRIDGE (never fabricate).
  */
 
-const BASE = "https://testnet.binance.vision";
+const TESTNET_BASE = "https://testnet.binance.vision";
+const LIVE_BASE = "https://api.binance.com";
 
-function creds() {
+export interface BinanceCreds {
+  key: string;
+  secret: string;
+  env: "TESTNET" | "LIVE";
+}
+
+function creds(c?: BinanceCreds) {
+  if (c) return { key: c.key, secret: c.secret, hasKeys: true, base: c.env === "LIVE" ? LIVE_BASE : TESTNET_BASE };
   const key = process.env.BINANCE_TESTNET_KEY || "";
   const secret = process.env.BINANCE_TESTNET_SECRET || "";
-  return { key, secret, hasKeys: key.length > 0 && secret.length > 0 };
+  return { key, secret, hasKeys: key.length > 0 && secret.length > 0, base: TESTNET_BASE };
 }
 
 async function signedFetch(
   path: string,
   params: Record<string, string | number>,
-  method: "GET" | "POST" | "DELETE" = "GET"
+  method: "GET" | "POST" | "DELETE" = "GET",
+  c?: BinanceCreds,
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
-  const { key, secret, hasKeys } = creds();
+  const { key, secret, hasKeys, base } = creds(c);
   if (!hasKeys) return { ok: false, status: 0, data: { verdict: "PENDING_BRIDGE" } };
 
   const merged: Record<string, string> = {
@@ -33,7 +42,7 @@ async function signedFetch(
   };
   const qs = new URLSearchParams(merged).toString();
   const sig = await hmacHex(secret, qs);
-  const url = `${BASE}${path}?${qs}&signature=${sig}`;
+  const url = `${base}${path}?${qs}&signature=${sig}`;
 
   const res = await fetch(url, {
     method,
@@ -60,7 +69,7 @@ async function hmacHex(secret: string, payload: string): Promise<string> {
 }
 
 /** Account summary for diagnostics — aggregated facts only, never echoes keys. */
-export async function binanceTestnetAccountSummary(): Promise<{
+export async function binanceTestnetAccountSummary(c?: BinanceCreds): Promise<{
   verdict: "KEYS_VALID" | "PENDING_BRIDGE" | "ERROR";
   accountType?: string;
   canTrade?: boolean;
@@ -70,7 +79,7 @@ export async function binanceTestnetAccountSummary(): Promise<{
 }> {
   const t0 = Date.now();
   try {
-    const r = await signedFetch("/api/v3/account", {});
+    const r = await signedFetch("/api/v3/account", {}, "GET", c);
     if (!r.ok && r.status === 0) return { verdict: "PENDING_BRIDGE" };
     if (!r.ok) {
       const d = r.data as { msg?: string; code?: number };
@@ -103,10 +112,11 @@ export async function binanceTestnetAccountSummary(): Promise<{
 export async function binanceTestnetKlines(
   symbol: string,
   interval: string,
-  limit = 60
+  limit = 60,
+  c?: BinanceCreds,
 ): Promise<Array<{ openTime: number; open: number; high: number; low: number; close: number; volume: number }> | null> {
   try {
-    const url = `${BASE}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`;
+    const url = `${(c ? (c.env === "LIVE" ? LIVE_BASE : TESTNET_BASE) : TESTNET_BASE)}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return null;
     const rows = (await res.json()) as unknown[][];
@@ -133,7 +143,7 @@ export async function binanceTestnetMarketOrder(opts: {
   quoteQty?: number; // for BUY: spend this much USDT
   quantity?: number; // for SELL: sell this much base asset
   clientOrderId?: string;
-}): Promise<{
+}, c?: BinanceCreds): Promise<{
   verdict: "FILLED" | "REJECTED" | "PENDING_BRIDGE" | "ERROR";
   orderId?: number;
   executedQty?: number;
@@ -151,7 +161,7 @@ export async function binanceTestnetMarketOrder(opts: {
   if (opts.quantity != null) params.quantity = opts.quantity;
   if (opts.clientOrderId) params.newClientOrderId = opts.clientOrderId.slice(0, 36);
 
-  const r = await signedFetch("/api/v3/order", params, "POST");
+  const r = await signedFetch("/api/v3/order", params, "POST", c);
   if (!r.ok && r.status === 0) return { verdict: "PENDING_BRIDGE" };
   if (!r.ok) {
     const d = r.data as { msg?: string; code?: number };
@@ -176,12 +186,12 @@ export async function binanceTestnetMarketOrder(opts: {
 }
 
 /** All open orders on testnet (spot has no "positions"; open orders = exposure). */
-export async function binanceTestnetOpenOrders(): Promise<{
+export async function binanceTestnetOpenOrders(c?: BinanceCreds): Promise<{
   verdict: "KEYS_VALID" | "PENDING_BRIDGE" | "ERROR";
   count?: number;
   errorDetail?: string;
 }> {
-  const r = await signedFetch("/api/v3/openOrders", {});
+  const r = await signedFetch("/api/v3/openOrders", {}, "GET", c);
   if (!r.ok && r.status === 0) return { verdict: "PENDING_BRIDGE" };
   if (!r.ok) {
     const d = r.data as { msg?: string };

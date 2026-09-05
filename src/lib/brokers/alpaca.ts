@@ -21,6 +21,13 @@
 
 export type AlpacaSide = "buy" | "sell";
 
+/** Per-user credentials (BYOK): when provided they override the server env keys. */
+export interface AlpacaCreds {
+  keyId: string;
+  secretKey: string;
+  env: "PAPER" | "LIVE";
+}
+
 export interface AlpacaStatus {
   ok: boolean;
   status: "CONNECTED" | "PENDING_BRIDGE" | "ERROR";
@@ -35,14 +42,14 @@ export function alpacaConfigured(): boolean {
   return Boolean(process.env.ALPACA_KEY_ID && process.env.ALPACA_SECRET_KEY);
 }
 
-export function alpacaBase(): string {
-  return process.env.ALPACA_ENV === "live"
-    ? "https://api.alpaca.markets"
-    : "https://paper-api.alpaca.markets";
+export function alpacaBase(c?: AlpacaCreds): string {
+  const env = c ? c.env : (process.env.ALPACA_ENV === "live" ? "LIVE" : "PAPER");
+  return env === "LIVE" ? "https://api.alpaca.markets" : "https://paper-api.alpaca.markets";
 }
 
-export function alpacaEnvLabel(): string {
-  return process.env.ALPACA_ENV === "live" ? "LIVE (REAL FUNDS)" : "PAPER (simulated funds, real market data)";
+export function alpacaEnvLabel(c?: AlpacaCreds): string {
+  const env = c ? c.env : (process.env.ALPACA_ENV === "live" ? "LIVE" : "PAPER");
+  return env === "LIVE" ? "LIVE (REAL FUNDS)" : "PAPER (simulated funds, real market data)";
 }
 
 /** Crypto pair detection: "BTC/USD", "ETH/USD" style symbols. */
@@ -53,12 +60,15 @@ export function isCryptoSymbol(symbol: string): boolean {
 async function alpacaFetch<T>(
   path: string,
   init?: RequestInit & { timeoutMs?: number },
+  c?: AlpacaCreds,
 ): Promise<{ ok: boolean; status: number; data: T | null; raw: string }> {
-  const res = await fetch(`${alpacaBase()}${path}`, {
+  const keyId = c ? c.keyId : (process.env.ALPACA_KEY_ID as string);
+  const secretKey = c ? c.secretKey : (process.env.ALPACA_SECRET_KEY as string);
+  const res = await fetch(`${alpacaBase(c)}${path}`, {
     ...init,
     headers: {
-      "APCA-API-KEY-ID": process.env.ALPACA_KEY_ID as string,
-      "APCA-API-SECRET-KEY": process.env.ALPACA_SECRET_KEY as string,
+      "APCA-API-KEY-ID": keyId,
+      "APCA-API-SECRET-KEY": secretKey,
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
@@ -71,15 +81,15 @@ async function alpacaFetch<T>(
 }
 
 /** Prove the keys by reading the live account. */
-export async function alpacaAccountSummary(): Promise<AlpacaStatus> {
-  if (!alpacaConfigured()) {
+export async function alpacaAccountSummary(c?: AlpacaCreds): Promise<AlpacaStatus> {
+  if (!c && !alpacaConfigured()) {
     return {
       ok: false, status: "PENDING_BRIDGE",
       detail: "Saved securely. Paper execution activates when ALPACA_KEY_ID and ALPACA_SECRET_KEY are configured on the server.",
     };
   }
   const r = await alpacaFetch<{ status?: string; equity?: string; cash?: string; buying_power?: string }>(
-    "/v2/account", { timeoutMs: 10_000 },
+    "/v2/account", { timeoutMs: 10_000 }, c,
   );
   if (r.status === 401 || r.status === 403) {
     return { ok: false, status: "ERROR", detail: "Alpaca keys rejected (401). Generate a fresh key in the dashboard (API Keys → Generate New Key) and use the PAPER account's keys." };
@@ -91,7 +101,7 @@ export async function alpacaAccountSummary(): Promise<AlpacaStatus> {
     equity: +(r.data.equity ?? 0) || 0,
     cash: +(r.data.cash ?? 0) || 0,
     buyingPower: +(r.data.buying_power ?? 0) || 0,
-    detail: `Connected to Alpaca ${alpacaEnvLabel()} — account ${r.data.status ?? "ACTIVE"}.`,
+    detail: `Connected to Alpaca ${alpacaEnvLabel(c)} — account ${r.data.status ?? "ACTIVE"}.`,
   };
 }
 
@@ -108,8 +118,9 @@ export async function alpacaClock(): Promise<{ isOpen: boolean; nextOpen?: strin
 export async function alpacaMarketOrder(
   symbol: string, side: AlpacaSide, qty: number,
   takeProfitPrice?: number, stopLossPrice?: number, clientTag = "deeyoung-pro",
+  c?: AlpacaCreds,
 ): Promise<{ ok: boolean; detail: string; orderId?: string }> {
-  if (!alpacaConfigured()) return { ok: false, detail: "Alpaca bridge not configured." };
+  if (!c && !alpacaConfigured()) return { ok: false, detail: "Alpaca bridge not configured." };
   if (!(qty > 0)) return { ok: false, detail: `Quantity must be positive for ${symbol}.` };
   const crypto = isCryptoSymbol(symbol);
   const body: Record<string, unknown> = {
@@ -125,15 +136,32 @@ export async function alpacaMarketOrder(
     if (takeProfitPrice) body.take_profit = { limit_price: takeProfitPrice.toFixed(2) };
     if (stopLossPrice) body.stop_loss = { stop_price: stopLossPrice.toFixed(2) };
   }
-  const r = await alpacaFetch<{ id?: string } | { message?: string; code?: number }>(
-    "/v2/orders", { method: "POST", body: JSON.stringify(body), timeoutMs: 20_000 },
+  const r = await alpacaFetch<{ id?: string; filled_avg_price?: string; filled_qty?: string; status?: string } | { message?: string; code?: number }>(
+    "/v2/orders", { method: "POST", body: JSON.stringify(body), timeoutMs: 20_000 }, c,
   );
   if (!r.ok) {
     const err = r.data as { message?: string } | null;
     return { ok: false, detail: `Alpaca rejected the order (${r.status}). ${err?.message ?? r.raw.slice(0, 140)}` };
   }
   const kind = crypto ? "crypto market" : "equity market" + (body.order_class ? " bracket" : "");
-  return { ok: true, detail: `Market ${side} ${body.qty} ${symbol} (${kind}) accepted by Alpaca ${alpacaEnvLabel()}.`, orderId: (r.data as { id?: string }).id };
+  const d = r.data as { id?: string; filled_avg_price?: string; filled_qty?: string; status?: string };
+  return {
+    ok: true,
+    detail: `Market ${side} ${body.qty} ${symbol} (${kind}) accepted by Alpaca ${alpacaEnvLabel(c)}.`,
+    orderId: d.id,
+  };
+}
+
+/** Fetch one order by id (fill confirmation for live routing). */
+export async function alpacaGetOrder(
+  orderId: string,
+  c?: AlpacaCreds,
+): Promise<{ id?: string; status?: string; filled_avg_price?: string; filled_qty?: string } | null> {
+  if (!orderId) return null;
+  const r = await alpacaFetch<{ id?: string; status?: string; filled_avg_price?: string; filled_qty?: string }>(
+    `/v2/orders/${encodeURIComponent(orderId)}`, { timeoutMs: 10_000 }, c,
+  );
+  return r.ok ? (r.data as { id?: string; status?: string; filled_avg_price?: string; filled_qty?: string }) : null;
 }
 
 /** Open positions snapshot. */

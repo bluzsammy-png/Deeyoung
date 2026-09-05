@@ -70,11 +70,11 @@ export function SettingsView() {
         </SettingsCard>
 
         {/* ── Broker ── */}
-        <SettingsCard title="Broker" desc="Execution provider; paper only in this product">
+        <SettingsCard title="Broker" desc="Execution provider; paper by default, live via your verified broker">
           <div className="space-y-2">
             <BrokerOption
               active={broker === "DEEYOUNG_SIM"}
-              onClick={() => { setBroker("DEEYOUNG_SIM"); toast({ title: "DeeYoung Simulated active", description: "Fills modeled with slippage, spread, and latency on delayed data." }); }}
+              onClick={() => { setBroker("DEEYOUNG_SIM"); toast({ title: "DeeYoung Simulated active", description: "Fills modeled with slippage, spread, and latency. Simulated fills are always labeled." }); }}
               name="DeeYoung Simulated"
               desc="Built-in paper engine. Always labeled SIMULATED in the UI. No keys needed."
             />
@@ -82,15 +82,18 @@ export function SettingsView() {
               active={broker === "ALPACA_PAPER"}
               onClick={() => {
                 toast({
-                  title: "Alpaca Paper requires your keys (BYOK)",
-                  description: "Add ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY in the provider panel. DeeYoung never fills orders on a broker it is not connected to.",
+                  title: "Connect your broker instead",
+                  description: "Use the Connect your broker card below: it verifies your API keys by reading your account on save, and FULL access routes your trades live.",
                 });
               }}
-              name="Alpaca Paper (BYOK)"
-              desc="Routes fills to Alpaca's paper endpoint using your encrypted keys. Live-money trading is intentionally not built."
+              name="Your own broker (recommended)"
+              desc="Connect Alpaca, Binance, Bybit or OANDA below. Verified FULL access routes your trades live through your own account."
             />
           </div>
         </SettingsCard>
+
+        {/* ── Direct broker connections: verified keys, live routing ── */}
+        <LiveBrokerCard />
 
         {/* ── MetaTrader connectivity (MT4/MT5) ── */}
         <MetaTraderCard />
@@ -402,6 +405,190 @@ function MetaTraderCard() {
               any API. {bridgeReady
                 ? "The bridge is live; verification runs against your broker's server."
                 : "Automated verification activates when the MetaApi bridge token is configured server-side; until then your link is saved and queued."}
+            </p>
+          </div>
+        )}
+      </div>
+    </SettingsCard>
+  );
+}
+
+// ─── Direct broker connections (verified keys, live routing) ──────────────────
+
+interface LiveLink {
+  id: string;
+  platform: string;
+  label: string;
+  login: string;
+  mode: string;
+  status: string;
+  statusDetail: string;
+  env: string;
+  currency: string;
+  balance?: number | null;
+  equity?: number | null;
+  verifiedAt?: string | null;
+}
+
+const LIVE_PLATFORM_META: Record<string, { name: string; envs: string[]; envDefault: string; fields: "KEY_SECRET" | "TOKEN_ACCOUNT"; hint: string }> = {
+  ALPACA: {
+    name: "Alpaca", envs: ["PAPER", "LIVE"], envDefault: "PAPER", fields: "KEY_SECRET",
+    hint: "Keys live on the API Keys page of your Alpaca dashboard. PAPER keys trade the Alpaca paper account; LIVE keys trade real money.",
+  },
+  BINANCE: {
+    name: "Binance spot", envs: ["TESTNET", "LIVE"], envDefault: "TESTNET", fields: "KEY_SECRET",
+    hint: "Spot keys with spot trading enabled. TESTNET keys come from testnet.binance.vision; LIVE keys trade real funds.",
+  },
+  BYBIT: {
+    name: "Bybit perps", envs: ["DEMO", "LIVE"], envDefault: "DEMO", fields: "KEY_SECRET",
+    hint: "Unified account keys with Contract permissions. DEMO keys are generated in Demo Trading mode; LIVE keys trade real funds.",
+  },
+  OANDA: {
+    name: "OANDA FX", envs: ["PRACTICE", "LIVE"], envDefault: "PRACTICE", fields: "TOKEN_ACCOUNT",
+    hint: "The v20 API token plus the account id (practice ids look like 101-001-1234567-001). PRACTICE is the free fxTrade account.",
+  },
+};
+
+function LiveBrokerCard() {
+  const { toast } = useToast();
+  const [links, setLinks] = useState<LiveLink[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [platform, setPlatform] = useState<keyof typeof LIVE_PLATFORM_META>("ALPACA");
+  const [env, setEnv] = useState<string>(LIVE_PLATFORM_META.ALPACA.envDefault);
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [mode, setMode] = useState<"INVESTOR" | "FULL">("FULL");
+  const [label, setLabel] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+
+  const meta = LIVE_PLATFORM_META[platform];
+
+  const load = useCallback(async () => {
+    try {
+      const j = await (await fetch("/api/brokers")).json();
+      setLinks((j.links ?? []).filter((l: LiveLink) => Object.keys(LIVE_PLATFORM_META).includes(l.platform)));
+    } catch { /* hold */ }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const submit = async () => {
+    setResult(null);
+    if (meta.fields === "TOKEN_ACCOUNT" ? (!apiKey || !accountId) : (!apiKey || !apiSecret)) {
+      toast({ title: "Missing details", description: "Fill every field the broker asks for.", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/brokers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, env, apiKey, apiSecret, accountId, mode, label }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setResult(j.message ?? "The broker rejected those credentials.");
+        toast({ title: "Verification failed", description: j.message ?? "Check the keys and retry.", variant: "destructive" });
+      } else {
+        toast({ title: "Broker connected", description: j.message ?? "Verified by reading your account." });
+        setResult(j.message ?? null);
+        setAdding(false);
+        setApiKey(""); setApiSecret(""); setAccountId(""); setLabel("");
+        load();
+      }
+    } catch {
+      setResult("Network error. Retry in a moment.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await fetch(`/api/brokers?id=${id}`, { method: "DELETE" });
+      setLinks((ls) => ls.filter((l) => l.id !== id));
+      toast({ title: "Connection removed", description: "The encrypted credentials were deleted with it." });
+    } catch {
+      toast({ title: "Couldn't remove that", description: "Retry in a moment.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <SettingsCard title="Connect your broker" desc="Your API keys, verified on save; FULL access trades live through your account">
+      <div className="space-y-3">
+        {links.map((l) => (
+          <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-panel-2 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold">
+                {l.platform} · {l.label}{" "}
+                <span className={`ml-1 rounded border px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider ${l.env === "LIVE" || l.env === "LIVE" ? "border-neg/40 bg-neg/10 text-neg" : "border-hairline text-muted-foreground"}`}>{l.env}</span>
+                {l.mode === "FULL" && l.status === "CONNECTED" ? (
+                  <span className="ml-1 rounded border border-pos/40 bg-pos/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-pos">live routing</span>
+                ) : null}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{l.statusDetail}</p>
+              {l.balance != null || l.equity != null ? (
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {l.balance != null ? `Balance ${l.balance.toLocaleString()} ${l.currency}` : ""}
+                  {l.equity != null ? ` · Equity ${l.equity.toLocaleString()} ${l.currency}` : ""}
+                </p>
+              ) : null}
+            </div>
+            <button onClick={() => remove(l.id)} className="shrink-0 rounded-lg border border-hairline px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:border-neg/40 hover:text-neg">
+              Remove
+            </button>
+          </div>
+        ))}
+
+        {!adding ? (
+          <button onClick={() => setAdding(true)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-hairline py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground">
+            <Plus className="h-3.5 w-3.5" /> Connect Alpaca, Binance, Bybit or OANDA
+          </button>
+        ) : (
+          <div className="space-y-2.5 rounded-lg border border-hairline bg-panel-2 p-3">
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(LIVE_PLATFORM_META) as Array<keyof typeof LIVE_PLATFORM_META>).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => { setPlatform(p); setEnv(LIVE_PLATFORM_META[p].envDefault); }}
+                  className={`rounded-md px-2.5 py-1.5 text-[11px] font-bold transition-colors ${platform === p ? "bg-brand/15 text-brand" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {LIVE_PLATFORM_META[p].name}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Environment</span>
+              {meta.envs.map((e) => (
+                <button key={e} onClick={() => setEnv(e)} className={`rounded-md border px-2 py-1 text-[10px] font-bold ${env === e ? "border-brand/50 bg-brand/10 text-brand" : "border-hairline text-muted-foreground"}`}>{e}</button>
+              ))}
+              {env === "LIVE" && <span className="text-[10px] font-semibold text-neg">real money</span>}
+            </div>
+            <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={meta.fields === "TOKEN_ACCOUNT" ? "API token" : "API key"} type="password" autoComplete="off" className="w-full rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+            {meta.fields === "KEY_SECRET" && (
+              <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} placeholder="API secret" type="password" autoComplete="off" className="w-full rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+            )}
+            {meta.fields === "TOKEN_ACCOUNT" && (
+              <input value={accountId} onChange={(e) => setAccountId(e.target.value)} placeholder="Account id" className="w-full rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+            )}
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (optional)" className="w-full rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+            <label className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
+              <input type="checkbox" checked={mode === "FULL"} onChange={(e) => setMode(e.target.checked ? "FULL" : "INVESTOR")} className="accent-[#dc2626]" />
+              FULL access: verified keys route my trades live through my broker (unchecked = read-only watch, paper execution)
+            </label>
+            <div className="flex gap-2">
+              <button onClick={submit} disabled={busy} className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white transition-all hover:brightness-110 disabled:opacity-60">
+                {busy ? "Reading your account…" : "Verify & connect"}
+              </button>
+              <button onClick={() => { setAdding(false); setResult(null); }} className="rounded-lg border border-hairline px-3 py-2 text-xs font-semibold text-muted-foreground">
+                Cancel
+              </button>
+            </div>
+            {result && <p className="text-[10px] leading-relaxed text-muted-foreground">{result}</p>}
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              {meta.hint} On save, the server reads your account with these keys to prove them; nothing is stored if the broker rejects them. Keys are AES-256-GCM encrypted at rest and never returned by any API. Orders fill only at prices your broker confirms.
             </p>
           </div>
         )}
