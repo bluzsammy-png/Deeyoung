@@ -22,6 +22,7 @@ import { LearningMemory } from "@/lib/brain/memory";
 import { evaluateOpenGuards, type OpenGuardInput } from "@/lib/brain/playbook";
 import { db } from "@/lib/db";
 import { mirrorOnEntry, mirrorOnExit, mirrorCycle, openMirrorCount, venueMode } from "@/lib/engine/venue";
+import { fanoutOnEntry, fanoutOnExit } from "@/lib/engine/fanout";
 
 export const SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "BNBUSD", "AVAXUSD", "LINKUSD", "DOTUSD"];
 // Gate re-based to the geometry-v2 operating point (measured optimum band
@@ -350,6 +351,12 @@ async function loopBody(
                 openMirrorCount: await openMirrorCount(),
                 todayNetR: todayNetRCache.size ? Math.min(...todayNetRCache.values()) : 0,
               });
+              // per-user broker mirror: connected users' accounts follow the
+              // engine live (paper stays the execution-of-record). Never throws.
+              void fanoutOnEntry({
+                engineOid: entryOid, positionId: res.positionId ?? null, symbol: sym,
+                refPrice: price, stop: sig.stop, target: sig.target,
+              });
               const factorsJson = JSON.stringify(sig.factors.map((f) => ({ key: f.key, name: f.name, contribution: f.contribution })));
               open.set(bookKey, {
                 id: res.positionId!, bookKey, symbol: sym, gate, horizonMin: h,
@@ -405,20 +412,20 @@ async function manageBars(
       const fill = price <= p.stopPrice ? price : p.stopPrice;
       const exitOid = `X_${p.id}_STOP_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: fill, reason: "STOP", clientOid: exitOid });
-      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: fill, reason: "STOP" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: fill, reason: "STOP" }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: fill, reason: "STOP" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
       continue;
     }
     if (targetHit) {
       const exitOid = `X_${p.id}_TARGET_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET", clientOid: exitOid });
-      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
       continue;
     }
     if (now - p.openedAt.getTime() >= TIME_STOP_MIN * 60_000) {
       const timeReason = "TIME_720M";
       const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
-      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     }
   }
 }
@@ -433,16 +440,16 @@ async function manageTick(
     if (price <= p.stopPrice) {
       const exitOid = `X_${p.id}_STOP_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "STOP", clientOid: exitOid });
-      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "STOP" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "STOP" }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: "STOP" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} STOP(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     } else if (price >= p.targetPrice) {
       const exitOid = `X_${p.id}_TARGET_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET", clientOid: exitOid });
-      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     } else if (now - p.openedAt.getTime() >= TIME_STOP_MIN * 60_000) {
       const timeReason = "TIME_720M";
       const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
-      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
+      if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
     }
   }
 }

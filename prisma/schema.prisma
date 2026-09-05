@@ -419,11 +419,80 @@ model BrokerLink {
   equity         Float?   // last known equity via bridge
   verifiedAt     DateTime? // set when the broker API answered a read with the user's own keys
   lastCheckedAt  DateTime?
+  // Own MT4/MT5 EA bridge (no third party). The EA installed on the user's
+  // terminal authenticates with a bridge token; only its SHA-256 is stored.
+  bridgeTokenHash String?  // sha256 hex of the per-link bridge token
+  lastHandshakeAt DateTime? // last bridge handshake/poll from the user's terminal
+  eaVersion       String?  // reported EA build
+  // Auto-mirror sizing for engine signals (per link, user editable).
+  autoMirror      Boolean  @default(true) // mirror engine signals onto this account
+  autoLots        Float?   // MT bridge: lots per mirrored signal
+  autoStakeUsd    Float?   // Deriv: stake per mirrored signal
+  autoNotionalUsd Float?   // direct APIs: notional per mirrored signal
   createdAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commands BridgeCommand[]
 
   @@index([userId])
+  @@index([bridgeTokenHash])
+}
+
+// ─── OWN MT4/MT5 EA BRIDGE (2026-09-05) ─────────────────────────────────────
+// Command queue consumed by the user's own terminal through the EA bridge.
+// A fill is only ever recorded from the terminal's own report — never invented.
+model BridgeCommand {
+  id          String    @id @default(cuid())
+  linkId      String
+  action      String    // OPEN | CLOSE
+  symbol      String    // engine symbol, e.g. SOLUSD
+  side        String    // BUY | SELL
+  lots        Float
+  stopLoss    Float?
+  takeProfit  Float?
+  ticket      String?   // for CLOSE: ticket reported by the OPEN fill
+  refOid      String    // engine oid for audit (E_/X_)
+  mirrorId    String?   // BrokerMirrorTrade row this command belongs to
+  status      String    @default("PENDING") // PENDING | SENT | FILLED | REJECTED | UNSUPPORTED
+  fillPrice   Float?
+  fillVolume  Float?
+  fillTicket  String?
+  message     String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  reportedAt  DateTime?
+
+  link BrokerLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId, status])
+}
+
+// ─── BROKER MIRROR TRADES (2026-09-05) ──────────────────────────────────────
+// Audit ledger of engine signals mirrored onto user broker accounts.
+model BrokerMirrorTrade {
+  id         String    @id @default(cuid())
+  userId     String
+  linkId     String
+  platform   String    // DERIV | MT4 | MT5 | ALPACA | BINANCE | BYBIT | OANDA
+  engineOid  String    // entry oid from the engine paper book
+  positionId String?   // PaperEnginePosition id for exit matching
+  symbol     String
+  side       String    // BUY on entry, SELL on close
+  refPrice   Float
+  status     String    @default("PENDING") // PENDING | QUEUED | FILLED | CLOSED | REJECTED | UNSUPPORTED | SKIPPED | ERROR
+  brokerRef  String?   // Deriv contract id / MT ticket / broker order id
+  fillPrice  Float?
+  fillQty    Float?
+  closePrice Float?
+  detail     String    @default("")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  closedAt   DateTime?
+
+  @@index([userId])
+  @@index([engineOid])
+  @@index([positionId])
+  @@index([linkId, status])
 }
 
 // ─── LEARNING MEMORY (§NEW) ───────────────────────────────────────────────────

@@ -19,6 +19,13 @@
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/crypto";
 import type { ExecutionResult } from "@/lib/providers/execution";
+import {
+  DERIV_MULTIPLIER_DEFAULT,
+  derivBuyMultiplier,
+  derivCryptoSymbol,
+  derivOpenContract,
+  derivStakeClamp,
+} from "@/lib/brokers/deriv";
 import type { AlpacaCreds } from "@/lib/brokers/alpaca";
 import type { BinanceCreds } from "@/lib/brokers/binance-testnet";
 import type { BybitCreds } from "@/lib/brokers/bybit";
@@ -52,10 +59,13 @@ import {
 export const LIVE_PLATFORMS = ["ALPACA", "BINANCE", "BYBIT", "OANDA"] as const;
 export type LivePlatform = (typeof LIVE_PLATFORMS)[number];
 
-/** MT4/MT5 brokers (Deriv, IC Markets, ...) route live through the MetaApi
- *  cloud bridge: no direct API exists for MetaTrader accounts. */
+/** MT4/MT5 brokers (Deriv, IC Markets, ...) route live through our own EA
+ *  bridge (no third party) or, for legacy links, the MetaApi cloud bridge:
+ *  no direct API exists for MetaTrader accounts. */
 export const MT_PLATFORMS = ["MT4", "MT5"] as const;
 export type MtPlatform = (typeof MT_PLATFORMS)[number];
+
+export const DERIV_PLATFORM = "DERIV" as const;
 
 export const PLATFORM_ENV_DEFAULTS: Record<LivePlatform, string> = {
   ALPACA: "PAPER",
@@ -87,14 +97,16 @@ const CRYPTO_BASE_STRIP = /^(BTC|ETH|SOL|DOGE|XRP|LTC|BCH|AVAX|LINK|ADA|DOT|SHIB
 export interface ResolvedVenue {
   mode: "PAPER" | "LIVE";
   linkId?: string;
-  platform?: LivePlatform | MtPlatform;
+  platform?: LivePlatform | MtPlatform | "DERIV";
   env?: string;
   label?: string;
   access?: "FULL" | "INVESTOR";
-  /** MetaApi bridge account id for MT4/MT5 links. */
+  /** MetaApi bridge account id for legacy MT4/MT5 links. */
   bridgeAccountId?: string;
+  /** True when the link uses our own EA bridge (terminal reports fills). */
+  eaBridge?: boolean;
   /** Decrypted credentials JSON: { apiKey?, apiSecret?, accountId? } or
-   *  { password?, metaapiToken?, region? } for MT links. */
+   *  { apiToken? } for Deriv, or {} for EA bridge links. */
   credsRaw?: string;
 }
 
@@ -106,7 +118,9 @@ export async function resolveUserVenue(userId: string): Promise<ResolvedVenue> {
       mode: "FULL",
       OR: [
         { platform: { in: [...LIVE_PLATFORMS] } },
+        { platform: DERIV_PLATFORM },
         { platform: { in: [...MT_PLATFORMS] }, bridgeAccountId: { not: null } },
+        { platform: { in: [...MT_PLATFORMS] }, bridgeTokenHash: { not: null } },
       ],
     },
     orderBy: { createdAt: "desc" },
@@ -121,16 +135,17 @@ export async function resolveUserVenue(userId: string): Promise<ResolvedVenue> {
   return {
     mode: "LIVE",
     linkId: link.id,
-    platform: link.platform as LivePlatform | MtPlatform,
+    platform: link.platform as LivePlatform | MtPlatform | "DERIV",
     env: link.env,
     label: link.label,
     access: "FULL",
     bridgeAccountId: link.bridgeAccountId ?? undefined,
+    eaBridge: !!link.bridgeTokenHash,
     credsRaw,
   };
 }
 
-interface LinkCreds { apiKey?: string; apiSecret?: string; accountId?: string; password?: string; metaapiToken?: string; region?: string }
+interface LinkCreds { apiKey?: string; apiSecret?: string; accountId?: string; apiToken?: string; password?: string; metaapiToken?: string; region?: string }
 
 function parseCreds(raw: string): LinkCreds | null {
   try {
@@ -242,7 +257,93 @@ export async function executeUserOrder(
   const side = req.side;
   const cls = symbolClass(req.symbol);
 
-  // MT4/MT5 through the MetaApi bridge (Deriv, IC Markets, ...). The broker's
+  // ── Deriv native (official websocket API, user's own API token) ──
+  // Multiplier contracts are the closest Deriv product to a long/short
+  // position: market entry, market exit, stake-based sizing. The recorded
+  // entry price is the broker-reported entry/spot, never a local guess.
+  if (venue.platform === "DERIV") {
+    const creds = parseCreds(venue.credsRaw ?? "");
+    const token = creds?.apiToken ?? "";
+    if (!token) return rejected("Stored Deriv credentials could not be read. Reconnect the account.", "Deriv API");
+    if (cls !== "CRYPTO") return rejected("The Deriv connector routes the engine's crypto universe. FX and equity symbols are not routed here.", "Deriv API");
+    const dsym = await derivCryptoSymbol(token, req.symbol);
+    if (!dsym) return rejected(`Deriv does not list ${req.symbol.replace(/USD$/i, "")} on your account. Nothing was traded.`, "Deriv API");
+    const linkRow = venue.linkId ? await db.brokerLink.findUnique({ where: { id: venue.linkId } }) : null;
+    const currency = linkRow?.currency || "USD";
+    const notional = req.qty * req.refPrice;
+    if (!(notional >= 1)) return rejected(`A Deriv multiplier needs a stake of at least 1 ${currency}. This order was not sent.`, "Deriv API");
+    const stake = derivStakeClamp(Math.min(notional, 100));
+    const stopUsd = req.stopPrice ? Math.min(stake * DERIV_MULTIPLIER_DEFAULT * Math.abs(req.refPrice - req.stopPrice) / req.refPrice, stake * DERIV_MULTIPLIER_DEFAULT * 0.9) : 0;
+    const tgtUsd = req.targetPrice ? Math.min(stake * DERIV_MULTIPLIER_DEFAULT * Math.abs(req.targetPrice - req.refPrice) / req.refPrice, stake * DERIV_MULTIPLIER_DEFAULT * 0.9) : 0;
+    const res = await derivBuyMultiplier(token, {
+      symbol: dsym.symbol, side, currency, stakeUsd: stake,
+      multiplier: DERIV_MULTIPLIER_DEFAULT, stopLossUsd: stopUsd, takeProfitUsd: tgtUsd,
+    });
+    if (!res.ok || !res.data) return rejected(res.detail, "Deriv API");
+    await new Promise((r) => setTimeout(r, 800));
+    const st = await derivOpenContract(token, res.data.contract_id);
+    const entryPrice = st.ok ? st.data?.entrySpot ?? st.data?.currentSpot ?? null : null;
+    return {
+      ok: true, status: "FILLED",
+      filledQty: stake, // Deriv multipliers size in stake, not units
+      avgFillPrice: entryPrice,
+      fills: entryPrice ? [{ t: Date.now(), qty: stake, price: entryPrice, slippageBps: 0 }] : [],
+      latencyMs: Date.now() - t0,
+      brokerLabel: `Deriv ${venue.env ?? ""}`.trim(),
+      brokerOrderId: String(res.data.contract_id),
+      detail:
+        `Multiplier ${DERIV_MULTIPLIER_DEFAULT}x opened on ${dsym.display_name} with a ${stake} ${currency} stake` +
+        (entryPrice ? `; entry spot ${entryPrice} reported by Deriv.` : "; the entry spot appears in your Deriv statement."),
+    };
+  }
+
+  // ── MT4/MT5 through OUR OWN EA bridge (no third party) ──
+  // The command is queued; the user's terminal executes it and reports back.
+  // Sizing is in lots (MetaTrader units); the fill exists only when the
+  // terminal reports it.
+  if ((venue.platform === "MT4" || venue.platform === "MT5") && venue.eaBridge) {
+    const linkRow = venue.linkId ? await db.brokerLink.findUnique({ where: { id: venue.linkId } }) : null;
+    if (!linkRow?.bridgeTokenHash) return rejected("This MT link has no bridge key. Reconnect the account.", `${venue.platform} bridge`);
+    const last = linkRow.lastHandshakeAt?.getTime() ?? 0;
+    if (Date.now() - last > 3 * 60_000) {
+      return rejected(
+        "Your terminal is not connected to the bridge right now (no check-in for over 3 minutes). Open MetaTrader with the EA attached; this order was NOT sent.",
+        `${venue.platform} bridge`,
+      );
+    }
+    const lots = Math.min(10, Math.max(0.01, +( (linkRow.autoLots ?? 0.01) > 0 ? linkRow.autoLots! : 0.01 ).toFixed(2)));
+    const cmd = await db.bridgeCommand.create({
+      data: {
+        linkId: linkRow.id, action: "OPEN", symbol: req.symbol, side, lots,
+        stopLoss: req.stopPrice ?? null, takeProfit: req.targetPrice ?? null,
+        refOid: req.clientTag ?? `MANUAL_${Date.now()}`,
+      },
+    });
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const c = await db.bridgeCommand.findUnique({ where: { id: cmd.id } });
+      if (!c) break;
+      if (c.status === "FILLED" && c.fillPrice && c.fillPrice > 0) {
+        return {
+          ok: true, status: "FILLED", filledQty: lots, avgFillPrice: c.fillPrice,
+          fills: [{ t: Date.now(), qty: lots, price: c.fillPrice, slippageBps: 0 }],
+          latencyMs: Date.now() - t0,
+          brokerLabel: `${venue.platform} ${venue.label ?? ""}`.trim(),
+          brokerOrderId: c.fillTicket ?? c.id,
+          detail: `Your terminal filled ${lots} lots ${c.fillTicket ? `(ticket ${c.fillTicket})` : ""} at ${c.fillPrice}.`,
+        };
+      }
+      if (c.status === "REJECTED" || c.status === "UNSUPPORTED") {
+        return rejected(c.message || `Your terminal could not execute the order (${c.status}).`, `${venue.platform} bridge`);
+      }
+    }
+    return rejected(
+      "The order is queued for your terminal but no fill was reported within 15 seconds. Check MetaTrader: if it fills there, the position is live on your account; nothing else was recorded here.",
+      `${venue.platform} bridge`,
+    );
+  }
+
+  // MT4/MT5 through the MetaApi bridge (legacy links, Deriv, IC Markets, ...). The broker's
   // own symbol list decides what is tradable; sizing comes from the broker's
   // contract specification, and a fill only counts once the broker's positions
   // list confirms it. Closing works through the same market path: on netting

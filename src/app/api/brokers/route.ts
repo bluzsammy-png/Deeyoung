@@ -1,34 +1,40 @@
 // DEEYOUNG PRO — user broker connections.
 //
-// Two families, one endpoint:
+// Three families, one endpoint:
 //   1. DIRECT API platforms (ALPACA | BINANCE | BYBIT | OANDA): the user's own
 //      API keys. POST verifies the keys IMMEDIATELY by reading the account
 //      with them ("automatically reads the api"); nothing is stored on
 //      failure. On success the link is status CONNECTED with a balance
 //      snapshot, encrypted credentials at rest (AES-256-GCM, APP_SECRET).
-//      A CONNECTED link in FULL mode routes that user's execution LIVE
-//      through their broker (src/lib/brokers/user-venue.ts).
-//   2. MT4 | MT5 (Deriv, IC Markets, ...): MetaTrader accounts have no
-//      official API, so they connect through the MetaApi cloud bridge with
-//      the USER'S OWN MetaApi token (app.metaapi.cloud, API access tokens).
-//      The server provisions the terminal replica, waits for the broker to
-//      answer a real account read, and only then stores a CONNECTED link.
-//      Nothing is stored on failure. FULL mode routes live exactly like the
-//      direct platforms.
-// Secrets are never returned by any endpoint. INVESTOR (read-only) is the
-// recommended default and never routes live orders.
+//   2. DERIV (native): the user's own Deriv API token, verified on the spot
+//      through Deriv's official websocket API. No third-party bridge, no
+//      MetaTrader password, no external account.
+//   3. MT4 | MT5 (any broker, including Deriv MT5): MetaTrader has no official
+//      web API, so we ship OUR OWN bridge: the user installs the QuantEdge EA
+//      on their terminal, the EA authenticates with a per-link bridge token
+//      (shown once, stored hashed) and polls this server for commands. The
+//      first handshake flips the link CONNECTED. No third-party service, no
+//      account password ever leaves the terminal.
+//
+// A CONNECTED link in FULL mode with autoMirror=true follows the engine live
+// (src/lib/engine/fanout.ts). Secrets are never returned by any endpoint.
 
 import { NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 import {
-  REGIONS,
   bridgeConfigured,
   bridgeToken,
-  provisionAccount,
   accountInformation,
 } from "@/lib/brokers/metaapi";
+import { derivAuthorize } from "@/lib/brokers/deriv";
+import {
+  newBridgeToken,
+  hashBridgeToken,
+  bridgeLive,
+  EA_VERSION,
+} from "@/lib/brokers/bridge";
 import {
   LIVE_PLATFORMS,
   MT_PLATFORMS,
@@ -41,11 +47,16 @@ import {
 export const dynamic = "force-dynamic";
 
 const MT_PLATFORM_LIST: string[] = [...MT_PLATFORMS];
-const MODES = ["INVESTOR", "FULL"];
 
 function maskId(id: string): string {
   if (id.length <= 6) return `${id.slice(0, 2)}****`;
   return `${id.slice(0, 4)}****${id.slice(-4)}`;
+}
+
+function clamp(v: unknown, min: number, max: number, fallback: number | null): number | null {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n * 100) / 100));
 }
 
 /** GET /api/brokers — the user's links (never returns secrets). */
@@ -55,11 +66,13 @@ export const GET = withGuard(async (_req, { user }) => {
     orderBy: { createdAt: "desc" },
   });
 
-  // Refresh up to 3 MT bridge links from the bridge itself (balance snapshot).
-  const refreshable = links.filter((l) => l.bridgeAccountId && MT_PLATFORM_LIST.includes(l.platform)).slice(0, 3);
+  // Refresh up to 3 LEGACY MT bridge links from MetaApi itself (balance
+  // snapshot). Own-bridge links need no outbound call: their terminal reports
+  // in on every poll.
+  const refreshable = links
+    .filter((l) => l.bridgeAccountId && !l.bridgeTokenHash && MT_PLATFORM_LIST.includes(l.platform))
+    .slice(0, 3);
   await Promise.all(refreshable.map(async (l) => {
-    // Bridge token lives encrypted with the link; env fallback covers
-    // legacy rows created before per-user tokens.
     const credsRaw = decryptSecret({ cipher: l.credCipher, iv: l.credIV, tag: l.credTag });
     let userToken = "";
     try { userToken = credsRaw ? (JSON.parse(credsRaw) as { metaapiToken?: string }).metaapiToken ?? "" : ""; } catch { userToken = ""; }
@@ -78,7 +91,7 @@ export const GET = withGuard(async (_req, { user }) => {
     } else if (info.code === 401) {
       await db.brokerLink.update({
         where: { id: l.id },
-        data: { status: "ERROR", statusDetail: "MetaApi rejected the stored token. Reconnect with a fresh token.", lastCheckedAt: new Date() },
+        data: { status: "ERROR", statusDetail: "MetaApi rejected the stored token. Reconnect the account.", lastCheckedAt: new Date() },
       });
       l.status = "ERROR";
     }
@@ -89,90 +102,116 @@ export const GET = withGuard(async (_req, { user }) => {
       id: l.id, platform: l.platform, label: l.label, server: l.server, login: l.login,
       mode: l.mode, status: l.status, statusDetail: l.statusDetail, env: l.env,
       currency: l.currency, balance: l.balance, equity: l.equity,
+      autoMirror: l.autoMirror, autoLots: l.autoLots, autoStakeUsd: l.autoStakeUsd,
+      autoNotionalUsd: l.autoNotionalUsd,
+      eaVersion: l.eaVersion,
+      bridgeLive: l.bridgeTokenHash ? bridgeLive(l.lastHandshakeAt) : undefined,
+      lastHandshakeAt: l.lastHandshakeAt,
       verifiedAt: l.verifiedAt, lastCheckedAt: l.lastCheckedAt, createdAt: l.createdAt,
     })),
     bridgeConfigured: bridgeConfigured(),
+    ea: { version: EA_VERSION, mq5: "/broker/QuantEdgeBridge.mq5", mq4: "/broker/QuantEdgeBridge.mq4" },
   });
 }, { minPlan: "TRIAL" });
 
-/** POST /api/brokers — connect a broker. Direct platforms are verified on the
- *  spot by reading the account with the submitted keys. */
+/** POST /api/brokers — connect a broker. Every family is verified on the spot
+ *  by reading the account with the submitted credentials before storage. */
 export const POST = withGuard(async (req: Request, { user }) => {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
 
   const platform = String(body.platform ?? "").toUpperCase();
-  const mode = String(body.mode ?? "INVESTOR").toUpperCase();
   const label = String(body.label ?? "").trim().slice(0, 60);
 
-  const allowedPlatforms: string[] = [...MT_PLATFORM_LIST, ...LIVE_PLATFORMS];
-  if (!allowedPlatforms.includes(platform)) {
-    return NextResponse.json({ error: "INVALID_PLATFORM", message: `Platform must be one of: ${allowedPlatforms.join(", ")}.` }, { status: 422 });
-  }
-  if (!MODES.includes(mode)) {
-    return NextResponse.json({ error: "INVALID_MODE" }, { status: 422 });
-  }
-
-  // ── MT4/MT5 family (MetaApi bridge, user's own token) ──
-  if (MT_PLATFORM_LIST.includes(platform)) {
-    const server = String(body.server ?? "").trim().slice(0, 120);
-    const login = String(body.login ?? "").trim().slice(0, 40);
-    const password = String(body.password ?? "").slice(0, 200);
-    const regionRaw = String(body.region ?? "new-york").trim().toLowerCase();
-    const region = (REGIONS as readonly string[]).includes(regionRaw) ? regionRaw : "new-york";
-    if (!server || !login || !password) {
-      return NextResponse.json({ error: "MISSING_FIELDS", message: "Server, login and password are all required." }, { status: 422 });
+  // ── DERIV (native API, user's own token) ──
+  if (platform === "DERIV") {
+    const apiToken = String(body.apiToken ?? "").trim().slice(0, 200);
+    if (!apiToken) {
+      return NextResponse.json({ error: "MISSING_FIELDS", message: "Paste the API token from your Deriv account (Settings > API token, with read and trade scopes)." }, { status: 422 });
     }
-    const token = bridgeToken(String(body.metaapiToken ?? ""));
-    if (!token) {
-      return NextResponse.json({
-        error: "BRIDGE_TOKEN_REQUIRED",
-        message:
-          "MT4/MT5 accounts connect through the MetaApi cloud bridge. Create a free MetaApi account at app.metaapi.cloud, " +
-          "copy your API token (API access tokens page), and paste it here. Your MT login stays with you.",
-      }, { status: 422 });
+    const auth = await derivAuthorize(apiToken);
+    if (!auth.ok || !auth.data) {
+      return NextResponse.json({ error: "VERIFICATION_FAILED", message: auth.detail }, { status: 422 });
     }
-
-    // Provision + deploy + wait for the broker to answer a real read.
-    // Nothing is stored unless the broker itself answers.
-    const bridge = await provisionAccount({ platform: platform as "MT4" | "MT5", server, login, password, mode: mode as "INVESTOR" | "FULL", region, token });
-    if (!bridge.ok) {
-      return NextResponse.json({ error: "VERIFICATION_FAILED", message: bridge.detail }, { status: 422 });
-    }
-
-    const { cipher, iv, tag } = encryptSecret(JSON.stringify({ password, metaapiToken: token, region }));
-
+    const acc = auth.data;
+    const { cipher, iv, tag } = encryptSecret(JSON.stringify({ apiToken }));
     const link = await db.brokerLink.create({
       data: {
         userId: user.id,
-        platform, label: label || `${platform} ${login}`, server, login,
+        platform: "DERIV",
+        label: label || `Deriv ${acc.isVirtual ? "demo" : "real"} ${acc.loginid}`,
+        server: "deriv-api",
+        login: acc.loginid,
         credCipher: cipher, credIV: iv, credTag: tag,
-        mode,
-        env: mode === "FULL" ? "BROKER" : "READONLY",
+        mode: "FULL",
+        env: acc.isVirtual ? "DEMO" : "LIVE",
         status: "CONNECTED",
-        statusDetail: bridge.detail.slice(0, 300),
-        bridgeAccountId: bridge.bridgeAccountId ?? null,
-        currency: bridge.currency ?? "USD",
-        balance: bridge.balance ?? null,
-        equity: bridge.equity ?? null,
+        statusDetail: `Verified by reading your Deriv ${acc.isVirtual ? "DEMO" : "REAL"} account (${acc.loginid}, ${acc.balance} ${acc.currency}). Engine signals now mirror onto this account automatically.`,
+        currency: acc.currency,
+        balance: acc.balance,
+        equity: acc.balance,
         verifiedAt: new Date(),
         lastCheckedAt: new Date(),
       },
       select: { id: true, platform: true, label: true, status: true, statusDetail: true, env: true, mode: true },
     });
-
     return NextResponse.json({
       ok: true,
       link,
-      liveRouting: mode === "FULL",
+      liveRouting: true,
+      message: acc.isVirtual
+        ? `Verified against your Deriv DEMO account ${acc.loginid}. Engine signals will execute on this demo account automatically.`
+        : `Verified against your Deriv REAL account ${acc.loginid}. Engine signals now execute LIVE on this account automatically.`,
+    });
+  }
+
+  // ── MT4/MT5 (own EA bridge — no third party, no account password) ──
+  if (MT_PLATFORM_LIST.includes(platform)) {
+    const server = String(body.server ?? "").trim().slice(0, 120);
+    const login = String(body.login ?? "").trim().slice(0, 40);
+    const token = newBridgeToken();
+    // No broker password exists on this server: the EA runs on the user's
+    // own logged-in terminal. Store an empty-cred payload so legacy code
+    // that decrypts creds keeps working.
+    const emptyCreds = encryptSecret(JSON.stringify({}));
+    const link = await db.brokerLink.create({
+      data: {
+        userId: user.id,
+        platform,
+        label: label || `${platform} account`,
+        server,
+        login,
+        credCipher: emptyCreds.cipher,
+        credIV: emptyCreds.iv,
+        credTag: emptyCreds.tag,
+        mode: "FULL",
+        env: "BROKER",
+        status: "PENDING_BRIDGE",
+        statusDetail: "Bridge key issued. Install the EA on your terminal; it connects automatically.",
+        bridgeTokenHash: hashBridgeToken(token),
+        eaVersion: null,
+        verifiedAt: null,
+        lastCheckedAt: new Date(),
+      },
+      select: { id: true, platform: true, label: true, status: true, statusDetail: true, env: true, mode: true },
+    });
+    return NextResponse.json({
+      ok: true,
+      link,
+      bridgeToken: token, // shown once; only its SHA-256 is stored
+      liveRouting: true,
+      ea: { version: EA_VERSION, mq5: "/broker/QuantEdgeBridge.mq5", mq4: "/broker/QuantEdgeBridge.mq4" },
       message:
-        mode === "FULL"
-          ? `Verified through the bridge: your ${platform} account answered with a live balance snapshot. Your trades now execute LIVE through this account.`
-          : `Verified through the bridge: your ${platform} account answered with a live balance snapshot. Read-only (INVESTOR) mode: execution stays on paper.`,
+        `Bridge key issued for this ${platform} link. Download the EA, compile it in MetaEditor, attach it to any chart, ` +
+        `paste the key and this site's URL, and it connects automatically. The key is shown once; generate a new link if you lose it.`,
     });
   }
 
   // ── Direct API family (ALPACA | BINANCE | BYBIT | OANDA) ──
+  const allowedPlatforms: string[] = [...LIVE_PLATFORMS];
+  if (!allowedPlatforms.includes(platform)) {
+    return NextResponse.json({ error: "INVALID_PLATFORM", message: `Platform must be one of: DERIV, ${MT_PLATFORM_LIST.join(", ")}, ${allowedPlatforms.join(", ")}.` }, { status: 422 });
+  }
   const p = platform as LivePlatform;
   const envRaw = String(body.env ?? PLATFORM_ENV_DEFAULTS[p]).toUpperCase();
   if (!PLATFORM_ENV_OPTIONS[p].includes(envRaw)) {
@@ -200,10 +239,7 @@ export const POST = withGuard(async (req: Request, { user }) => {
   }
 
   const { cipher, iv, tag } = encryptSecret(JSON.stringify({ apiKey, apiSecret, accountId }));
-  const login =
-    p === "OANDA" ? accountId
-      : p === "ALPACA" ? maskId(apiKey)
-        : maskId(apiKey);
+  const loginId = p === "OANDA" ? accountId : maskId(apiKey);
 
   const link = await db.brokerLink.create({
     data: {
@@ -211,9 +247,9 @@ export const POST = withGuard(async (req: Request, { user }) => {
       platform: p,
       label: label || `${p} ${envRaw}`,
       server: "",
-      login,
+      login: loginId,
       credCipher: cipher, credIV: iv, credTag: tag,
-      mode,
+      mode: "FULL",
       env: envRaw,
       status: "CONNECTED",
       statusDetail: verdict.detail.slice(0, 300),
@@ -229,15 +265,37 @@ export const POST = withGuard(async (req: Request, { user }) => {
   return NextResponse.json({
     ok: true,
     link,
-    liveRouting: mode === "FULL",
-    message:
-      mode === "FULL"
-        ? `Verified by reading your ${p} ${envRaw} account. Your trades now execute LIVE through your broker.`
-        : `Verified by reading your ${p} ${envRaw} account. Read-only (INVESTOR) mode: execution stays on paper.`,
+    liveRouting: true,
+    message: `Verified by reading your ${p} ${envRaw} account. Engine signals now execute LIVE through your broker automatically.`,
   });
 }, { minPlan: "TRIAL" });
 
-/** DELETE /api/brokers?id=... — remove a link. The ciphertext dies with the row. */
+/** PATCH /api/brokers — auto-mirror toggle and per-link sizing. */
+export const PATCH = withGuard(async (req: Request, { user }) => {
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body?.id) return NextResponse.json({ error: "ID_REQUIRED" }, { status: 400 });
+  const link = await db.brokerLink.findFirst({ where: { id: String(body.id), userId: user.id } });
+  if (!link) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  const data: Record<string, unknown> = {};
+  if (typeof body.autoMirror === "boolean") data.autoMirror = body.autoMirror;
+  if (body.autoLots !== undefined) data.autoLots = clamp(body.autoLots, 0.01, 10, link.autoLots);
+  if (body.autoStakeUsd !== undefined) data.autoStakeUsd = clamp(body.autoStakeUsd, 1, 100, link.autoStakeUsd);
+  if (body.autoNotionalUsd !== undefined) data.autoNotionalUsd = clamp(body.autoNotionalUsd, 10, 1000, link.autoNotionalUsd);
+  if (Object.keys(data).length === 0) return NextResponse.json({ error: "NOTHING_TO_UPDATE" }, { status: 422 });
+
+  const updated = await db.brokerLink.update({ where: { id: link.id }, data });
+  return NextResponse.json({
+    ok: true,
+    link: {
+      id: updated.id, autoMirror: updated.autoMirror, autoLots: updated.autoLots,
+      autoStakeUsd: updated.autoStakeUsd, autoNotionalUsd: updated.autoNotionalUsd,
+    },
+  });
+}, { minPlan: "TRIAL" });
+
+/** DELETE /api/brokers?id=... — remove a link. The ciphertext and the bridge
+ *  token hash die with the row; the EA starts getting 401 immediately. */
 export const DELETE = withGuard(async (req: Request, { user }) => {
   const id = new URL(req.url).searchParams.get("id") ?? "";
   if (!id) return NextResponse.json({ error: "ID_REQUIRED" }, { status: 400 });

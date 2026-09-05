@@ -7,6 +7,7 @@ import { getOrCreateRun } from "@/lib/engine/paper";
 import { feedSource, feedProvenance, feedStats } from "@/lib/engine/feed";
 import { twelvedataStatus } from "@/lib/market/twelvedata";
 import { venueStatus } from "@/lib/engine/venue";
+import { fanoutStats } from "@/lib/engine/fanout";
 import { getEngineControl } from "@/lib/engine/control";
 
 export function bookStats(rows: Array<{ gate: number; horizonMin: number; netPnlUsd: number | null; netR: number | null; grossPnlUsd: number | null }>) {
@@ -114,11 +115,13 @@ export async function buildEngineSnapshot() {
     brainScope: "global",
     live,
     venue: await venueStatus(),
+    // per-user broker mirror ("connect your broker, go live")
+    brokerMirror: await fanoutStats(),
     build: {
       sha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
       source: process.env.RAILWAY_GIT_COMMIT_SHA ? "railway" : "local",
       // Marker only exists in this commit — its presence proves the deploy swapped.
-      marker: "graphics-4",
+      marker: "bridge-1",
     },
   };
 }

@@ -79,15 +79,15 @@ export function SettingsView() {
               desc="Built-in paper engine. Always labeled SIMULATED in the UI. No keys needed."
             />
             <BrokerOption
-              active={broker === "ALPACA_PAPER"}
+              active={broker === "OWN_BROKER"}
               onClick={() => {
                 toast({
-                  title: "Connect your broker instead",
-                  description: "Use the Connect your broker card below: it verifies your API keys by reading your account on save, and FULL access routes your trades live.",
+                  title: "Connect your broker to go live",
+                  description: "Use the cards below: Deriv with an API token, any MT4/MT5 broker with our EA bridge, or Alpaca, Binance, Bybit and OANDA with API keys. Once connected, the engine mirrors its signals onto your account automatically.",
                 });
               }}
               name="Your own broker (recommended)"
-              desc="Connect Alpaca, Binance, Bybit or OANDA below. Verified FULL access routes your trades live through your own account."
+              desc="Connect Deriv, any MT4/MT5 broker, Alpaca, Binance, Bybit or OANDA below. A verified FULL connection follows the engine live through your own account."
             />
           </div>
         </SettingsCard>
@@ -95,8 +95,9 @@ export function SettingsView() {
         {/* ── Direct broker connections: verified keys, live routing ── */}
         <LiveBrokerCard />
 
-        {/* ── MetaTrader connectivity (MT4/MT5) ── */}
-        <MetaTraderCard />
+        {/* ── Deriv native + MT4/MT5 own bridge ── */}
+        <DerivCard />
+        <MtBridgeCard />
 
         {/* ── Data providers (BYOK §30) ── */}
         <SettingsCard title="Data providers" desc="Bring your own key; secrets stay server-side, encrypted, never returned by APIs">
@@ -250,9 +251,9 @@ function LegalLink({ label, onClick }: { label: string; onClick: () => void }) {
 
 void InfoTip;
 
-// ─── MetaTrader connectivity (MT4/MT5 via MetaApi bridge) ────────────────────
+// ─── Broker connectivity: Deriv native API + our own MT4/MT5 EA bridge ───────
 
-interface BrokerLink {
+interface BrokerLinkRow {
   id: string;
   platform: string;
   label: string;
@@ -265,42 +266,190 @@ interface BrokerLink {
   currency: string;
   balance?: number | null;
   equity?: number | null;
+  autoMirror?: boolean;
+  autoLots?: number | null;
+  autoStakeUsd?: number | null;
+  autoNotionalUsd?: number | null;
+  bridgeLive?: boolean;
+  lastHandshakeAt?: string | null;
+  eaVersion?: string | null;
+  verifiedAt?: string | null;
+  createdAt?: string;
 }
 
-const MT_SERVER_HINTS = [
-  "DerivSVG5-Real", "DerivSVG5-Demo", "DerivSV-Real", "Deriv-Demo",
-  "ICMarketsSC-MT5", "Pepperstone-Live", "FTMO-Server",
-];
-const MT_REGIONS = ["new-york", "london", "singapore", "sydney"];
-
-function MetaTraderCard() {
-  const { toast } = useToast();
-  const [links, setLinks] = useState<BrokerLink[]>([]);
-  const [adding, setAdding] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [platform, setPlatform] = useState<"MT4" | "MT5">("MT5");
-  const [label, setLabel] = useState("");
-  const [server, setServer] = useState("");
-  const [login, setLogin] = useState("");
-  const [password, setPassword] = useState("");
-  const [metaapiToken, setMetaapiToken] = useState("");
-  const [region, setRegion] = useState("new-york");
-  const [mode, setMode] = useState<"INVESTOR" | "FULL">("INVESTOR");
-
+function useBrokerLinks() {
+  const [links, setLinks] = useState<BrokerLinkRow[]>([]);
   const load = useCallback(async () => {
     try {
       const j = await (await fetch("/api/brokers")).json();
       setLinks(j.links ?? []);
     } catch { /* hold */ }
   }, []);
-
   useEffect(() => {
     load();
+    const iv = setInterval(load, 10_000);
+    return () => clearInterval(iv);
   }, [load]);
+  return { links, load };
+}
+
+function AutoMirrorToggle({ link, onSaved }: { link: BrokerLinkRow; onSaved: () => void }) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const on = link.autoMirror !== false;
+  return (
+    <button
+      role="switch"
+      aria-checked={on}
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const res = await fetch("/api/brokers", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: link.id, autoMirror: !on }),
+          });
+          if (!res.ok) throw new Error("patch failed");
+          toast({
+            title: !on ? "Auto-mirror on" : "Auto-mirror off",
+            description: !on
+              ? "Engine signals will now execute on this account automatically."
+              : "This account becomes manual: only trades you place are routed here.",
+          });
+          onSaved();
+        } catch {
+          toast({ title: "Could not update", description: "Retry in a moment.", variant: "destructive" });
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? "bg-brand" : "bg-panel-3"}`}
+    >
+      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
+    </button>
+  );
+}
+
+function SizeField({ id, field, label, value, min, max, step, onSaved }: {
+  id: string; field: "autoLots" | "autoStakeUsd" | "autoNotionalUsd"; label: string;
+  value: number | null | undefined; min: number; max: number; step: number; onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [v, setV] = useState(value != null ? String(value) : "");
+  useEffect(() => { setV(value != null ? String(value) : ""); }, [value]);
+  const save = async () => {
+    const n = Number(v);
+    if (v !== "" && (!Number.isFinite(n) || n < min || n > max)) {
+      toast({ title: "Out of range", description: `${label} must be between ${min} and ${max}.`, variant: "destructive" });
+      setV(value != null ? String(value) : "");
+      return;
+    }
+    const body: Record<string, unknown> = { id };
+    body[field] = v === "" ? null : n;
+    try {
+      const res = await fetch("/api/brokers", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error("patch failed");
+      toast({ title: "Size saved", description: `Mirrored ${field === "autoLots" ? "lot size" : field === "autoStakeUsd" ? "stake" : "notional"} set to ${v === "" ? "the default" : v}.` });
+      onSaved();
+    } catch {
+      toast({ title: "Could not save", description: "Retry in a moment.", variant: "destructive" });
+    }
+  };
+  return (
+    <label className="flex items-center gap-1.5">
+      <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <input
+        value={v}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+        inputMode="decimal"
+        placeholder="default"
+        className="w-16 rounded-md border border-hairline bg-panel px-1.5 py-1 text-right text-[10.5px] outline-none focus:border-brand/50"
+      />
+    </label>
+  );
+}
+
+function LinkRow({ link, showSize, onSaved }: { link: BrokerLinkRow; showSize: "autoLots" | "autoStakeUsd" | "autoNotionalUsd" | null; onSaved: () => void }) {
+  const { toast } = useToast();
+  const isMt = link.platform === "MT4" || link.platform === "MT5";
+  const badge = (() => {
+    if (isMt) {
+      if (link.status === "PENDING_BRIDGE") return { cls: "border-warn/40 bg-warn/10 text-warn", text: "Waiting for terminal" };
+      if (link.status === "CONNECTED") return link.bridgeLive
+        ? { cls: "border-pos/40 bg-pos/10 text-pos", text: "Live" }
+        : { cls: "border-warn/40 bg-warn/10 text-warn", text: "Terminal offline" };
+      return { cls: "border-neg/40 bg-neg/10 text-neg", text: link.status };
+    }
+    if (link.status === "CONNECTED") {
+      if (link.env === "DEMO" || link.env === "PAPER" || link.env === "TESTNET" || link.env === "PRACTICE") return { cls: "border-hairline text-muted-foreground", text: `Live routing · ${link.env}` };
+      return { cls: "border-pos/40 bg-pos/10 text-pos", text: "Live routing" };
+    }
+    return { cls: "border-neg/40 bg-neg/10 text-neg", text: link.status };
+  })();
+
+  const remove = async () => {
+    try {
+      await fetch(`/api/brokers?id=${link.id}`, { method: "DELETE" });
+      toast({ title: "Connection removed", description: "The encrypted credentials and bridge key were deleted with it." });
+      onSaved();
+    } catch {
+      toast({ title: "Couldn't remove that", description: "Retry in a moment.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-hairline bg-panel-2 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold">
+            {link.platform} · {link.label}{" "}
+            <span className={`ml-1.5 rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${badge.cls}`}>{badge.text}</span>
+          </p>
+          <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+            {link.login ? `${link.login} · ` : ""}{link.balance != null ? `${link.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${link.currency}` : ""}
+            {isMt && link.eaVersion ? ` · EA v${link.eaVersion}` : ""}
+            {isMt && link.lastHandshakeAt ? ` · last check-in ${new Date(link.lastHandshakeAt).toLocaleTimeString()}` : ""}
+          </p>
+          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{link.statusDetail}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+            Auto-mirror
+            <AutoMirrorToggle link={link} onSaved={onSaved} />
+          </label>
+          <button onClick={remove} className="rounded-lg border border-hairline px-2.5 py-1.5 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:border-neg/40 hover:text-neg">
+            Remove
+          </button>
+        </div>
+      </div>
+      {showSize ? (
+        <div className="mt-2 flex items-center gap-3 border-t border-hairline pt-2">
+          <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">Size per mirrored signal</span>
+          {showSize === "autoLots" ? <SizeField id={link.id} field="autoLots" label="Lots" value={link.autoLots} min={0.01} max={10} step={0.01} onSaved={onSaved} /> : null}
+          {showSize === "autoStakeUsd" ? <SizeField id={link.id} field="autoStakeUsd" label="Stake" value={link.autoStakeUsd} min={1} max={100} step={1} onSaved={onSaved} /> : null}
+          {showSize === "autoNotionalUsd" ? <SizeField id={link.id} field="autoNotionalUsd" label="USD" value={link.autoNotionalUsd} min={10} max={1000} step={10} onSaved={onSaved} /> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Deriv native (official API token, no third party) ───────────────────────
+
+function DerivCard() {
+  const { toast } = useToast();
+  const { links, load } = useBrokerLinks();
+  const derivLinks = links.filter((l) => l.platform === "DERIV");
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [apiToken, setApiToken] = useState("");
 
   const submit = async () => {
-    if (!server.trim() || !login.trim() || !password || !metaapiToken.trim()) {
-      toast({ title: "Missing details", description: "MetaApi token, server, login and password are all required.", variant: "destructive" });
+    if (!apiToken.trim()) {
+      toast({ title: "Missing token", description: "Paste the API token from your Deriv account first.", variant: "destructive" });
       return;
     }
     setBusy(true);
@@ -308,18 +457,15 @@ function MetaTraderCard() {
       const res = await fetch("/api/brokers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, label, server, login, password, metaapiToken, region, mode }),
+        body: JSON.stringify({ platform: "DERIV", apiToken }),
       });
       const j = await res.json();
       if (!res.ok) {
-        toast({ title: "Connection failed", description: j.message ?? "Check the details and retry. Nothing was stored.", variant: "destructive" });
+        toast({ title: "Deriv rejected that token", description: j.message ?? "Nothing was stored.", variant: "destructive" });
       } else {
-        toast({
-          title: j.link?.status === "CONNECTED" ? "Account verified and live" : "Account linked",
-          description: j.message ?? j.link?.statusDetail ?? "",
-        });
+        toast({ title: "Deriv connected", description: j.message ?? "Verified by reading your account." });
         setAdding(false);
-        setServer(""); setLogin(""); setPassword(""); setLabel(""); setMetaapiToken("");
+        setApiToken("");
         load();
       }
     } catch {
@@ -329,103 +475,165 @@ function MetaTraderCard() {
     }
   };
 
-  const remove = async (id: string) => {
-    try {
-      await fetch(`/api/brokers?id=${id}`, { method: "DELETE" });
-      setLinks((ls) => ls.filter((l) => l.id !== id));
-      toast({ title: "Link removed", description: "The encrypted credentials were deleted with it." });
-    } catch {
-      toast({ title: "Couldn't remove that", description: "Retry in a moment.", variant: "destructive" });
-    }
-  };
-
-  const statusBadge = (s: string) =>
-    s === "CONNECTED" ? "border-pos/40 bg-pos/10 text-pos"
-    : s === "ERROR" ? "border-neg/40 bg-neg/10 text-neg"
-    : "border-warn/40 bg-warn/10 text-warn";
-
-  const fmtMoney = (v: number | null | undefined) =>
-    v == null ? "" : `${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-
   return (
-    <SettingsCard title="MetaTrader (MT4 / MT5)" desc="Deriv, IC Markets and every MT4/MT5 broker, through the MetaApi bridge">
+    <SettingsCard title="Deriv (official API)" desc="Paste an API token; the server reads your account to verify it, then the engine mirrors its signals onto it automatically">
       <div className="space-y-3">
-        {links.map((l) => (
-          <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-panel-2 px-3 py-2.5">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold">
-                {l.platform} · {l.label}{" "}
-                <span className={`ml-1.5 rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${statusBadge(l.status)}`}>
-                  {l.status === "CONNECTED" && l.mode === "FULL" ? "Live" : l.status === "PENDING_BRIDGE" ? "Bridge pending" : l.status}
-                </span>
-              </p>
-              <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-                {l.server} · {l.login} · {l.mode === "INVESTOR" ? "read-only" : "full access"}
-                {l.balance != null ? ` · ${fmtMoney(l.balance)} ${l.currency}` : ""}; {l.statusDetail}
-              </p>
-            </div>
-            <button
-              onClick={() => remove(l.id)}
-              className="shrink-0 rounded-lg border border-hairline px-2.5 py-1.5 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:border-neg/40 hover:text-neg"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+        {derivLinks.map((l) => <LinkRow key={l.id} link={l} showSize="autoStakeUsd" onSaved={load} />)}
 
         {!adding ? (
           <button
             onClick={() => setAdding(true)}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-hairline py-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground"
           >
-            <Plus className="h-3.5 w-3.5" /> Connect an MT4 / MT5 account
+            <Plus className="h-3.5 w-3.5" /> Connect a Deriv account
           </button>
         ) : (
           <div className="space-y-2.5 rounded-lg border border-hairline bg-panel-2 p-3.5">
+            <input
+              value={apiToken}
+              onChange={(e) => setApiToken(e.target.value)}
+              placeholder="Deriv API token"
+              type="password"
+              className="w-full rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50"
+            />
+            <div className="flex gap-2">
+              <button onClick={submit} disabled={busy} className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white transition-all hover:brightness-110 disabled:opacity-60">
+                {busy ? "Reading your Deriv account…" : "Verify & connect"}
+              </button>
+              <button onClick={() => setAdding(false)} className="rounded-lg border border-hairline px-3 py-2 text-xs font-semibold text-muted-foreground">Cancel</button>
+            </div>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              In Deriv: Settings &gt; API token, create a token with READ and TRADING scopes, paste it above. The server
+              authorizes with that token, reads your balance and account type, and stores it AES-256-GCM encrypted.
+              Demo accounts (VRTC login ids) are labeled DEMO and trade the demo book; real accounts go live.
+              Engine signals execute as multiplier contracts (multiplied up/down) with your per-signal stake, and are
+              closed when the engine closes the trade. Deriv does not list every asset; unsupported symbols are
+              recorded as skipped, never substituted.
+            </p>
+          </div>
+        )}
+      </div>
+    </SettingsCard>
+  );
+}
+
+// ─── MT4 / MT5 via our own EA bridge (any broker, incl. Deriv MT5) ───────────
+
+const MT_SERVER_HINTS = [
+  "DerivSVG5-Real", "DerivSVG5-Demo", "DerivSV-Real", "Deriv-Demo",
+  "ICMarketsSC-MT5", "Pepperstone-Live", "FTMO-Server",
+];
+
+function MtBridgeCard() {
+  const { toast } = useToast();
+  const { links, load } = useBrokerLinks();
+  const mtLinks = links.filter((l) => l.platform === "MT4" || l.platform === "MT5");
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [platform, setPlatform] = useState<"MT4" | "MT5">("MT5");
+  const [label, setLabel] = useState("");
+  const [server, setServer] = useState("");
+  const [login, setLogin] = useState("");
+  const [issued, setIssued] = useState<{ token: string; mq5: string; mq4: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/brokers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, label, server, login }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        toast({ title: "Could not issue a bridge key", description: j.message ?? "Retry in a moment.", variant: "destructive" });
+      } else {
+        setIssued({ token: j.bridgeToken, mq5: j.ea.mq5, mq4: j.ea.mq4 });
+        setAdding(false);
+        setLabel(""); setServer(""); setLogin("");
+        load();
+      }
+    } catch {
+      toast({ title: "Network error", description: "Retry in a moment.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SettingsCard title="MT4 / MT5 (own bridge, any broker)" desc="Install our EA on your terminal; it connects itself, executes commands locally, and reports fills back. No third-party service, no account password">
+      <div className="space-y-3">
+        {mtLinks.map((l) => <LinkRow key={l.id} link={l} showSize="autoLots" onSaved={load} />)}
+
+        {issued ? (
+          <div className="space-y-2.5 rounded-lg border border-pos/40 bg-pos/[0.06] p-3.5">
+            <p className="text-xs font-bold text-pos">Bridge key issued. It is shown once; only its hash is stored.</p>
+            <div className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 overflow-x-auto rounded-lg border border-hairline bg-panel px-3 py-2 text-[10.5px]">{issued.token}</code>
+              <button
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(issued.token); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard denied */ }
+                }}
+                className="shrink-0 rounded-lg border border-hairline px-3 py-2 text-[11px] font-semibold"
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a href={issued.mq5} download className="rounded-lg border border-hairline bg-panel-2 px-3 py-2 text-[11px] font-semibold transition-colors hover:border-brand/40">Download EA for MT5</a>
+              <a href={issued.mq4} download className="rounded-lg border border-hairline bg-panel-2 px-3 py-2 text-[11px] font-semibold transition-colors hover:border-brand/40">Download EA for MT4</a>
+              <button onClick={() => setIssued(null)} className="rounded-lg px-3 py-2 text-[11px] font-semibold text-muted-foreground">Done</button>
+            </div>
+            <ol className="list-decimal space-y-1 pl-4 text-[10px] leading-relaxed text-muted-foreground">
+              <li>Open MetaEditor (F4 in your terminal), create a new Expert Advisor, replace its contents with the downloaded file, and click Compile.</li>
+              <li>In the terminal: Tools &gt; Options &gt; Expert Advisors, tick Allow WebRequest for listed URL, and add this site&apos;s exact address: <span className="font-mono">{typeof window !== "undefined" ? window.location.origin : ""}</span></li>
+              <li>Drag QuantEdgeBridge onto any chart, paste the bridge key and this site&apos;s URL into the inputs, and enable Algo Trading.</li>
+              <li>The EA shakes hands within seconds; this card flips to Live and the engine starts mirroring signals onto the account.</li>
+            </ol>
+          </div>
+        ) : null}
+
+        {!adding ? (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-hairline py-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground"
+          >
+            <Plus className="h-3.5 w-3.5" /> Bridge an MT4 / MT5 terminal
+          </button>
+        ) : (
+          <div className="space-y-2.5 rounded-lg border border-hairline bg-panel-2 p-3.5">
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-panel p-1">
+              {(["MT5", "MT4"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPlatform(p)}
+                  className={`rounded-md py-1.5 text-[11px] font-bold transition-colors ${platform === p ? "bg-brand/15 text-brand" : "text-muted-foreground"}`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="col-span-2 grid grid-cols-2 gap-1 rounded-lg bg-panel p-1">
-                {(["MT5", "MT4"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPlatform(p)}
-                    className={`rounded-md py-1.5 text-[11px] font-bold transition-colors ${platform === p ? "bg-brand/15 text-brand" : "text-muted-foreground"}`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <input value={metaapiToken} onChange={(e) => setMetaapiToken(e.target.value)} placeholder="MetaApi token (app.metaapi.cloud)" type="password" className="col-span-2 rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. Deriv)" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="Broker server" list="mt-server-hints" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. Deriv MT5)" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="Broker server (optional)" list="mt-server-hints" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
               <datalist id="mt-server-hints">
                 {MT_SERVER_HINTS.map((s) => <option key={s} value={s} />)}
               </datalist>
-              <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="MT account number" inputMode="numeric" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="MT account password" type="password" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <select value={region} onChange={(e) => setRegion(e.target.value)} className="col-span-2 rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50">
-                {MT_REGIONS.map((r) => <option key={r} value={r}>Bridge region: {r}</option>)}
-              </select>
+              <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Account number (optional)" inputMode="numeric" className="col-span-2 rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
             </div>
-            <label className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
-              <input type="checkbox" checked={mode === "INVESTOR"} onChange={(e) => setMode(e.target.checked ? "INVESTOR" : "FULL")} className="accent-[#dc2626]" />
-              Read-only investor password (recommended: DeeYoung can watch, never trade)
-            </label>
             <div className="flex gap-2">
               <button onClick={submit} disabled={busy} className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white transition-all hover:brightness-110 disabled:opacity-60">
-                {busy ? "Provisioning the bridge…" : "Verify & connect account"}
+                {busy ? "Issuing bridge key…" : "Issue bridge key"}
               </button>
-              <button onClick={() => setAdding(false)} className="rounded-lg border border-hairline px-3 py-2 text-xs font-semibold text-muted-foreground">
-                Cancel
-              </button>
+              <button onClick={() => setAdding(false)} className="rounded-lg border border-hairline px-3 py-2 text-xs font-semibold text-muted-foreground">Cancel</button>
             </div>
             <p className="text-[10px] leading-relaxed text-muted-foreground">
-              MT4/MT5 brokers expose no official API, so this link runs through the MetaApi cloud bridge: create a free
-              MetaApi account at app.metaapi.cloud, copy your API token (API access tokens page) and paste it above.
-              DeeYoung provisions the bridge, reads your account to verify it, and deletes nothing you did not give it.
-              Copy the server name exactly from your terminal login dialog (Deriv examples: DerivSVG5-Real, DerivSVG5-Demo).
-              Verification can take up to a minute on a slow broker. Credentials are AES-256-GCM encrypted before storage
-              and never returned by any API. FULL access lets the engine place and close real orders on this account;
-              if the account itself is a demo server, orders execute on that demo account.
+              MetaTrader has no official web API, so the bridge runs on YOUR terminal: our EA polls your private command
+              queue on this server, places the orders locally in MetaTrader, and reports the fills back. Your login and
+              password stay inside your terminal; the server only ever holds the bridge key hash and the commands.
+              The account number and server name are optional labels; the EA fills them in at its first handshake.
+              Works with any MT4/MT5 broker, including Deriv MT5 (DerivSVG5-Real, DerivSVG5-Demo).
             </p>
           </div>
         )}
