@@ -27,3 +27,4 @@ export const db: PrismaClient =
       })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// prisma client refresh touch

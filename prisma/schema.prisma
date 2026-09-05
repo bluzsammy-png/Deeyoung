@@ -562,3 +562,23 @@ model EngineControl {
   updatedBy String?
   updatedAt DateTime @updatedAt
 }
+
+// DEEYOUNG PRO — in-house live support chat (free, zero third-party).
+// Visitors post under an anonymous threadKey (localStorage token — no email
+// required to ask a question); the owner replies from the /admin Support tab.
+// role: VISITOR = from the site widget, AGENT = from the admin console.
+// seen: for VISITOR rows = admin has read it; for AGENT rows = visitor has read it.
+model SupportMessage {
+  id          String   @id @default(cuid())
+  threadKey   String
+  role        String
+  body        String
+  visitorName String?
+  page        String?
+  ipHash      String?
+  seen        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([threadKey, createdAt])
+  @@index([seen, createdAt])
+}

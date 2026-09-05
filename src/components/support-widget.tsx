@@ -19,13 +19,17 @@ declare global {
 export function SupportWidget() {
   useEffect(() => {
     const id = process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID;
-    if (!id || window.Tawk_API) return;
+    const widget = process.env.NEXT_PUBLIC_TAWK_WIDGET_ID;
+    // Both IDs come from tawk.to Administration → Property Settings / Widget code.
+    // If either is missing, silently do nothing — the built-in LiveChat desk
+    // renders instead (layout picks exactly one widget).
+    if (!id || !widget || window.Tawk_API) return;
     window.Tawk_API = window.Tawk_API || {};
     window.Tawk_LoadStart = new Date();
     const s1 = document.createElement("script");
     const s0 = document.getElementsByTagName("script")[0];
     s1.async = true;
-    s1.src = `https://embed.tawk.to/${id}/1gm0v2v0p`;
+    s1.src = `https://embed.tawk.to/${id}/${widget}`;
     s1.charset = "UTF-8";
     s1.setAttribute("crossorigin", "*");
     s0?.parentNode?.insertBefore(s1, s0);

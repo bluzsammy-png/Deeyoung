@@ -60,6 +60,11 @@ if (cmd === "list") {
     console.log(`- [${m.timestamp ?? "?"}] from=${m.from ?? "?"} subject=${m.subject ?? "?"} id=${m.message_id ?? "?"}`);
   }
   if (!rows.length) console.log("(no matching messages yet)");
+} else if (cmd === "delete") {
+  const inbox = arg("--inbox") ?? "";
+  if (!inbox) { console.error("--inbox required"); process.exit(1); }
+  await api(`/inboxes/${encodeURIComponent(inbox)}`, { method: "DELETE" });
+  console.log(`deleted: ${inbox}`);
 } else if (cmd === "links") {
   // Extract all URLs from a specific message body (verification links)
   const inbox = arg("--inbox") ?? "";

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { SupportWidget } from "@/components/support-widget";
+import { LiveChat } from "@/components/live-chat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,7 +71,9 @@ export default function RootLayout({
         <PostHogProvider>
           {children}
           <Toaster />
-          <SupportWidget />
+          {/* Live support, mutually exclusive: hosted Tawk.to when its property is
+              configured, otherwise the built-in desk (free, no third party). */}
+          {process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID ? <SupportWidget /> : <LiveChat />}
         </PostHogProvider>
       </body>
     </html>

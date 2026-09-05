@@ -16,7 +16,7 @@ const FIRST_DELAY_MS = 90_000;   // let the engine finish seeding first
 const INTERVAL_MS = 15 * 60_000; // 15 min cadence
 const MAX_BODY = 3_500;          // ntfy free tier message cap
 
-function compactClosed(rows: Array<Record<string, unknown>>): string {
+function compactClosed(rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
   return rows.slice(0, 8).map((p) => ({
     book: p.bookKey,
     sym: p.symbol,
@@ -67,7 +67,7 @@ function digest(s: Record<string, unknown>): string {
     // running server reports its own runtime truth here every 15 minutes.
     platform: {
       googleAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-      supportWidget: !!process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID,
+      support: process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID && process.env.NEXT_PUBLIC_TAWK_WIDGET_ID ? "tawk" : "inhouse",
       billing: !!(process.env.PAYMENT_LINK_PRO || process.env.PAYMENT_LINK_STARTER || process.env.PAYMENT_LINK_ELITE),
       adminList: (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean).length,
     },
