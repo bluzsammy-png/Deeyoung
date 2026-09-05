@@ -70,7 +70,7 @@ const SECTIONS: Section[] = [
     articles: [
       { q: "Notifications", a: "Web notifications cover new high-confidence signals, approval requests, executions, stops/targets, risk limits, and system degradation. Configure event types, quiet hours, and importance thresholds in Settings → Notifications.", tags: ["notifications"] },
       { q: "BYOK: bring your own key", a: "Where providers cost money (news APIs, Alpaca), you connect your own keys. Keys are stored encrypted, used server-side only, never rendered in the UI, and never returned by APIs. DeeYoung shows usage metering so you can see exactly what consumed what.", tags: ["providers"] },
-      { q: "Data honesty policy", a: "Quotes are delayed per exchange terms and labeled as such before you even enter the terminal. Stale data is labeled STALE; simulated fallback is labeled SIMULATED and pauses automation. Unavailable news is labeled NEWS DATA UNAVAILABLE. We never pretend degraded data is live.", tags: ["honesty"] },
+      { q: "Data honesty policy", a: "The engine reads live crypto exchange candles every minute. Stock and forex research quotes come from free data tiers, delayed per exchange terms, and labeled as such. Stale data is labeled STALE; simulated fallback is labeled SIMULATED and pauses automation. Unavailable news is labeled NEWS DATA UNAVAILABLE. We never pretend degraded data is live.", tags: ["honesty"] },
       { q: "Where my data lives", a: "Authoritative state (account, positions, orders, SENTINEL config, audit trail) lives server-side in your account, not in browser storage. localStorage only holds display preferences.", tags: ["privacy"] },
     ],
   },
