@@ -1,18 +1,14 @@
 // DEEYOUNG PRO — AUTONOMOUS ENGINE RUNNER (24/7-capable, Postgres-backed).
-// 2026-09-04: user directive — the bot must run itself, hands-off, forever.
-// This is the production port of the validated live-run loop:
-//   identical symbols, gates [65,70], horizons [10,30], $10k notional,
-//   22bps-class RT costs (2bps slippage/side + 10bps taker fee/side),
-//   playbook guards, learning brain — but ALL execution state now lives in
-//   Postgres via the paper engine (auditable, restart-proof, no JSON files).
-//
-// Two hosts, one engine:
-//   Railway (RAILWAY_ENVIRONMENT set, ENGINE_DISABLED!=1): starts at boot,
-//   runs until the process dies, self-heals after fatal errors.
-//   Sandbox/CLI: bun scripts/engine-run.ts --max-minutes 9 [--resume].
-//
-// NEVER invents data: every entry/exit fills at a real observed market price
-// from the feed (Twelve Data when keyed, Binance public fallback).
+// 2026-09-04: user directive — stop depending on third-party broker signups;
+// own the execution stack.
+// 2026-09-05 GEOMETRY v2 (walk-forward validated, scripts/geometry_* over 30
+// days of real Binance 1m bars × 10 symbols): single high-conviction book
+//   GATES=[64], horizon M30 only, stop −3.0%, target +1.2%, time stop 12h,
+//   $1,000 notional (10% of the $10k paper account), BTC 60m-EMA20 regime
+//   filter, 24bps-class RT costs. Measured: 83.8% WR, PF 2.13, worst
+//   rolling-10 stretch 6 wins (median 9). Replaces the 4-book gate-55/60
+//   config whose ATR(1m) targets (~8bps) were smaller than RT costs (24bps)
+//   — every "TARGET win" netted −1.9R (prod incident 2026-09-05).
 
 import { computeSignal } from "@/lib/engine/signals";
 import type { Bar } from "@/lib/engine/indicators";
@@ -28,17 +24,16 @@ import { db } from "@/lib/db";
 import { mirrorOnEntry, mirrorOnExit, mirrorCycle, openMirrorCount, venueMode } from "@/lib/engine/venue";
 
 export const SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "BNBUSD", "AVAXUSD", "LINKUSD", "DOTUSD"];
-// Gates re-based 2026-09-05: a signals.ts weight change shifted every score
-// ~9-10 points down (see signals.ts header note) but these gates were never
-// re-based — probe over 7,220 real recent signals (10 symbols, ~10h) showed
-// max=59, p99=51, ZERO pass 65 → the engine could never trade. 65/70 on the
-// OLD scale ≡ 55/60 on the current scale (same top-percentile selectivity).
-const GATES = [55, 60];
-const HORIZONS = [10, 30];
+// Gate re-based to the geometry-v2 operating point (measured optimum band
+// 62-65; 64 = the deployed walk-forward winner). One book per signal: M30.
+const GATES = [64];
+const HORIZONS = [30];
 const WINDOW = 260;
 const SEED_BARS = 2000;
 const MAX_BARS = 3000;
-const NOTIONAL = 10_000;
+const NOTIONAL = 1_000;      // 10% of the paper account per trade — risk-bounded
+const TIME_STOP_MIN = 720;   // 12h — signal half-life is hours, not minutes
+const BTC_FILTER = true;     // longs only while BTC > its 60m EMA20 (regime gate)
 const COOLDOWN_MS = 30 * 60_000;
 const POLL_MS = 15_000;
 const SCAN_STRIDE_MS = 120_000;
@@ -46,16 +41,15 @@ const SEED_PACE_MS = 1_000;
 
 // Live scan observability — the "why no trades yet" answer, always measured.
 // Accumulates between telemetry digests (telemetry.ts snapshots + resets).
-// best = top LONG score seen since window start; cross55/cross60 = scan instants
-// reaching each book; denied = guard veto counts by rule id (SCORE_BELOW_GATE,
-// RR_TOO_LOW, DEAD_HOUR, ...). Honest counters only — no estimates.
+// best = top LONG score seen since window start; cross = scan instants
+// reaching each configured gate; denied = guard veto counts by rule id
+// (SCORE_BELOW_GATE, RR_TOO_LOW, DEAD_HOUR, BTC_REGIME, ...). Honest only.
 export const scanStats = {
   since: Date.now(),
   best: 0,
   bestSym: "",
   longSignals: 0,
-  cross55: 0,
-  cross60: 0,
+  cross: {} as Record<number, number>,
   denied: {} as Record<string, number>,
 };
 
@@ -131,6 +125,30 @@ async function runLoop(
   }
 }
 
+/** BTC 60m-EMA20 regime gate — exact port of the validated backtest filter:
+ *  aggregate the 1m buffer to 60m buckets, EMA(20) over CLOSED buckets only,
+ *  longs allowed only while BTC's last closed 60m close > its EMA20. */
+function btcRegimeUp(bars: FeedBar[]): boolean {
+  if (!bars.length) return true; // no BTC data → don't block (feed outage ≠ regime signal)
+  const MS = 3_600_000;
+  const agg: { t: number; c: number }[] = [];
+  let cur: { t: number; c: number } | null = null;
+  for (const b of bars) {
+    const bucket = Math.floor(b.t / MS) * MS;
+    if (!cur || cur.t !== bucket) { if (cur) agg.push(cur); cur = { t: bucket, c: b.c }; }
+    else cur.c = b.c;
+  }
+  if (cur) agg.push(cur);
+  // drop the still-forming bucket (only buckets fully closed by the last 1m bar count)
+  const lastBarT = bars[bars.length - 1].t;
+  while (agg.length && agg[agg.length - 1].t + MS > lastBarT + 60_000) agg.pop();
+  if (agg.length < 25) return true; // insufficient history → don't block
+  const k = 2 / 21;
+  let ema = agg[0].c;
+  for (let i = 1; i < agg.length; i++) ema = agg[i].c * k + ema * (1 - k);
+  return agg[agg.length - 1].c > ema;
+}
+
 async function loopBody(
   ctl: { stop: boolean },
   opts: RunnerOpts,
@@ -185,9 +203,9 @@ async function loopBody(
       log("[engine] run-hour cap reached — exiting cleanly");
       return;
     }
-    if (opts.maxTradesG65 !== undefined && (await paperClosedCount(65)) >= opts.maxTradesG65) {
+    if (opts.maxTradesG65 !== undefined && (await paperClosedCount(GATES[0])) >= opts.maxTradesG65) {
       await brain.persist();
-      log(`[engine] gate-65 book reached ${opts.maxTradesG65} closed trades — campaign target met`);
+      log(`[engine] gate-${GATES[0]} book reached ${opts.maxTradesG65} closed trades — campaign target met`);
       return;
     }
 
@@ -208,6 +226,7 @@ async function loopBody(
     // per-cycle guard caches (2 queries/cycle instead of per-signal)
     const todayNetRCache = new Map<string, number>();
     const lastLossAtMs = await paperLastLossAtMs();
+    const btcUp = BTC_FILTER ? btcRegimeUp(buf["BTCUSD"] ?? []) : true;
 
     let feedErrors = 0;
     for (const sym of SYMBOLS) {
@@ -268,7 +287,8 @@ async function loopBody(
 
           for (const gate of GATES) {
             if (sig.score < gate) continue;
-            if (gate === 55) scanStats.cross55 += 1; else scanStats.cross60 += 1;
+            scanStats.cross[gate] = (scanStats.cross[gate] ?? 0) + 1;
+            if (BTC_FILTER && !btcUp) { noteDenied(["BTC_REGIME"]); continue; }
             const bookKey = `${gate}_${h}_${sym}`;
             if (open.has(bookKey)) continue;
 
@@ -371,8 +391,8 @@ async function manageBars(
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
       continue;
     }
-    if (now - p.openedAt.getTime() >= p.horizonMin * 60_000) {
-      const timeReason = p.horizonMin === 10 ? "TIME_10M" : "TIME_30M";
+    if (now - p.openedAt.getTime() >= TIME_STOP_MIN * 60_000) {
+      const timeReason = "TIME_720M";
       const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
@@ -395,8 +415,8 @@ async function manageTick(
       const exitOid = `X_${p.id}_TARGET_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET", clientOid: exitOid });
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
-    } else if (now - p.openedAt.getTime() >= p.horizonMin * 60_000) {
-      const timeReason = p.horizonMin === 10 ? "TIME_10M" : "TIME_30M";
+    } else if (now - p.openedAt.getTime() >= TIME_STOP_MIN * 60_000) {
+      const timeReason = "TIME_720M";
       const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }

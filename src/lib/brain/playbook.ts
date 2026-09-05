@@ -39,16 +39,19 @@ export const FX_WEEKEND_CLOSED = true;              // [P1] FX/indices trade Mon
 
 // ── L5 — RISK: the pro's real edge is survival ────────────────────────────────
 export const RISK = {
-  MIN_RR: 1.5,                 // [P1] engine targets 2.4×ATR vs 1.6×ATR stop ⇒ RR 1.5 floor
+  MIN_RR: 0.4,                 // [INVARIANT] must equal the deployed geometry's target/stop
+                               // ratio — geometry v2 = +1.2% target vs −3.0% stop ⇒ rr 0.40.
+                               // The old 1.5 floor belonged to the 2.4/1.6 ATR geometry and
+                               // would veto every setup after the re-base (two-gate drift
+                               // class — re-base MIN_RR, MIN_SCORE and runner GATES TOGETHER).
   MAX_CONCURRENT: 3,           // [P1] correlated-exposure + attention limits
   DAILY_LOSS_CAP_R: -2,        // [P1] stop for the day at -2R (protects the learning curve)
   COOLDOWN_AFTER_LOSS_MIN: 30, // [P1] + [C1] campaign used 30-bar cooldowns
-  MIN_SCORE: 55,               // [C1] campaign gradient ≥62-65 was measured on the PRE-regression
-                               // scale; the horizon re-weighting shifted scores ~9 points down
-                               // (see signals.ts header). Re-based alongside runner GATES [55,60]
-                               // — MUST stay ≤ GATES[0] or this guard silently vetoes every
-                               // setup the gate books allow (prod incident 2026-09-05: 10 gate-55
-                               // crossings in 4h, all denied here with SCORE_BELOW_GATE).
+  MIN_SCORE: 64,               // [C1] mirrors runner GATES[0] — geometry-v2 operating point,
+                               // walk-forward validated (scripts/geometry_*). MUST stay ≤
+                               // GATES[0] or this guard silently vetoes every setup the gate
+                               // books allow (prod incident 2026-09-05: 10 gate-55 crossings
+                               // in 4h, all denied here with SCORE_BELOW_GATE).
 } as const;
 
 export function evaluateOpenGuards(i: OpenGuardInput, deadHours?: number[]): OpenGuardVerdict {
@@ -73,7 +76,7 @@ export function evaluateOpenGuards(i: OpenGuardInput, deadHours?: number[]): Ope
 // (sentinel heartbeat) and adapts factor weights inside bounded, audited limits.
 export const CURRICULUM = [
   { level: 1, name: "Costs & Spread", rule: `Round trip ${TAKER_ROUND_TRIP_BPS}bps modeled on every result — gross and net both reported`, source: "C1" },
-  { level: 2, name: "Structure", rule: "EMA stack for trend, ATR(14)×1.6 stop, ATR×2.4 target, worst-case-gap (stop first)", source: "C1/P1" },
+  { level: 2, name: "Structure", rule: "EMA stack for trend, 3.0% invalidation stop, 1.2% target (geometry v2 — targets several× the 22-24bps RT cost), 12h time stop, worst-case-gap (stop first)", source: "C1/P1" },
   { level: 3, name: "Timing", rule: "No entries in measured dead hours; FX/indices weekend-closed; no chasing opening spikes", source: "C1/P1" },
   { level: 4, name: "Momentum Quality", rule: "relVol 1.05–1.5× sweet spot (PF 1.71 vs 1.10 at ≥1.5×); chase-guard on blow-offs; M30 ROC 2–6% bonus", source: "C1" },
   { level: 5, name: "Risk", rule: `Score ≥${RISK.MIN_SCORE}, RR ≥${RISK.MIN_RR}, ≤${RISK.MAX_CONCURRENT} concurrent, day cap ${RISK.DAILY_LOSS_CAP_R}R, ${RISK.COOLDOWN_AFTER_LOSS_MIN}min cooldown after a loss`, source: "C1/P1/C2" },

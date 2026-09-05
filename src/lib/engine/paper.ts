@@ -52,7 +52,7 @@ export interface EntryResult {
 export interface ExitInput {
   positionId: string;
   exitRefPrice: number; // observed market price NOW
-  reason: "STOP" | "TARGET" | "TIME_10M" | "TIME_30M";
+  reason: "STOP" | "TARGET" | "TIME_10M" | "TIME_30M" | "TIME_720M";
   clientOid?: string;
   runLabel?: string;
 }

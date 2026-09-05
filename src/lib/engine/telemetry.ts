@@ -117,16 +117,14 @@ async function scanSnapshot(): Promise<Record<string, unknown> | null> {
       best: scanStats.best,
       bestSym: scanStats.bestSym || null,
       longSignals: scanStats.longSignals,
-      cross55: scanStats.cross55,
-      cross60: scanStats.cross60,
+      cross: { ...scanStats.cross },
       denied: { ...scanStats.denied },
     };
     scanStats.since = Date.now();
     scanStats.best = 0;
     scanStats.bestSym = "";
     scanStats.longSignals = 0;
-    scanStats.cross55 = 0;
-    scanStats.cross60 = 0;
+    scanStats.cross = {};
     scanStats.denied = {};
     return out;
   } catch {

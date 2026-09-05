@@ -67,7 +67,7 @@ export interface MirrorExitInput {
   engineOid: string; // same oid as the paper exit order row (X_…)
   symbol: string;
   refPrice: number;
-  reason: "STOP" | "TARGET" | "TIME_10M" | "TIME_30M";
+  reason: "STOP" | "TARGET" | "TIME_10M" | "TIME_30M" | "TIME_720M";
 }
 
 function venueTag(): string {
