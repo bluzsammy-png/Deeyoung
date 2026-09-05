@@ -182,7 +182,7 @@ export function Landing() {
             <div className="mt-6 inline-flex max-w-xl items-start gap-2 rounded-xl border border-warn/25 bg-warn/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-warn">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong className="font-semibold">Straight talk:</strong> the engine reads <strong className="font-semibold">live crypto exchange candles</strong> every minute. Stock, ETF and forex research quotes come from free data tiers, delayed per exchange terms. Paper by default: fills are simulated until you connect your own broker. Verified broker keys route your trades live through your own account, and your money only ever moves in your broker account.
+                <strong className="font-semibold">Straight talk:</strong> the engine reads <strong className="font-semibold">live crypto exchange candles</strong> every minute. Stock, ETF and forex research quotes come from free data tiers, delayed per exchange terms. Paper by default: fills are simulated until you connect your own broker. Verified broker keys route your trades live through your own account, and MT4/MT5-only brokers (Deriv and others) connect through the MetaApi bridge the same way. Your money only ever moves in your broker account.
               </span>
             </div>
 
@@ -674,7 +674,7 @@ export function Landing() {
                 <span className="qe-display text-sm font-bold">DeeYoung<span className="text-brand"> Pro</span></span>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                Crypto engine data is live from the exchange. Stock and forex quotes are delayed per exchange terms (free tiers). Paper execution by default; verified user broker connections trade live through the user's own broker account. Nothing here is investment advice.
+                Crypto engine data is live from the exchange. Stock and forex quotes are delayed per exchange terms (free tiers). Paper execution by default; verified user broker connections trade live through the user's own broker account, direct APIs or MT4/MT5 via the MetaApi bridge. Nothing here is investment advice.
                 Built and operated by DeeYoungs Ltd.
               </p>
               <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-4 inline-flex items-center gap-1.5 text-xs text-foreground/80 transition-colors hover:text-brand-hi">

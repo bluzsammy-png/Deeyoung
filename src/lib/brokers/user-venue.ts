@@ -1,10 +1,11 @@
 // DEEYOUNG PRO — per-user broker venue: resolution + live order dispatch.
 //
 // Product rule (owner directive): the platform is PAPER by default. When a
-// user connects their OWN broker API (Alpaca / Binance / Bybit / OANDA), the
-// server reads that API to verify it the moment the keys are saved. A
-// VERIFIED link in FULL mode routes that user's trade execution LIVE through
-// their own broker account automatically; no code change, no owner action.
+// user connects their OWN broker (Alpaca / Binance / Bybit / OANDA API keys,
+// or an MT4/MT5 account through the MetaApi bridge), the server reads that
+// account to verify it the moment the credentials are saved. A VERIFIED link
+// in FULL mode routes that user's trade execution LIVE through their own
+// broker account automatically; no code change, no owner action.
 // INVESTOR (read-only) links and unverified links stay on the paper sim.
 //
 // Honesty rules encoded here:
@@ -22,6 +23,13 @@ import type { AlpacaCreds } from "@/lib/brokers/alpaca";
 import type { BinanceCreds } from "@/lib/brokers/binance-testnet";
 import type { BybitCreds } from "@/lib/brokers/bybit";
 import type { OandaCreds } from "@/lib/brokers/oanda";
+import {
+  bridgeToken,
+  marketOrder as metaapiMarketOrder,
+  positions as metaapiPositions,
+  resolveBrokerSymbol,
+  symbolSpecification,
+} from "@/lib/brokers/metaapi";
 import {
   alpacaAccountSummary,
   alpacaGetOrder,
@@ -43,6 +51,11 @@ import {
 
 export const LIVE_PLATFORMS = ["ALPACA", "BINANCE", "BYBIT", "OANDA"] as const;
 export type LivePlatform = (typeof LIVE_PLATFORMS)[number];
+
+/** MT4/MT5 brokers (Deriv, IC Markets, ...) route live through the MetaApi
+ *  cloud bridge: no direct API exists for MetaTrader accounts. */
+export const MT_PLATFORMS = ["MT4", "MT5"] as const;
+export type MtPlatform = (typeof MT_PLATFORMS)[number];
 
 export const PLATFORM_ENV_DEFAULTS: Record<LivePlatform, string> = {
   ALPACA: "PAPER",
@@ -74,17 +87,28 @@ const CRYPTO_BASE_STRIP = /^(BTC|ETH|SOL|DOGE|XRP|LTC|BCH|AVAX|LINK|ADA|DOT|SHIB
 export interface ResolvedVenue {
   mode: "PAPER" | "LIVE";
   linkId?: string;
-  platform?: LivePlatform;
+  platform?: LivePlatform | MtPlatform;
   env?: string;
   label?: string;
   access?: "FULL" | "INVESTOR";
-  /** Decrypted credentials JSON: { apiKey?, apiSecret?, accountId? }. */
+  /** MetaApi bridge account id for MT4/MT5 links. */
+  bridgeAccountId?: string;
+  /** Decrypted credentials JSON: { apiKey?, apiSecret?, accountId? } or
+   *  { password?, metaapiToken?, region? } for MT links. */
   credsRaw?: string;
 }
 
 export async function resolveUserVenue(userId: string): Promise<ResolvedVenue> {
   const link = await db.brokerLink.findFirst({
-    where: { userId, platform: { in: [...LIVE_PLATFORMS] }, status: "CONNECTED", mode: "FULL" },
+    where: {
+      userId,
+      status: "CONNECTED",
+      mode: "FULL",
+      OR: [
+        { platform: { in: [...LIVE_PLATFORMS] } },
+        { platform: { in: [...MT_PLATFORMS] }, bridgeAccountId: { not: null } },
+      ],
+    },
     orderBy: { createdAt: "desc" },
   });
   if (!link) return { mode: "PAPER" };
@@ -97,15 +121,16 @@ export async function resolveUserVenue(userId: string): Promise<ResolvedVenue> {
   return {
     mode: "LIVE",
     linkId: link.id,
-    platform: link.platform as LivePlatform,
+    platform: link.platform as LivePlatform | MtPlatform,
     env: link.env,
     label: link.label,
     access: "FULL",
+    bridgeAccountId: link.bridgeAccountId ?? undefined,
     credsRaw,
   };
 }
 
-interface LinkCreds { apiKey?: string; apiSecret?: string; accountId?: string }
+interface LinkCreds { apiKey?: string; apiSecret?: string; accountId?: string; password?: string; metaapiToken?: string; region?: string }
 
 function parseCreds(raw: string): LinkCreds | null {
   try {
@@ -216,6 +241,65 @@ export async function executeUserOrder(
 
   const side = req.side;
   const cls = symbolClass(req.symbol);
+
+  // MT4/MT5 through the MetaApi bridge (Deriv, IC Markets, ...). The broker's
+  // own symbol list decides what is tradable; sizing comes from the broker's
+  // contract specification, and a fill only counts once the broker's positions
+  // list confirms it. Closing works through the same market path: on netting
+  // accounts (Deriv MT5) an opposite market order reduces the position, and
+  // the recorded price is still the broker's own fill.
+  if (venue.platform === "MT4" || venue.platform === "MT5") {
+    const token = bridgeToken(creds.metaapiToken);
+    const accountId = venue.bridgeAccountId ?? "";
+    if (!token || !accountId) {
+      return rejected("This MT link has no bridge token. Reconnect the account to restore live execution.", `${venue.platform} bridge`);
+    }
+    const brokerSymbol = await resolveBrokerSymbol(accountId, token, req.symbol);
+    if (!brokerSymbol) {
+      return rejected(
+        `Your broker's ${venue.platform} server does not list ${req.symbol}. The position book was not changed.`,
+        `${venue.platform} bridge`,
+      );
+    }
+    const spec = await symbolSpecification(accountId, token, brokerSymbol);
+    if (!spec) {
+      return rejected(
+        `Could not read the contract specification for ${brokerSymbol} from your broker, so lot size cannot be computed honestly. The position book was not changed.`,
+        `${venue.platform} bridge`,
+      );
+    }
+    const rawLots = req.qty / spec.contractSize;
+    if (!(rawLots > 0)) {
+      return rejected(`Quantity ${req.qty} is below one lot of ${brokerSymbol} (contract size ${spec.contractSize}).`, `${venue.platform} bridge`);
+    }
+    const stepped = Math.max(spec.volumeMin, Math.min(spec.volumeMax, Math.floor(rawLots / spec.volumeStep) * spec.volumeStep));
+    const lots = +stepped.toFixed(2);
+    const placed = await metaapiMarketOrder(
+      accountId, token, side, brokerSymbol, lots,
+      req.stopPrice, req.targetPrice, req.clientTag ?? "deeyoung-pro",
+    );
+    if (!placed.ok) return rejected(placed.detail, `${venue.platform} bridge`);
+    for (let i = 0; i < 3; i++) {
+      await new Promise((r) => setTimeout(r, 800));
+      const ps = await metaapiPositions(accountId, token);
+      const pos = (ps ?? []).find((p) => p.id === placed.positionId);
+      if (pos && pos.openPrice > 0) {
+        const fillQty = pos.volume * spec.contractSize;
+        return {
+          ok: true, status: "FILLED", filledQty: fillQty, avgFillPrice: pos.openPrice,
+          fills: [{ t: Date.now(), qty: fillQty, price: pos.openPrice, slippageBps: 0 }],
+          latencyMs: Date.now() - t0,
+          brokerLabel: `${venue.platform} ${venue.label ?? ""}`.trim(),
+          brokerOrderId: placed.positionId ?? placed.orderId,
+          detail: `Filled ${pos.volume} lots ${brokerSymbol} at ${pos.openPrice} on your ${venue.platform} account.`,
+        };
+      }
+    }
+    return rejected(
+      `Your broker accepted the order (${placed.orderId ?? "no id"}) but the fill is not confirmed yet. Check your terminal; the position book was not changed.`,
+      `${venue.platform} bridge`,
+    );
+  }
 
   if (venue.platform === "ALPACA") {
     if (cls === "FX") return rejected("Alpaca does not trade FX. Connect OANDA for FX symbols.", "Alpaca LIVE");

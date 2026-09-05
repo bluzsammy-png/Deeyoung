@@ -8,18 +8,30 @@
 //      snapshot, encrypted credentials at rest (AES-256-GCM, APP_SECRET).
 //      A CONNECTED link in FULL mode routes that user's execution LIVE
 //      through their broker (src/lib/brokers/user-venue.ts).
-//   2. MT4/MT5 (MetaApi bridge, legacy): honest PENDING_BRIDGE while the
-//      bridge is not configured. Never pretends.
+//   2. MT4 | MT5 (Deriv, IC Markets, ...): MetaTrader accounts have no
+//      official API, so they connect through the MetaApi cloud bridge with
+//      the USER'S OWN MetaApi token (app.metaapi.cloud, API access tokens).
+//      The server provisions the terminal replica, waits for the broker to
+//      answer a real account read, and only then stores a CONNECTED link.
+//      Nothing is stored on failure. FULL mode routes live exactly like the
+//      direct platforms.
 // Secrets are never returned by any endpoint. INVESTOR (read-only) is the
 // recommended default and never routes live orders.
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
-import { encryptSecret } from "@/lib/crypto";
-import { bridgeConfigured, provisionAccount, accountInformation } from "@/lib/brokers/metaapi";
+import { encryptSecret, decryptSecret } from "@/lib/crypto";
+import {
+  REGIONS,
+  bridgeConfigured,
+  bridgeToken,
+  provisionAccount,
+  accountInformation,
+} from "@/lib/brokers/metaapi";
 import {
   LIVE_PLATFORMS,
+  MT_PLATFORMS,
   PLATFORM_ENV_OPTIONS,
   PLATFORM_ENV_DEFAULTS,
   verifyPlatformAccount,
@@ -28,7 +40,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const MT_PLATFORMS = ["MT4", "MT5"];
+const MT_PLATFORM_LIST: string[] = [...MT_PLATFORMS];
 const MODES = ["INVESTOR", "FULL"];
 
 function maskId(id: string): string {
@@ -43,21 +55,34 @@ export const GET = withGuard(async (_req, { user }) => {
     orderBy: { createdAt: "desc" },
   });
 
-  if (bridgeConfigured()) {
-    const refreshable = links.filter((l) => l.bridgeAccountId).slice(0, 3);
-    await Promise.all(refreshable.map(async (l) => {
-      const info = await accountInformation(l.bridgeAccountId as string);
-      if (!info) return;
+  // Refresh up to 3 MT bridge links from the bridge itself (balance snapshot).
+  const refreshable = links.filter((l) => l.bridgeAccountId && MT_PLATFORM_LIST.includes(l.platform)).slice(0, 3);
+  await Promise.all(refreshable.map(async (l) => {
+    // Bridge token lives encrypted with the link; env fallback covers
+    // legacy rows created before per-user tokens.
+    const credsRaw = decryptSecret({ cipher: l.credCipher, iv: l.credIV, tag: l.credTag });
+    let userToken = "";
+    try { userToken = credsRaw ? (JSON.parse(credsRaw) as { metaapiToken?: string }).metaapiToken ?? "" : ""; } catch { userToken = ""; }
+    const token = bridgeToken(userToken);
+    if (!token) return;
+    const info = await accountInformation(l.bridgeAccountId as string, token);
+    if (info.ok && info.info) {
       await db.brokerLink.update({
         where: { id: l.id },
         data: {
-          balance: info.balance, equity: info.equity, currency: info.currency,
+          balance: info.info.balance, equity: info.info.equity, currency: info.info.currency,
           status: "CONNECTED", statusDetail: "Live via bridge sync.", lastCheckedAt: new Date(),
         },
       });
-      l.balance = info.balance; l.equity = info.equity; l.status = "CONNECTED";
-    }));
-  }
+      l.balance = info.info.balance; l.equity = info.info.equity; l.status = "CONNECTED";
+    } else if (info.code === 401) {
+      await db.brokerLink.update({
+        where: { id: l.id },
+        data: { status: "ERROR", statusDetail: "MetaApi rejected the stored token. Reconnect with a fresh token.", lastCheckedAt: new Date() },
+      });
+      l.status = "ERROR";
+    }
+  }));
 
   return NextResponse.json({
     links: links.map((l) => ({
@@ -80,24 +105,42 @@ export const POST = withGuard(async (req: Request, { user }) => {
   const mode = String(body.mode ?? "INVESTOR").toUpperCase();
   const label = String(body.label ?? "").trim().slice(0, 60);
 
-  if (![...MT_PLATFORMS, ...LIVE_PLATFORMS].includes(platform)) {
-    return NextResponse.json({ error: "INVALID_PLATFORM", message: `Platform must be one of: ${[...MT_PLATFORMS, ...LIVE_PLATFORMS].join(", ")}.` }, { status: 422 });
+  const allowedPlatforms: string[] = [...MT_PLATFORM_LIST, ...LIVE_PLATFORMS];
+  if (!allowedPlatforms.includes(platform)) {
+    return NextResponse.json({ error: "INVALID_PLATFORM", message: `Platform must be one of: ${allowedPlatforms.join(", ")}.` }, { status: 422 });
   }
   if (!MODES.includes(mode)) {
     return NextResponse.json({ error: "INVALID_MODE" }, { status: 422 });
   }
 
-  // ── Legacy MetaApi family (MT4/MT5) ──
-  if (MT_PLATFORMS.includes(platform)) {
+  // ── MT4/MT5 family (MetaApi bridge, user's own token) ──
+  if (MT_PLATFORM_LIST.includes(platform)) {
     const server = String(body.server ?? "").trim().slice(0, 120);
     const login = String(body.login ?? "").trim().slice(0, 40);
     const password = String(body.password ?? "").slice(0, 200);
+    const regionRaw = String(body.region ?? "new-york").trim().toLowerCase();
+    const region = (REGIONS as readonly string[]).includes(regionRaw) ? regionRaw : "new-york";
     if (!server || !login || !password) {
       return NextResponse.json({ error: "MISSING_FIELDS", message: "Server, login and password are all required." }, { status: 422 });
     }
-    const creds = { platform: platform as "MT4" | "MT5", server, login, password, mode: mode as "INVESTOR" | "FULL" };
-    const bridge = await provisionAccount(creds);
-    const { cipher, iv, tag } = encryptSecret(password);
+    const token = bridgeToken(String(body.metaapiToken ?? ""));
+    if (!token) {
+      return NextResponse.json({
+        error: "BRIDGE_TOKEN_REQUIRED",
+        message:
+          "MT4/MT5 accounts connect through the MetaApi cloud bridge. Create a free MetaApi account at app.metaapi.cloud, " +
+          "copy your API token (API access tokens page), and paste it here. Your MT login stays with you.",
+      }, { status: 422 });
+    }
+
+    // Provision + deploy + wait for the broker to answer a real read.
+    // Nothing is stored unless the broker itself answers.
+    const bridge = await provisionAccount({ platform: platform as "MT4" | "MT5", server, login, password, mode: mode as "INVESTOR" | "FULL", region, token });
+    if (!bridge.ok) {
+      return NextResponse.json({ error: "VERIFICATION_FAILED", message: bridge.detail }, { status: 422 });
+    }
+
+    const { cipher, iv, tag } = encryptSecret(JSON.stringify({ password, metaapiToken: token, region }));
 
     const link = await db.brokerLink.create({
       data: {
@@ -105,19 +148,28 @@ export const POST = withGuard(async (req: Request, { user }) => {
         platform, label: label || `${platform} ${login}`, server, login,
         credCipher: cipher, credIV: iv, credTag: tag,
         mode,
-        env: "PAPER",
-        status: bridge.status,
+        env: mode === "FULL" ? "BROKER" : "READONLY",
+        status: "CONNECTED",
         statusDetail: bridge.detail.slice(0, 300),
         bridgeAccountId: bridge.bridgeAccountId ?? null,
         currency: bridge.currency ?? "USD",
         balance: bridge.balance ?? null,
         equity: bridge.equity ?? null,
+        verifiedAt: new Date(),
         lastCheckedAt: new Date(),
       },
-      select: { id: true, platform: true, label: true, status: true, statusDetail: true },
+      select: { id: true, platform: true, label: true, status: true, statusDetail: true, env: true, mode: true },
     });
 
-    return NextResponse.json({ ok: true, link, bridgeConfigured: bridgeConfigured() });
+    return NextResponse.json({
+      ok: true,
+      link,
+      liveRouting: mode === "FULL",
+      message:
+        mode === "FULL"
+          ? `Verified through the bridge: your ${platform} account answered with a live balance snapshot. Your trades now execute LIVE through this account.`
+          : `Verified through the bridge: your ${platform} account answered with a live balance snapshot. Read-only (INVESTOR) mode: execution stays on paper.`,
+    });
   }
 
   // ── Direct API family (ALPACA | BINANCE | BYBIT | OANDA) ──

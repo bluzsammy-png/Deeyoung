@@ -153,12 +153,30 @@ export async function GET() {
     };
   }
 
-  // ── MetaApi (abandoned 2026-09-04 — kept dormant for the MT4/MT5 UI flow) ────
-  out.METAAPI = {
-    configured: Boolean(process.env.METAAPI_TOKEN),
-    verdict: process.env.METAAPI_TOKEN ? "UNKNOWN" : "RETIRED",
-    detail: "MetaApi path retired after token rejection + unreachable api.metaapi.cloud from production networks.",
-  };
+  // ── MetaApi (MT4/MT5 bridge, per-user tokens since 2026-09-05) ────────────────
+  // The bridge no longer needs a server-wide METAAPI_TOKEN: each MT4/MT5
+  // BrokerLink stores the user's own MetaApi token (encrypted) and connect /
+  // execution calls authorize with it. Env token remains an optional fallback.
+  {
+    const mtLinks = await db.brokerLink.count({ where: { platform: { in: ["MT4", "MT5"] } } }).catch(() => -1);
+    // Reachability probe from THIS server with a garbage token: 401/403 means
+    // the documented endpoint is reachable and enforcing auth; a network
+    // error means this network cannot reach the bridge at all.
+    let reach = "UNTESTED";
+    try {
+      const r = await fetch("https://api-v1.metaapi.cloud/users/current/accounts", {
+        headers: { "auth-token": "diag-probe-garbage-token" },
+        signal: AbortSignal.timeout(8_000),
+      }).catch(() => null);
+      reach = !r ? "UNREACHABLE from this server" : r.status === 401 || r.status === 403 ? "REACHABLE, auth enforced" : `HTTP ${r.status}`;
+    } catch { reach = "UNREACHABLE from this server"; }
+    out.METAAPI = {
+      configured: true,
+      verdict: reach.startsWith("REACHABLE") ? "OPERATIONAL" : "DEGRADED",
+      reachability: reach,
+      detail: `MT4/MT5 bridge active with per-user MetaApi tokens. Bridge links stored: ${mtLinks >= 0 ? mtLinks : "count failed"}. Hosts: api-v1.metaapi.cloud then mt-provisioning-api-v1.agiliumtrade.ai (provisioning), mt-client-api-v1.agiliumtrade.ai (trading).`,
+    };
+  }
 
   return NextResponse.json(out);
 }

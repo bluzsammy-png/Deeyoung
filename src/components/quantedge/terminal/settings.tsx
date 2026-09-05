@@ -250,7 +250,7 @@ function LegalLink({ label, onClick }: { label: string; onClick: () => void }) {
 
 void InfoTip;
 
-// ─── MetaTrader connectivity (MT4/MT5) ────────────────────────────────────────
+// ─── MetaTrader connectivity (MT4/MT5 via MetaApi bridge) ────────────────────
 
 interface BrokerLink {
   id: string;
@@ -261,15 +261,21 @@ interface BrokerLink {
   mode: string;
   status: string;
   statusDetail: string;
+  env: string;
   currency: string;
   balance?: number | null;
   equity?: number | null;
 }
 
+const MT_SERVER_HINTS = [
+  "DerivSVG5-Real", "DerivSVG5-Demo", "DerivSV-Real", "Deriv-Demo",
+  "ICMarketsSC-MT5", "Pepperstone-Live", "FTMO-Server",
+];
+const MT_REGIONS = ["new-york", "london", "singapore", "sydney"];
+
 function MetaTraderCard() {
   const { toast } = useToast();
   const [links, setLinks] = useState<BrokerLink[]>([]);
-  const [bridgeReady, setBridgeReady] = useState(false);
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [platform, setPlatform] = useState<"MT4" | "MT5">("MT5");
@@ -277,13 +283,14 @@ function MetaTraderCard() {
   const [server, setServer] = useState("");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [metaapiToken, setMetaapiToken] = useState("");
+  const [region, setRegion] = useState("new-york");
   const [mode, setMode] = useState<"INVESTOR" | "FULL">("INVESTOR");
 
   const load = useCallback(async () => {
     try {
       const j = await (await fetch("/api/brokers")).json();
       setLinks(j.links ?? []);
-      setBridgeReady(!!j.bridgeConfigured);
     } catch { /* hold */ }
   }, []);
 
@@ -292,8 +299,8 @@ function MetaTraderCard() {
   }, [load]);
 
   const submit = async () => {
-    if (!server.trim() || !login.trim() || !password) {
-      toast({ title: "Missing details", description: "Server, login and password are all required.", variant: "destructive" });
+    if (!server.trim() || !login.trim() || !password || !metaapiToken.trim()) {
+      toast({ title: "Missing details", description: "MetaApi token, server, login and password are all required.", variant: "destructive" });
       return;
     }
     setBusy(true);
@@ -301,18 +308,18 @@ function MetaTraderCard() {
       const res = await fetch("/api/brokers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, label, server, login, password, mode }),
+        body: JSON.stringify({ platform, label, server, login, password, metaapiToken, region, mode }),
       });
       const j = await res.json();
       if (!res.ok) {
-        toast({ title: "Couldn't save the link", description: j.message ?? "Check the details and retry.", variant: "destructive" });
+        toast({ title: "Connection failed", description: j.message ?? "Check the details and retry. Nothing was stored.", variant: "destructive" });
       } else {
         toast({
-          title: j.link?.status === "CONNECTED" ? "Account linked" : "Account saved securely",
-          description: j.link?.statusDetail ?? "Credentials encrypted at rest.",
+          title: j.link?.status === "CONNECTED" ? "Account verified and live" : "Account linked",
+          description: j.message ?? j.link?.statusDetail ?? "",
         });
         setAdding(false);
-        setServer(""); setLogin(""); setPassword(""); setLabel("");
+        setServer(""); setLogin(""); setPassword(""); setLabel(""); setMetaapiToken("");
         load();
       }
     } catch {
@@ -337,8 +344,11 @@ function MetaTraderCard() {
     : s === "ERROR" ? "border-neg/40 bg-neg/10 text-neg"
     : "border-warn/40 bg-warn/10 text-warn";
 
+  const fmtMoney = (v: number | null | undefined) =>
+    v == null ? "" : `${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
   return (
-    <SettingsCard title="MetaTrader" desc="Connect MT4 / MT5 accounts; read-only (investor) recommended">
+    <SettingsCard title="MetaTrader (MT4 / MT5)" desc="Deriv, IC Markets and every MT4/MT5 broker, through the MetaApi bridge">
       <div className="space-y-3">
         {links.map((l) => (
           <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-panel-2 px-3 py-2.5">
@@ -346,11 +356,12 @@ function MetaTraderCard() {
               <p className="text-xs font-semibold">
                 {l.platform} · {l.label}{" "}
                 <span className={`ml-1.5 rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${statusBadge(l.status)}`}>
-                  {l.status === "PENDING_BRIDGE" ? "Bridge pending" : l.status}
+                  {l.status === "CONNECTED" && l.mode === "FULL" ? "Live" : l.status === "PENDING_BRIDGE" ? "Bridge pending" : l.status}
                 </span>
               </p>
               <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-                {l.server} · {l.login} · {l.mode === "INVESTOR" ? "read-only" : "full access"}; {l.statusDetail}
+                {l.server} · {l.login} · {l.mode === "INVESTOR" ? "read-only" : "full access"}
+                {l.balance != null ? ` · ${fmtMoney(l.balance)} ${l.currency}` : ""}; {l.statusDetail}
               </p>
             </div>
             <button
@@ -383,10 +394,17 @@ function MetaTraderCard() {
                   </button>
                 ))}
               </div>
-              <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. IC Markets)" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="Broker server" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Account number" inputMode="numeric" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Account password" type="password" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <input value={metaapiToken} onChange={(e) => setMetaapiToken(e.target.value)} placeholder="MetaApi token (app.metaapi.cloud)" type="password" className="col-span-2 rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. Deriv)" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="Broker server" list="mt-server-hints" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <datalist id="mt-server-hints">
+                {MT_SERVER_HINTS.map((s) => <option key={s} value={s} />)}
+              </datalist>
+              <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="MT account number" inputMode="numeric" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="MT account password" type="password" className="rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50" />
+              <select value={region} onChange={(e) => setRegion(e.target.value)} className="col-span-2 rounded-lg border border-hairline bg-panel px-3 py-2 text-xs outline-none focus:border-brand/50">
+                {MT_REGIONS.map((r) => <option key={r} value={r}>Bridge region: {r}</option>)}
+              </select>
             </div>
             <label className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
               <input type="checkbox" checked={mode === "INVESTOR"} onChange={(e) => setMode(e.target.checked ? "INVESTOR" : "FULL")} className="accent-[#dc2626]" />
@@ -394,17 +412,20 @@ function MetaTraderCard() {
             </label>
             <div className="flex gap-2">
               <button onClick={submit} disabled={busy} className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white transition-all hover:brightness-110 disabled:opacity-60">
-                {busy ? "Verifying…" : "Save & verify account"}
+                {busy ? "Provisioning the bridge…" : "Verify & connect account"}
               </button>
               <button onClick={() => setAdding(false)} className="rounded-lg border border-hairline px-3 py-2 text-xs font-semibold text-muted-foreground">
                 Cancel
               </button>
             </div>
             <p className="text-[10px] leading-relaxed text-muted-foreground">
-              Credentials are AES-256-GCM encrypted with the server&apos;s secret before storage and are never returned by
-              any API. {bridgeReady
-                ? "The bridge is live; verification runs against your broker's server."
-                : "Automated verification activates when the MetaApi bridge token is configured server-side; until then your link is saved and queued."}
+              MT4/MT5 brokers expose no official API, so this link runs through the MetaApi cloud bridge: create a free
+              MetaApi account at app.metaapi.cloud, copy your API token (API access tokens page) and paste it above.
+              DeeYoung provisions the bridge, reads your account to verify it, and deletes nothing you did not give it.
+              Copy the server name exactly from your terminal login dialog (Deriv examples: DerivSVG5-Real, DerivSVG5-Demo).
+              Verification can take up to a minute on a slow broker. Credentials are AES-256-GCM encrypted before storage
+              and never returned by any API. FULL access lets the engine place and close real orders on this account;
+              if the account itself is a demo server, orders execute on that demo account.
             </p>
           </div>
         )}
