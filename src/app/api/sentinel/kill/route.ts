@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * { engaged: true }  → disable automation, cancel pending approvals, audit, notify.
  * { engaged: false } → release (requires confirmRelease=true; always audited).
  */
-export const POST = withGuard(async (req: NextRequest, { user }) => {
+export const POST = withGuard(async (req: Request, { user }) => {
   const body = await req.json().catch(() => ({}));
   const config = await db.sentinelConfig.findUnique({ where: { userId: user.id } });
   if (!config) return NextResponse.json({ error: "Config missing" }, { status: 500 });

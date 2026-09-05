@@ -66,11 +66,11 @@ export class DeeYoungPaperProvider implements ExecutionProvider {
     }
     // Market closed → reject market orders (honest simulation)
     if (req.quote.marketState === "CLOSED" && req.type === "MARKET") {
-      return this.reject("Market closed — order not simulated", t0, fills);
+      return this.reject("Market closed: order not simulated", t0, fills);
     }
     const advVolume = req.quote.avgVolume;
     if (req.qty > advVolume * 0.05) {
-      return this.reject("Order exceeds 5% of average volume — reduce size", t0, fills);
+      return this.reject("Order exceeds 5% of average volume: reduce size", t0, fills);
     }
 
     // ── Fill modeling ──
@@ -81,10 +81,10 @@ export class DeeYoungPaperProvider implements ExecutionProvider {
     // Marketable limit check
     if (req.type === "LIMIT") {
       if (req.side === "BUY" && req.quote.price > (req.limitPrice ?? 0)) {
-        return this.reject("Limit price below market — order would rest unfilled", t0, fills);
+        return this.reject("Limit price below market: order would rest unfilled", t0, fills);
       }
       if (req.side === "SELL" && req.quote.price < (req.limitPrice ?? Infinity)) {
-        return this.reject("Limit price above market — order would rest unfilled", t0, fills);
+        return this.reject("Limit price above market: order would rest unfilled", t0, fills);
       }
     }
 

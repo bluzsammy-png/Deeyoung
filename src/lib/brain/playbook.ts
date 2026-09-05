@@ -66,7 +66,7 @@ export function evaluateOpenGuards(i: OpenGuardInput, deadHours?: number[]): Ope
   if (dead.includes(i.hourUtc)) deniedBy.push("DEAD_HOUR");
   if (i.lastLossAtMs && Date.now() - i.lastLossAtMs < RISK.COOLDOWN_AFTER_LOSS_MIN * 60_000) deniedBy.push("LOSS_COOLDOWN");
   if (!i.liquidityOk) deniedBy.push("LIQUIDITY");
-  if (deniedBy.length === 0) notes.push("All playbook guards passed — setup allowed");
+  if (deniedBy.length === 0) notes.push("All playbook guards passed: setup allowed");
   return { allowed: deniedBy.length === 0, deniedBy, notes };
 }
 
@@ -75,8 +75,8 @@ export function evaluateOpenGuards(i: OpenGuardInput, deadHours?: number[]): Ope
 // hour-of-day, volatility bucket). The memory refreshes EVERY MINUTE in production
 // (sentinel heartbeat) and adapts factor weights inside bounded, audited limits.
 export const CURRICULUM = [
-  { level: 1, name: "Costs & Spread", rule: `Round trip ${TAKER_ROUND_TRIP_BPS}bps modeled on every result — gross and net both reported`, source: "C1" },
-  { level: 2, name: "Structure", rule: "EMA stack for trend, 3.0% invalidation stop, 1.2% target (geometry v2 — targets several× the 22-24bps RT cost), 12h time stop, worst-case-gap (stop first)", source: "C1/P1" },
+  { level: 1, name: "Costs & Spread", rule: `Round trip ${TAKER_ROUND_TRIP_BPS}bps modeled on every result. Gross and net both reported`, source: "C1" },
+  { level: 2, name: "Structure", rule: "EMA stack for trend, 3.0% invalidation stop, 1.2% target (geometry v2: targets several× the 22-24bps RT cost), 12h time stop, worst-case-gap (stop first)", source: "C1/P1" },
   { level: 3, name: "Timing", rule: "No entries in measured dead hours; FX/indices weekend-closed; no chasing opening spikes", source: "C1/P1" },
   { level: 4, name: "Momentum Quality", rule: "relVol 1.05–1.5× sweet spot (PF 1.71 vs 1.10 at ≥1.5×); chase-guard on blow-offs; M30 ROC 2–6% bonus", source: "C1" },
   { level: 5, name: "Risk", rule: `Score ≥${RISK.MIN_SCORE}, RR ≥${RISK.MIN_RR}, ≤${RISK.MAX_CONCURRENT} concurrent, day cap ${RISK.DAILY_LOSS_CAP_R}R, ${RISK.COOLDOWN_AFTER_LOSS_MIN}min cooldown after a loss`, source: "C1/P1/C2" },

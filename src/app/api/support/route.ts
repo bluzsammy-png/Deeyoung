@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     ]);
     if (byKey >= MAX_MSGS_PER_KEY_PER_HOUR || byIp >= MAX_MSGS_PER_IP_PER_HOUR) {
       return NextResponse.json(
-        { error: "RATE_LIMITED", message: "Too many messages — please wait a bit." },
+        { error: "RATE_LIMITED", message: "Too many messages. Please wait a bit." },
         { status: 429 },
       );
     }
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
           threadKey,
           role: "AGENT",
           body:
-            "Thanks for reaching out — your message landed in the DeeYoung support desk. A team member will reply here; keep this page open and replies appear automatically.",
+            "Thanks for reaching out: your message landed in the DeeYoung support desk. A team member will reply here; keep this page open and replies appear automatically.",
           seen: false,
         },
       });
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       console.error("[support] POST failed:", e);
       return NextResponse.json({ error: "DB", message: String(e).slice(0, 300) }, { status: 503 });
     }
-    return NextResponse.json({ error: "DB", message: "Could not deliver — try again." }, { status: 503 });
+    return NextResponse.json({ error: "DB", message: "Could not deliver. Try again." }, { status: 503 });
   }
 
   return NextResponse.json({ ok: true, threadKey }, { headers: { "Cache-Control": "no-store" } });

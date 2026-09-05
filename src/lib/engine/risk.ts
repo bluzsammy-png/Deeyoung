@@ -30,15 +30,15 @@ export function runRiskChecks(signal: SignalResult, ctx: RiskContext): RiskVerdi
   const add = (name: string, pass: boolean, detail: string) => checks.push({ name, pass, detail });
 
   // Kill switch (§18) — absolute
-  add("Kill switch", !cfg.killSwitch, cfg.killSwitch ? "EMERGENCY STOP is engaged — all SENTINEL actions blocked" : "Emergency stop not engaged");
+  add("Kill switch", !cfg.killSwitch, cfg.killSwitch ? "EMERGENCY STOP is engaged. All SENTINEL actions blocked" : "Emergency stop not engaged");
 
   // Mode gates
   const modeOk = cfg.mode === "APPROVE" || cfg.mode === "DELEGATE";
-  add("SENTINEL mode", modeOk, cfg.mode === "OBSERVE" ? "Observe mode — signals only, no orders" : `${cfg.mode} mode active`);
+  add("SENTINEL mode", modeOk, cfg.mode === "OBSERVE" ? "Observe mode. Signals only, no orders" : `${cfg.mode} mode active`);
 
   // State gate (§17)
   const stateOk = cfg.state === "ACTIVE" || cfg.state === "WAITING_FOR_APPROVAL";
-  add("System state", stateOk, stateOk ? `SENTINEL is ${cfg.state}` : `SENTINEL is ${cfg.state} — action layer paused`);
+  add("System state", stateOk, stateOk ? `SENTINEL is ${cfg.state}` : `SENTINEL is ${cfg.state}. Action layer paused`);
 
   // Asset restrictions
   const allowedAssets = parse<string[]>(cfg.allowedAssets, ["EQUITY", "ETF"]);
@@ -106,7 +106,7 @@ export function runRiskChecks(signal: SignalResult, ctx: RiskContext): RiskVerdi
 
   // Existing position — no pyramiding beyond limit
   const existing = ctx.positions.find((p) => p.symbol === signal.symbol);
-  add("Duplicate position", !existing, existing ? `Already holding ${existing.qty} ${signal.symbol} — no pyramiding` : "No existing position");
+  add("Duplicate position", !existing, existing ? `Already holding ${existing.qty} ${signal.symbol}. No pyramiding` : "No existing position");
 
   const pass = checks.every((c) => c.pass);
   return { pass, checks, positionQty: qty, riskUsd: qty * stopDistance, notionalUsd: notional };

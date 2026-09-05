@@ -89,7 +89,7 @@ export function MediaKitModal({ open, onClose }: { open: boolean; onClose: () =>
               ))}
 
               <p className="mt-5 border-t border-hairline pt-3 text-[11px] text-muted-foreground">
-                © DeeYoungs Ltd · Media kit served directly from the product — every asset is one click away.
+                © DeeYoungs Ltd · Media kit served directly from the product, every asset is one click away.
               </p>
             </div>
           </motion.div>

@@ -40,7 +40,7 @@ export class FinnhubProvider implements NewsProvider {
         url: item.url ?? "",
         publishedAt: (item.datetime ?? Math.floor(Date.now() / 1000)) * 1000,
         category: categorize(item.headline, item.category),
-        sentiment: (item.sentiment?.bearishPercent > item.sentiment?.bullishPercent ? "NEGATIVE" : item.sentiment?.bullishPercent > item.sentiment?.bearishPercent ? "POSITIVE" : "NEUTRAL"),
+        sentiment: ((item.sentiment?.bearishPercent ?? 0) > (item.sentiment?.bullishPercent ?? 0) ? "NEGATIVE" : (item.sentiment?.bullishPercent ?? 0) > (item.sentiment?.bearishPercent ?? 0) ? "POSITIVE" : "NEUTRAL"),
         relevance: 1,
         strength: Math.min(9, Math.round(((item.sentiment?.bullishPercent ?? 0) + (item.sentiment?.bearishPercent ?? 0)) / 10)),
         tickers: [sym],
@@ -92,7 +92,7 @@ export async function getNewsFeed(symbols: string[]): Promise<NewsEnvelope> {
     return new FinnhubProvider().getFeed(symbols);
   }
   return unavailable(
-    "The catalyst feed needs a free news API key (BYOK). Until one is connected, DeeYoung will not display or infer any news — fabricated headlines are the #1 trust killer in market tools.",
+    "The catalyst feed needs a free news API key (BYOK). Until one is connected, DeeYoung will not display or infer any news: fabricated headlines are the #1 trust killer in market tools.",
     false
   );
 }

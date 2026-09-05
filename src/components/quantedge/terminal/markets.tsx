@@ -211,7 +211,7 @@ function AssetDetail({ symbol }: { symbol: string }) {
         </div>
       ) : (
         <div className="qe-panel-2 rounded-xl p-4 text-xs text-muted-foreground">
-          No stored signal for {symbol} in this scan cycle. The engine scores the liquid universe on a rotation — run the SENTINEL scan or check back shortly.
+          No stored signal for {symbol} in this scan cycle. The engine scores the liquid universe on a rotation. Run the SENTINEL scan or check back shortly.
         </div>
       )}
     </div>

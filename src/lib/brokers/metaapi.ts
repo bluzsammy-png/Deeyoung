@@ -232,7 +232,7 @@ export async function provisionAccount(creds: MetaApiCreds): Promise<BridgeStatu
     status: "ERROR",
     detail:
       `The bridge provisioned the account but your broker did not answer a verified read within 60s. ` +
-      `Check the server name (copy it exactly from your terminal login dialog), login and password, then connect again — ` +
+      `Check the server name (copy it exactly from your terminal login dialog), login and password, then connect again: ` +
       `the same bridge account is reused. Nothing was stored here.`,
   };
 }

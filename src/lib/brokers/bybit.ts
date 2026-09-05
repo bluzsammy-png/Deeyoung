@@ -120,14 +120,14 @@ export async function bybitAccountSummary(c?: BybitCreds): Promise<BybitStatus> 
   if (r.retCode === 10003 || r.retCode === 10005 || r.httpStatus === 401 || r.httpStatus === 403) {
     return { ok: false, status: "ERROR", detail: "Bybit keys rejected (auth/permissions). Regenerate the key while in Demo Trading mode with Read + Contract permissions." };
   }
-  if (r.retCode === 10004) return { ok: false, status: "ERROR", detail: "Bybit clock/sign error (10004) — server time drift; retry in a minute." };
+  if (r.retCode === 10004) return { ok: false, status: "ERROR", detail: "Bybit clock/sign error (10004): server time drift; retry in a minute." };
   if (!r.ok || !r.data?.list?.length) return { ok: false, status: "ERROR", detail: `Bybit answered retCode=${r.retCode} ${r.retMsg.slice(0, 100)}` };
   const acct = r.data.list[0];
   return {
     ok: true, status: "CONNECTED", accountType: acct.accountType ?? "UNIFIED",
     equity: +((acct.totalEquity as string) ?? 0) || 0,
     available: +((acct.totalAvailableBalance as string) ?? 0) || 0,
-    detail: `Connected to Bybit ${c ? (c.env === "LIVE" ? "LIVE" : "demo") : bybitEnvLabel()} — unified account answering.`,
+    detail: `Connected to Bybit ${c ? (c.env === "LIVE" ? "LIVE" : "demo") : bybitEnvLabel()}: unified account answering.`,
   };
 }
 

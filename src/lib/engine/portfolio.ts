@@ -101,7 +101,7 @@ export async function buildPortfolioIntelligence(
       if (inSector.length > 1) {
         warnings.push(`Your ${inSector.join(", ")} exposure creates elevated ${a.sector.toLowerCase()} concentration (${a.pct.toFixed(0)}% of invested value). These positions can behave as one trade.`);
       } else {
-        warnings.push(`${inSector[0]} alone is ${a.pct.toFixed(0)}% of invested value — single-name concentration is above the 35% guideline.`);
+        warnings.push(`${inSector[0]} alone is ${a.pct.toFixed(0)}% of invested value: single-name concentration is above the 35% guideline.`);
       }
     }
   }

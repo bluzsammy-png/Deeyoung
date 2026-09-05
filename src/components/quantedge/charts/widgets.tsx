@@ -254,7 +254,7 @@ export function AllocationDonut({ slices, size = 150 }: { slices: { label: strin
   const circ = 2 * Math.PI * r;
   const shown = slices.slice(0, 8);
   // precompute dash offsets (pure, no render-phase mutation)
-  const arcs = shown.reduce<{ s: { label: string; pct: number }; i: number; dash: number; offset: number }[]>((out, s, i) => {
+  const arcs = shown.reduce<{ s: { label: string; pct: number }; i: number; dash: number; offset: number; acc: number }[]>((out, s, i) => {
     const prevAcc = out.length ? out[out.length - 1].acc : 0;
     const accNext = prevAcc + s.pct / 100;
     out.push({ s, i, dash: circ * (s.pct / 100), offset: -circ * prevAcc, acc: accNext });

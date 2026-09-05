@@ -133,7 +133,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
   // ── Kill switch check (§18) ──
   if (config.killSwitch) {
     result.state = "EMERGENCY_STOP";
-    notes.push("Emergency stop engaged — scan skipped");
+    notes.push("Emergency stop engaged. Scan skipped");
     await db.sentinelConfig.update({ where: { id: config.id }, data: { state: "EMERGENCY_STOP" } });
     return result;
   }
@@ -143,22 +143,22 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
   const dataStale = probe.dataState === "SIMULATED";
   if (dataStale && config.autoPauseOnDataStale) {
     result.state = "DATA_UNAVAILABLE";
-    notes.push("Market data degraded to simulated — automation paused, signals suspended");
+    notes.push("Market data degraded to simulated. Automation paused, signals suspended");
     await db.sentinelConfig.update({ where: { id: config.id }, data: { state: "DATA_UNAVAILABLE" } });
-    await db.systemEvent.create({ data: { level: "WARN", source: "MARKET_DATA", message: "Upstream provider unavailable — SIMULATED fallback active" } });
+    await db.systemEvent.create({ data: { level: "WARN", source: "MARKET_DATA", message: "Upstream provider unavailable: SIMULATED fallback active" } });
     return result;
   }
   if (config.state === "DATA_UNAVAILABLE") {
     await db.sentinelConfig.update({ where: { id: config.id }, data: { state: "ACTIVE" } });
     config.state = "ACTIVE";
-    notes.push("Data recovered — SENTINEL re-armed");
+    notes.push("Data recovered: SENTINEL re-armed");
   }
 
   const sess = sessionNow();
   const state = effectiveState(config, false);
   result.state = state;
   if (state === "PAUSED" || state === "RISK_LOCKED") {
-    notes.push(`SENTINEL is ${state} — scanning continues for display but no action is taken`);
+    notes.push(`SENTINEL is ${state}. Scanning continues for display but no action is taken`);
   }
 
   // ── Learning memory: ensure the per-minute refresh loop is alive (§NEW) ──
@@ -238,12 +238,12 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
     const verdict = runRiskChecks(sig, ctx);
 
     if (state !== "ACTIVE" && state !== "WAITING_FOR_APPROVAL") {
-      notes.push(`${sig.symbol} ${sig.score} — risk ${verdict.pass ? "PASS" : "FAIL"} (display only; SENTINEL ${state})`);
+      notes.push(`${sig.symbol} ${sig.score}: risk ${verdict.pass ? "PASS" : "FAIL"} (display only; SENTINEL ${state})`);
       continue;
     }
 
     if (config.mode === "OBSERVE") {
-      notes.push(`${sig.symbol} ${sig.score} — ${verdict.pass ? "eligible" : "risk-failed"} in Observe mode (no orders, ever)`);
+      notes.push(`${sig.symbol} ${sig.score} - ${verdict.pass ? "eligible" : "risk-failed"} in Observe mode (no orders, ever)`);
       continue;
     }
 
@@ -275,7 +275,7 @@ export async function sentinelTick(userId: string, opts?: { force?: boolean }): 
       await db.notificationRecord.create({
         data: {
           userId, event: "SENTINEL_APPROVAL_REQUEST", importance: "HIGH",
-          title: `SENTINEL needs your approval — ${sig.symbol} Long`,
+          title: `SENTINEL needs your approval - ${sig.symbol} Long`,
           body: `Signal ${sig.score} · Risk $${Math.round(verdict.riskUsd)} · R:R ${sig.rr.toFixed(1)} · expires in 2 min`,
           channels: JSON.stringify(["WEB"]), status: "SENT", deliveredAt: new Date(),
           deepLink: `sentinel?approval=${approval.id}`,

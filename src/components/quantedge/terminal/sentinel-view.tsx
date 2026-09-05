@@ -199,7 +199,7 @@ export function SentinelView() {
             <div className="mb-3 flex items-center justify-between">
               <span className="qe-label">Approval queue {pending.length > 0 && <span className="ml-1 rounded-full bg-warn/20 px-2 py-0.5 text-[10px] font-bold text-warn">{pending.length} pending</span>}</span>
               <InfoTip title="Approvals">
-                Proposals are user-specific, trade-specific, single-use, and expire in 2 minutes. Approving routes the order to the paper broker with modeled slippage — never real money.
+                Proposals are user-specific, trade-specific, single-use, and expire in 2 minutes. Approving routes the order to the paper broker with modeled slippage, never real money.
               </InfoTip>
             </div>
             {pending.length === 0 ? (
@@ -502,7 +502,7 @@ function RiskLimitsEditor({ config, onSaved }: { config: SentinelStatePayload["c
       <div className="mt-3 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5 text-pos" />
-          These limits gate SENTINEL deterministically. The AI cannot change or bypass them — architecturally.
+          These limits gate SENTINEL deterministically. The AI cannot change or bypass them. That is architectural.
         </p>
         <button onClick={save} disabled={saving} className="rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
           {saving ? "Saving…" : "Save & audit"}

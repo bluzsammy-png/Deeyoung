@@ -101,7 +101,7 @@ export async function alpacaAccountSummary(c?: AlpacaCreds): Promise<AlpacaStatu
     equity: +(r.data.equity ?? 0) || 0,
     cash: +(r.data.cash ?? 0) || 0,
     buyingPower: +(r.data.buying_power ?? 0) || 0,
-    detail: `Connected to Alpaca ${alpacaEnvLabel(c)} — account ${r.data.status ?? "ACTIVE"}.`,
+    detail: `Connected to Alpaca ${alpacaEnvLabel(c)}: account ${r.data.status ?? "ACTIVE"}.`,
   };
 }
 

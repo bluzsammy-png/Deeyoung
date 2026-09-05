@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { getRegime } from "@/lib/engine/regime";
 import { computeSignal } from "@/lib/engine/signals";
@@ -40,14 +40,14 @@ function deterministicPlan(
     target1: engine.target,
     target2: t2,
     rr: engine.rr,
-    rationale: `Engine read: ${engine.summary} Regime: ${regimeLabel}. Factors are computed from live candles — this plan is the raw engine output, no narrative layer.`,
+    rationale: `Engine read: ${engine.summary} Regime: ${regimeLabel}. Factors are computed from live candles. This plan is the raw engine output, no narrative layer.`,
     risks: [
-      "Data is delayed per exchange terms — levels shift between refreshes",
+      "Data is delayed per exchange terms. Levels shift between refreshes",
       "Paper plan only; no position was opened",
       "Regime can flip intraday and invalidate the setup",
     ],
     invalidation: direction === "NEUTRAL"
-      ? "Factors conflict — stand aside until they align."
+      ? "Factors conflict. Stand aside until they align."
       : `Setup dies if price closes beyond ${engine.stop} on rising volatility, or if the regime flips.`,
   };
 }
@@ -70,7 +70,7 @@ function clampNear(v: number, anchor: number, maxPctAway: number): number | null
  *     plan is discarded and the raw engine plan is served instead.
  *   - Paper context always: the bot never routes orders and cannot touch risk limits.
  */
-export const POST = withGuard(async (req: NextRequest, { user, config }) => {
+export const POST = withGuard(async (req: Request, { user, config }) => {
   const body = await req.json().catch(() => null);
   const symbol = String(body?.symbol ?? "").trim().toUpperCase();
   const question = String(body?.question ?? "").trim().slice(0, 240);
@@ -80,7 +80,7 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
   const { quotes } = await marketProvider.getQuotes([symbol]);
   const quote = quotes[0];
   if (!quote) {
-    return NextResponse.json({ ok: false, message: "No live data for that market right now — try again shortly." });
+    return NextResponse.json({ ok: false, message: "No live data for that market right now. Try again shortly." });
   }
 
   const [intraday, daily] = await Promise.all([
@@ -107,7 +107,7 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
 
   const engineFallback = deterministicPlan(symbol, quote.price, {
     direction: sig.direction, score: sig.score, entry: sig.entry, stop: sig.stop, target: sig.target,
-    rr: sig.rr, summary: sig.summary ?? `${sig.direction} · score ${sig.score}`,
+    rr: sig.rr, summary: sig.explanation || `${sig.direction} · score ${sig.score}`,
   }, regime.label);
 
   // Data-coherence anchor: engine levels are derived from candle closes, the
@@ -130,7 +130,7 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
     symbol,
     instrument: quote.name,
     assetClass: quote.assetClass,
-    note: volumeBlind ? "Volume is not meaningful for this asset class (spot FX / metals proxy) — ignore volume in reasoning." : undefined,
+    note: volumeBlind ? "Volume is not meaningful for this asset class (spot FX / metals proxy). Ignore volume in reasoning." : undefined,
     livePrice: quote.price,
     dayChangePct: +quote.changePct.toFixed(2),
     dayRange: { low: quote.dayLow, high: quote.dayHigh },
@@ -139,7 +139,7 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
     engine: {
       direction: sig.direction, score: sig.score, entry: +sig.entry.toPrecision(6),
       stop: +sig.stop.toPrecision(6), target: +sig.target.toPrecision(6), rr: sig.rr,
-      topFactors: sig.topFactors, summary: sig.summary,
+      topFactors: sig.factors.slice(0, 5), summary: sig.explanation,
     },
     userQuestion: question || undefined,
   };
@@ -206,6 +206,6 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
     plan,
     groundedOn: snapshot,
     asOf: Date.now(),
-    disclaimer: "Paper analysis only — not financial advice. DeeYoung never routes live orders and levels shift with delayed data.",
+    disclaimer: "Paper analysis only: not financial advice. DeeYoung never routes live orders and levels shift with delayed data.",
   });
 }, { minPlan: "TRIAL" });

@@ -1,30 +1,30 @@
 // DEEYOUNG PRO — display formatters (tabular, institutional)
 
 export function fmtPrice(v: number | null | undefined, currency = "USD"): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   const digits = v >= 1000 ? 2 : v >= 1 ? 2 : 4;
   return `$${v.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 export function fmtNum(v: number | null | undefined, digits = 2): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   return v.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 export function fmtPct(v: number | null | undefined, digits = 2, signed = true): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   const s = v > 0 && signed ? "+" : "";
   return `${s}${v.toFixed(digits)}%`;
 }
 
 export function fmtMoney(v: number | null | undefined, digits = 0, signed = false): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   const s = v > 0 && signed ? "+" : v < 0 ? "−" : "";
   return `${s}$${Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 export function fmtCompact(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   const abs = Math.abs(v);
   if (abs >= 1e12) return `${(v / 1e12).toFixed(2)}T`;
   if (abs >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
@@ -73,7 +73,7 @@ export function isFxRateSymbol(symbol: string): boolean {
 /** Formats a price for the instrument's convention: FX rates lose the "$" and
  *  use pip-precision digits; gold/equities stay dollar-formatted. */
 export function fmtInstrument(v: number | null | undefined, symbol = ""): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   if (JPY_RATE_SYMBOLS.has(symbol)) {
     return v.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   }

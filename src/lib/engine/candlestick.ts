@@ -73,7 +73,7 @@ export function readCandles(bars: Bar[]): PatternHit | null {
 
   // 5. Momentum thrust (marubozu-type) — continuation expansion
   if (body(c) >= range(c) * 0.85 && body(c) >= body(p) * 1.5)
-    hits.push({ name: isBull(c) ? "Bullish thrust" : "Bearish thrust", dir: isBull(c) ? 1 : -1, strength: 0.6, detail: "wide-range full-body candle — momentum expansion" });
+    hits.push({ name: isBull(c) ? "Bullish thrust" : "Bearish thrust", dir: isBull(c) ? 1 : -1, strength: 0.6, detail: "wide-range full-body candle: momentum expansion" });
 
   if (!hits.length) return null;
   return hits.sort((a, b) => b.strength - a.strength)[0];
@@ -116,6 +116,6 @@ export function candleFactorScore(bars: Bar[]): { score: number; detail: string 
   if (!hit) return { score: 0, detail: "No high-conviction candle pattern on the closed bar" };
   const mtf = mtfConfirm(bars);
   const mult = mtf === 0 ? 0.7 : (mtf === hit.dir ? 1 : 0.4);
-  const mtfTxt = mtf === 1 ? "5m trend agrees" : mtf === -1 ? "5m trend OPPOSES — conviction cut" : "5m trend neutral";
-  return { score: +(hit.dir * hit.strength * mult).toFixed(3), detail: `${hit.name}: ${hit.detail} — ${mtfTxt}` };
+  const mtfTxt = mtf === 1 ? "5m trend agrees" : mtf === -1 ? "5m trend OPPOSES: conviction cut" : "5m trend neutral";
+  return { score: +(hit.dir * hit.strength * mult).toFixed(3), detail: `${hit.name}: ${hit.detail} - ${mtfTxt}` };
 }

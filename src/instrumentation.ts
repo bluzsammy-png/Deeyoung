@@ -29,7 +29,7 @@ async function checkPaperEngine(): Promise<void> {
 
 async function checkTwelveData(): Promise<void> {
   if (!process.env.TWELVEDATA_API_KEY) {
-    console.log("[bridge] TWELVEDATA → PENDING_KEY — data feed = keyless Binance public REST (proven from Railway); set TWELVEDATA_API_KEY to switch (user-directed venue; signup Turnstile-gated from datacenter IPs, verified 2026-09-04)");
+    console.log("[bridge] TWELVEDATA → PENDING_KEY: data feed = keyless Binance public REST (proven from Railway); set TWELVEDATA_API_KEY to switch (user-directed venue; signup Turnstile-gated from datacenter IPs, verified 2026-09-04)");
     return;
   }
   const t0 = Date.now();
@@ -78,7 +78,7 @@ async function checkOkx(): Promise<void> {
 async function checkBinanceTestnet(): Promise<void> {
   const key = process.env.BINANCE_TESTNET_KEY;
   if (!key || !process.env.BINANCE_TESTNET_SECRET) {
-    console.log("[bridge] BINANCE_TESTNET keys not set — paper bridge dormant (PENDING_BRIDGE by design; keys come from testnet.binance.vision GitHub-OAuth login, 2026-09-04)");
+    console.log("[bridge] BINANCE_TESTNET keys not set: paper bridge dormant (PENDING_BRIDGE by design; keys come from testnet.binance.vision GitHub-OAuth login, 2026-09-04)");
     return;
   }
   const t0 = Date.now();
@@ -217,7 +217,7 @@ export async function register() {
   // 24/7 autonomous engine on Railway — starts once, runs forever, self-heals.
   // Sandbox/local hosts do NOT autorun (no RAILWAY_ENVIRONMENT); use the CLI.
   if (process.env.RAILWAY_ENVIRONMENT && process.env.ENGINE_DISABLED !== "1") {
-    console.log("[engine] Railway detected — autonomous paper engine starts in 30s (ENGINE_DISABLED=1 to suppress)");
+    console.log("[engine] Railway detected: autonomous paper engine starts in 30s (ENGINE_DISABLED=1 to suppress)");
     const t = setTimeout(() => {
       void (async () => {
         try {

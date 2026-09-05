@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
   const reason = String(body?.reason ?? "").trim();
 
   if (!["PAUSE", "RESUME"].includes(action)) {
-    return NextResponse.json({ error: "Invalid action — use PAUSE or RESUME." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid action. Use PAUSE or RESUME." }, { status: 400 });
   }
   if (action === "PAUSE" && reason.length < 3) {
-    return NextResponse.json({ error: "A reason (3+ chars) is required to pause the engine — it is audited." }, { status: 422 });
+    return NextResponse.json({ error: "A reason (3+ chars) is required to pause the engine. It is audited." }, { status: 422 });
   }
 
   const control = await setEnginePaused(action === "PAUSE", reason || null, admin.email);

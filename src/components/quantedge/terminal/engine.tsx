@@ -87,7 +87,7 @@ function LiveScanPanel({ live }: { live: NonNullable<EngineSnapshot["live"]> }) 
             {regimeUp === null ? "checking…" : regimeUp ? "OPEN · hunting longs" : "STAND-DOWN · longs paused"}
           </p>
           <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-            BTC vs its 60m EMA20. Longs only fire while the broad market trends up — part of the validated edge.
+            BTC vs its 60m EMA20. Longs only fire while the broad market trends up, part of the validated edge.
           </p>
         </div>
 
@@ -116,7 +116,7 @@ function LiveScanPanel({ live }: { live: NonNullable<EngineSnapshot["live"]> }) 
           </div>
           {crossings.length === 0 ? (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              None yet this run — the engine is correctly standing down until a setup is strong enough.
+              None yet this run. The engine is correctly standing down until a setup is strong enough.
             </p>
           ) : (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -134,7 +134,7 @@ function LiveScanPanel({ live }: { live: NonNullable<EngineSnapshot["live"]> }) 
         <b className="text-foreground">Live configuration (v2, walk-forward validated):</b> entry gate {GATE} on a 0–100 multi-factor score · M30 book ·
         stop −3% / target +1.2% · 12h time stop · $1,000 notional (10% of account) · BTC regime filter. In a 30-day walk-forward replay on real
         Binance bars this config measured an 83.8% win rate over 74 trades (profit factor 2.13); its worst rolling 10-trade stretch won 6 of 10.
-        Backtest ≠ promise — the ledger below is the only record that counts.
+        Backtest is not a promise. The ledger below is the only record that counts.
       </p>
     </div>
   );
@@ -178,7 +178,7 @@ export function EngineView() {
   if (err && !snap) {
     return (
       <div className="qe-panel p-6 text-sm text-warn">
-        Engine state unreachable: {err}. The loop keeps running server-side — this panel never invents numbers.
+        Engine state unreachable: {err}. The loop keeps running server-side. This panel never invents numbers.
       </div>
     );
   }
@@ -226,7 +226,7 @@ export function EngineView() {
         <div className="rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
           <b className="text-foreground">About the two closed trades from the first run:</b> they were placed by configuration v1,
           whose fee-to-target math was un-winnable (24bps round-trip cost vs an 8bps target). A full cost-geometry audit replaced it
-          with the validated v2 config above. The losses stay in the ledger on purpose — this engine never rewrites its history.
+          with the validated v2 config above. The losses stay in the ledger on purpose, this engine never rewrites its history.
         </div>
       )}
 

@@ -64,7 +64,7 @@ export const POST = withGuard(async (_req, { user, config, account }) => {
   } catch {
     return NextResponse.json({
       ok: false,
-      message: "AI briefing is temporarily unavailable. Market data and signals continue to work — the briefing writer will return shortly.",
+      message: "AI briefing is temporarily unavailable. Market data and signals continue to work. The briefing writer will return shortly.",
     });
   }
 }, { minPlan: "PRO" });

@@ -85,7 +85,7 @@ function EngineStrip() {
           </span>
           {eng.live?.regimeUp === false && (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-warn/30 bg-warn/[0.08] px-2 py-0.5 font-semibold text-warn">
-              regime stand-down — longs paused until BTC reclaims its 60m trend
+              regime stand-down, longs paused until BTC reclaims its 60m trend
             </span>
           )}
           <span>
@@ -231,7 +231,7 @@ export function DashboardView() {
             <div className="mt-4 border-t border-hairline pt-3">
               <p className="text-xs leading-relaxed text-muted-foreground">
                 <InfoTip title="Market Regime">
-                  The regime is DeeYoung&apos;s read of overall market conditions — trend, volatility, and breadth combined. It adjusts signal thresholds, position sizing, and stop distances so behavior fits the environment.
+                  The regime is DeeYoung&apos;s read of overall market conditions: trend, volatility, and breadth combined. It adjusts signal thresholds, position sizing, and stop distances so behavior fits the environment.
                 </InfoTip>{" "}
                 {data.regime.explanation}
               </p>
@@ -347,7 +347,7 @@ export function DashboardView() {
             ))}
             {!opportunities.length && !loading && (
               <div className="qe-panel-2 rounded-xl p-5 text-sm text-muted-foreground">
-                No setups above the 55 display threshold right now. The scan continues — DeeYoung stays flat when factors conflict. That is by design.
+                No setups above the 55 display threshold right now. The scan continues. DeeYoung stays flat when factors conflict. That is by design.
               </div>
             )}
             {loading && Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[88px] animate-pulse rounded-xl bg-panel-2" />)}
@@ -387,7 +387,7 @@ export function DashboardView() {
               <div className="flex items-center gap-3">
                 <Lock className="h-4 w-4 shrink-0 text-brand-hi" />
                 <p className="flex-1 text-[12.5px] leading-relaxed text-muted-foreground">
-                  A grounded morning read of regime, names and risk — part of Pro.
+                  A grounded morning read of regime, names and risk, part of Pro.
                 </p>
                 <button onClick={() => setBillingOpen(true)} className="shrink-0 rounded-lg bg-brand px-3 py-1.5 text-[11px] font-bold text-white transition-all hover:brightness-110">
                   Subscribe

@@ -103,7 +103,7 @@ export function startEngineLoop(opts: RunnerOpts = {}): RunnerHandle {
   const pollMs = opts.pollMs ?? POLL_MS;
   const g = globalThis as unknown as { __deeengine?: { running: boolean; stop: boolean } };
   if (g.__deeengine?.running) {
-    log("[engine] loop already running in this process — refusing to double-start");
+    log("[engine] loop already running in this process: refusing to double-start");
     return { stop: async () => {}, isRunning: () => true };
   }
   const ctl = { running: true, stop: false };
@@ -215,7 +215,7 @@ async function loopBody(
     }
     if (opts.maxHours !== undefined && (now - (await getOrCreateRun()).run.startedAt.getTime()) / 3_600_000 >= opts.maxHours) {
       await brain.persist();
-      log("[engine] run-hour cap reached — exiting cleanly");
+      log("[engine] run-hour cap reached: exiting cleanly");
       return;
     }
     if (opts.maxTradesG65 !== undefined && (await paperClosedCount(GATES[0])) >= opts.maxTradesG65) {
@@ -395,7 +395,7 @@ async function loopBody(
     await sleep(pollMs);
   }
   await brain.persist();
-  log("[engine] stop requested — loop exited cleanly");
+  log("[engine] stop requested: loop exited cleanly");
 }
 
 /** Bar-level management on newly CLOSED bars (conservative: use bar low/high). */

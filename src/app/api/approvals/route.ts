@@ -24,7 +24,7 @@ export const POST = withGuard(async (req: Request, { user }) => {
     data: { status: body.decision === "APPROVE" ? "APPROVED" : "REJECTED", decidedAt: new Date() },
   });
   if (claimed.count === 0) {
-    return NextResponse.json({ error: "Approval no longer pending — it was already decided or expired." }, { status: 409 });
+    return NextResponse.json({ error: "Approval no longer pending. It was already decided or expired." }, { status: 409 });
   }
 
   const approval = await db.approval.findUnique({ where: { id: body.approvalId } });
@@ -41,7 +41,7 @@ export const POST = withGuard(async (req: Request, { user }) => {
     await db.notificationRecord.create({
       data: {
         userId: user.id, event: "SENTINEL_APPROVAL_REQUEST", importance: "NORMAL",
-        title: `Proposal rejected — ${approval.symbol}`,
+        title: `Proposal rejected - ${approval.symbol}`,
         body: "No order was sent. Rejected proposals are logged to the audit trail.",
         channels: JSON.stringify(["WEB"]), status: "SENT", deliveredAt: new Date(),
       },
@@ -81,7 +81,7 @@ export const POST = withGuard(async (req: Request, { user }) => {
     await db.notificationRecord.create({
       data: {
         userId: user.id, event: "TRADE_EXECUTED", importance: "HIGH",
-        title: `Execution failed — ${approval.symbol}`,
+        title: `Execution failed - ${approval.symbol}`,
         body: exec.rejectReason ?? "Order rejected by broker",
         channels: JSON.stringify(["WEB"]), status: "SENT", deliveredAt: new Date(),
       },

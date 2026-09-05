@@ -13,11 +13,11 @@ export const KIT_GROUPS: KitGroup[] = [
   {
     title: "The Film",
     items: [
-      { file: FILM_FILE, label: "80-Second Ad Film", note: "720p · narrated voiceover · Ken Burns motion — the hero asset for ads" },
+      { file: FILM_FILE, label: "80-Second Ad Film", note: "720p · narrated voiceover · Ken Burns motion. The hero asset for ads" },
     ],
   },
   {
-    title: "Scene Cuts — ready-to-post 14s reels",
+    title: "Scene Cuts. Ready-to-post 14s reels",
     items: [
       { file: "Film-Scene-1.mp4", label: "Scene 1 · Opening" },
       { file: "Film-Scene-2.mp4", label: "Scene 2 · The Problem" },
@@ -50,7 +50,7 @@ export const KIT_GROUPS: KitGroup[] = [
   {
     title: "Audio & Docs",
     items: [
-      { file: "Ad-Film-Voiceover.wav", label: "Voiceover Track", note: "80s narration — reuse for cuts and remixes" },
+      { file: "Ad-Film-Voiceover.wav", label: "Voiceover Track", note: "80s narration. Reuse for cuts and remixes" },
       { file: "DeeYoung-Pro-Legal-Policies.docx", label: "Legal Policies Pack", note: "Terms · Privacy · Security · Refund" },
       { file: "SECURITY-AUDIT.md", label: "Security Audit Report" },
     ],

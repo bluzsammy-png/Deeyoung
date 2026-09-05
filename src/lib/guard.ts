@@ -62,7 +62,7 @@ export function withGuard<C = GuardedContext>(
         throw new GuardError(
           402,
           "PREMIUM_REQUIRED",
-          `This feature is part of ${needed}. Subscribe to unlock it — your plan doesn't include it right now.`,
+          `This feature is part of ${needed}. Subscribe to unlock it. Your plan doesn't include it right now.`,
         );
       }
       return await handler(req, { user, config, account } as C, routeCtx);

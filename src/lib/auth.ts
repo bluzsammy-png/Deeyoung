@@ -122,7 +122,7 @@ export const auth = betterAuth({
       if (process.env.TURNSTILE_SECRET_KEY) {
         const ok = await verifyTurnstile(String(ctx.body?.turnstileToken ?? ""), ip);
         if (!ok) {
-          throw new APIError("BAD_REQUEST", { message: "Captcha verification failed — please try again." });
+          throw new APIError("BAD_REQUEST", { message: "Captcha verification failed. Please try again." });
         }
       }
       // Layer 3 — signup velocity per hashed IP (24h window). Flags farms, not NAT

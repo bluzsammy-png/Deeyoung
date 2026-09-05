@@ -15,14 +15,14 @@ export async function GET() {
   const mh = upstreamHealth();
   sources.MARKET_DATA = {
     state: mh.healthy ? "HEALTHY" : "DEGRADED",
-    detail: mh.healthy ? "Upstream quotes responding; shared cache warm" : `${mh.recentErrors} recent upstream errors — simulated fallback may engage`,
+    detail: mh.healthy ? "Upstream quotes responding; shared cache warm" : `${mh.recentErrors} recent upstream errors: simulated fallback may engage`,
   };
 
   // News
   const finnhub = Boolean(process.env.FINNHUB_API_KEY);
   sources.NEWS = finnhub
     ? { state: "HEALTHY", detail: "Finnhub key configured (BYOK)" }
-    : { state: "DEGRADED", detail: "No news provider key — feed shows NEWS DATA UNAVAILABLE by design" };
+    : { state: "DEGRADED", detail: "No news provider key: feed shows NEWS DATA UNAVAILABLE by design" };
 
   // AI
   sources.AI = { state: "HEALTHY", detail: "Z.ai SDK available server-side" };
@@ -39,7 +39,7 @@ export async function GET() {
   const transport = mailTransport();
   sources.MAIL =
     transport === "dry"
-      ? { state: "DEGRADED", detail: "No mail transport configured — auth links print to server console (dry mode)" }
+      ? { state: "DEGRADED", detail: "No mail transport configured: auth links print to server console (dry mode)" }
       : { state: "HEALTHY", detail: `Outbound mail via ${transport}` };
 
   sources.BROKER = { state: "HEALTHY", detail: "DeeYoung Simulated paper broker active; Alpaca awaits BYOK keys" };

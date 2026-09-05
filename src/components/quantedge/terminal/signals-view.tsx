@@ -135,7 +135,7 @@ export function SignalsView() {
           <Bell className="h-5 w-5 text-muted-foreground" />
           <p className="text-sm font-medium">Nothing above {minScore} in this filter.</p>
           <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-            Flat is a position. The scan reruns every minute; when factor alignment clears your threshold, cards appear here and — in Approve mode — land in your approval queue.
+            Flat is a position. The scan reruns every minute; when factor alignment clears your threshold, cards appear here and, in Approve mode, land in your approval queue.
           </p>
         </div>
       )}

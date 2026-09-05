@@ -19,9 +19,8 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: "FORBIDDEN", message: "Admin access required." }, { status: 403 });
 
   const users = await db.user.findMany({
-      take: 500, // scale guard — paginate beyond 500 users
     orderBy: { createdAt: "desc" },
-    take: 200,
+    take: 200, // scale guard — paginate beyond 200 users
     select: {
       id: true, name: true, email: true, role: true, status: true, plan: true,
       trialEndsAt: true, emailVerified: true, ipHash: true, createdAt: true,
@@ -64,7 +63,7 @@ export async function POST(req: NextRequest) {
   }
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
   if (action !== "UNBAN" && reason.length < 3) {
-    return NextResponse.json({ error: "A clear reason (3+ chars) is required — it is shown to the user and audited." }, { status: 422 });
+    return NextResponse.json({ error: "A clear reason (3+ chars) is required. It is shown to the user and audited." }, { status: 422 });
   }
 
   const target = await db.user.findUnique({ where: { id: userId } });
@@ -85,7 +84,7 @@ export async function POST(req: NextRequest) {
       await db.notificationRecord.create({
         data: {
           userId: target.id, event: "ACCOUNT_SECURITY", importance: "CRITICAL",
-          title: "Official warning — action required",
+          title: "Official warning. Action required",
           body: message || reason,
           channels: JSON.stringify(["WEB"]), status: "SENT", deliveredAt: new Date(),
         },

@@ -124,8 +124,8 @@ const UPSTREAM_DEADLINE_MS = 2600;
 
 export const UNIVERSE: Record<string, { name: string; assetClass: Quote["assetClass"]; sector: string }> = {
   // ── Metals ──
-  XAUUSD: { name: "Gold — XAU/USD (COMEX front-month proxy)", assetClass: "METAL", sector: "Metals" },
-  XAGUSD: { name: "Silver — XAG/USD (COMEX proxy)", assetClass: "METAL", sector: "Metals" },
+  XAUUSD: { name: "Gold: XAU/USD (COMEX front-month proxy)", assetClass: "METAL", sector: "Metals" },
+  XAGUSD: { name: "Silver: XAG/USD (COMEX proxy)", assetClass: "METAL", sector: "Metals" },
   XPTUSD: { name: "Platinum (NYMEX proxy)", assetClass: "METAL", sector: "Metals" },
   COPPER: { name: "Copper (COMEX HG)", assetClass: "METAL", sector: "Metals" },
   // ── Energy ──

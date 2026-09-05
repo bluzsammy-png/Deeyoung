@@ -43,14 +43,14 @@ async function lookup(domain: string): Promise<Verdict> {
     }
     return {
       ok: false,
-      reason: "That email domain can't receive mail. Double-check the address — no typos.",
+      reason: "That email domain can't receive mail. Double-check the address. No typos.",
     };
   } catch (e) {
     const code = (e as NodeJS.ErrnoException)?.code;
     if (code === "ENOTFOUND" || code === "ENODATA") {
       return {
         ok: false,
-        reason: "That email domain doesn't exist. Double-check the address — no typos.",
+        reason: "That email domain doesn't exist. Double-check the address. No typos.",
       };
     }
     // ESERVFAIL / ETIMEOUT / network sandbox restrictions → fail open.

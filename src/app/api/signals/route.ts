@@ -1,3 +1,4 @@
+import type { SignalResult } from "@/lib/types";
 import { NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { effectiveState } from "@/lib/sentinel";
@@ -22,7 +23,7 @@ export const GET = withGuard(async (_req, { user, config, account }) => {
   const bySymbol = new Map(quotes.map((q) => [q.symbol, q]));
   const scanList = SCAN.map((s) => bySymbol.get(s)).filter((q): q is NonNullable<typeof q> => !!q);
 
-  const signals = [];
+  const signals: (SignalResult & { name: string; sector: string; lastPrice: number; changePct: number })[] = [];
   for (const q of scanList) {
     const [intraday, daily] = await Promise.all([
       marketProvider.getCandles(q.symbol, "1D"),

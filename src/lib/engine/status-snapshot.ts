@@ -75,7 +75,7 @@ export async function buildEngineSnapshot() {
       status: run.status,
       startedAt: run.startedAt,
       elapsedHours: +((Date.now() - t0) / 3_600_000).toFixed(2),
-      executionModel: "own paper engine — fills at observed market price, 2bps slippage/side + 10bps taker fee/side",
+      executionModel: "own paper engine: fills at observed market price, 2bps slippage/side + 10bps taker fee/side",
       dataVenue: { primary: feedSource(), twelvedata: twelvedataStatus() },
       feedMap: prov,
       feedCounters: feedStats(),

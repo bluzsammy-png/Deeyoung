@@ -65,7 +65,7 @@ export async function oandaAccountSummary(c?: OandaCreds): Promise<OandaStatus> 
   const id = c ? c.accountId : (process.env.OANDA_ACCOUNT_ID as string);
   const r = await oandaFetch<{ account?: { balance?: number; currency?: string; NAV?: number; unrealizedPL?: number } }>(`/accounts/${id}/summary`, undefined, c);
   if (r.status === 401 || r.status === 403) return { ok: false, status: "ERROR", detail: "OANDA token rejected (401). Generate a fresh practice token (Manage API Access)." };
-  if (r.status === 404) return { ok: false, status: "ERROR", detail: "OANDA account id not found (404). Check OANDA_ACCOUNT_ID — practice ids look like 101-001-1234567-001." };
+  if (r.status === 404) return { ok: false, status: "ERROR", detail: "OANDA account id not found (404). Check OANDA_ACCOUNT_ID: practice ids look like 101-001-1234567-001." };
   if (!r.ok || !r.data?.account) return { ok: false, status: "ERROR", detail: `OANDA answered ${r.status}. ${r.raw.slice(0, 120)}` };
   return {
     ok: true, status: "CONNECTED", accountId: id,

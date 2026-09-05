@@ -49,7 +49,7 @@ const BPS_SLIP = 6; // 6bps modeled slippage per side
 export function runBacktest(series: CandleSeries, benchmark: CandleSeries, params: BacktestParams): BacktestResult {
   const bars = series.candles;
   const warnings: string[] = [
-    "Backtests are computed on delayed-end-of-day data with modeled slippage — they are approximations, not promises.",
+    "Backtests are computed on delayed-end-of-day data with modeled slippage: they are approximations, not promises.",
     "Survivorship bias: this test covers one symbol you selected today. Lists chosen from today's winners inflate results.",
     "Signal parameters were not optimized on out-of-sample data; treat walk-forward deltas as the honest expectation.",
   ];
@@ -112,7 +112,7 @@ export function runBacktest(series: CandleSeries, benchmark: CandleSeries, param
       });
       if (sig && sig.score >= params.minScore && sig.rr >= 1.2) {
         const dir: "LONG" | "SHORT" = params.direction === "BOTH" ? (sig.direction === "SHORT" ? "SHORT" : "LONG") : params.direction;
-        if (dir !== "NEUTRAL") {
+        if (dir === "LONG" || dir === "SHORT") {
           const a = atr[i] || sig.atr;
           const entryNext = bars[i + 1].o; // fill at NEXT bar open — never current close (§21)
           const slip = entryNext * (BPS_SLIP / 10_000) * (dir === "LONG" ? 1 : -1);

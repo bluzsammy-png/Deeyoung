@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withGuard, GuardError } from "@/lib/guard";
 import { planRank } from "@/lib/entitlements";
 import { db } from "@/lib/db";
@@ -9,7 +9,7 @@ const MODES = ["OBSERVE", "APPROVE", "DELEGATE"];
 const STATES = ["ACTIVE", "PAUSED"];
 
 /** POST /api/sentinel/config — update SENTINEL mode, limits, pause state. Audited (§45). */
-export const POST = withGuard(async (req: NextRequest, { user, config }) => {
+export const POST = withGuard(async (req: Request, { user, config }) => {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
@@ -23,7 +23,7 @@ export const POST = withGuard(async (req: NextRequest, { user, config }) => {
     }
     // Delegate requires explicit confirmation flag (never silently enable §7/§69.6)
     if (body.mode === "DELEGATE" && body.confirmDelegate !== true) {
-      return NextResponse.json({ error: "DELEGATE mode requires confirmDelegate=true — automatic execution is never enabled silently." }, { status: 422 });
+      return NextResponse.json({ error: "DELEGATE mode requires confirmDelegate=true. Automatic execution is never enabled silently." }, { status: 422 });
     }
     updates.mode = body.mode;
     changes.push(`mode: ${config.mode} → ${body.mode}`);

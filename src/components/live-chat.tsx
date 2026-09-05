@@ -140,7 +140,7 @@ export function LiveChat() {
               <p className="mt-10 text-center text-[11px] leading-relaxed text-zinc-500">
                 Questions about plans, payments or your terminal?
                 <br />
-                Ask here — replies land right in this panel.
+                Ask here. Replies land right in this panel.
               </p>
             )}
             {msgs.map((m) => (

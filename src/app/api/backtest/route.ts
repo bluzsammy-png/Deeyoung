@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withGuard } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { marketProvider } from "@/lib/providers/market";
@@ -11,7 +11,7 @@ export const maxDuration = 120;
 const UNIVERSE_LIST = ["NVDA", "AAPL", "MSFT", "TSLA", "AMD", "META", "PLTR", "COIN", "QQQ", "SMH", "SPY", "JPM"];
 
 /** POST /api/backtest — run a bias-guarded backtest (§21/§22). Metered (§31). Pro feature. */
-export const POST = withGuard(async (req: NextRequest, { user }) => {
+export const POST = withGuard(async (req: Request, { user }) => {
   const body = await req.json().catch(() => ({}));
 
   const symbol = typeof body.symbol === "string" && UNIVERSE_LIST.includes(body.symbol.toUpperCase()) ? body.symbol.toUpperCase() : "NVDA";
@@ -31,7 +31,7 @@ export const POST = withGuard(async (req: NextRequest, { user }) => {
     marketProvider.getCandles("SPY", tf === "1M" ? "1M" : tf),
   ]);
   if (!series || series.candles.length < 80) {
-    return NextResponse.json({ error: "Not enough data for this range — try a longer period." }, { status: 422 });
+    return NextResponse.json({ error: "Not enough data for this range. Try a longer period." }, { status: 422 });
   }
   // Honesty gate (§55): never present backtest results computed from simulated marks
   if (series.dataState === "SIMULATED" || benchmark.dataState === "SIMULATED") {

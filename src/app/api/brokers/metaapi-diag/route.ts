@@ -43,7 +43,7 @@ export async function GET() {
         configured: true,
         primary: true,
         verdict: "OPERATIONAL",
-        detail: `own paper engine live: ${openN} open, ${closedN} closed, ${orderN} orders persisted — fills at observed market prices, 2bps slip + 10bps fee per side`,
+        detail: `own paper engine live: ${openN} open, ${closedN} closed, ${orderN} orders persisted: fills at observed market prices, 2bps slip + 10bps fee per side`,
         counts: { open: openN, closed: closedN, orders: orderN },
         dbLatencyMs: Date.now() - t0,
         audit: "/api/engine/status",
@@ -66,7 +66,7 @@ export async function GET() {
       verdict: s.configured ? (s.lastError ? "DEGRADED_FALLBACK" : "ACTIVE") : "PENDING_KEY",
       detail: s.configured
         ? `key present; used ${s.dayUsed}/780 daily, ${s.minuteUsed}/7 per-min credits${s.lastError ? `; lastError=${s.lastError}` : ""}`
-        : "no TWELVEDATA_API_KEY — signup form is Cloudflare-Turnstile-gated from datacenter IPs (verified 2026-09-04); keyless Binance public feed is the active data source, adapter lights up the moment a key is set",
+        : "no TWELVEDATA_API_KEY: signup form is Cloudflare-Turnstile-gated from datacenter IPs (verified 2026-09-04); keyless Binance public feed is the active data source, adapter lights up the moment a key is set",
       activeFeed: feedSource(),
       ...(s.lastOkAt ? { lastOkAt: new Date(s.lastOkAt).toISOString() } : {}),
     };

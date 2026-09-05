@@ -19,6 +19,7 @@ export const GET = withGuard(async (_req, { user, account }) => {
 
   return NextResponse.json({
     intel,
+    snap: parse<{ t: number; equity: number }[]>(account.equitySnapshot, []),
     orders: orders.map((o) => ({
       ...o,
       fills: parse<unknown[]>(o.fills, []),

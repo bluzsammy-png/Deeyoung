@@ -58,7 +58,7 @@ export function ResearchView() {
         title="Strategy Lab · Backtesting"
         sub="The same signal engine your terminal uses, tested against history"
         right={<InfoTip title="Honest backtests">
-          Entries fill at the next bar&apos;s open with modeled slippage — never at the signal price. When a bar touches both stop and target, we assume the stop hit first (conservative). Results are approximations, not promises.
+          Entries fill at the next bar&apos;s open with modeled slippage, never at the signal price. When a bar touches both stop and target, we assume the stop hit first (conservative). Results are approximations, not promises.
         </InfoTip>}
       />
 
@@ -70,7 +70,7 @@ export function ResearchView() {
             <SymbolSearch onPick={(h) => setSymbol(h.symbol)} placeholder="e.g. TM, 7203.T, BTC-USD, EURGBP…" />
             <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="mt-2 w-full rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-brand">
               {SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
-              {!SYMBOLS.includes(symbol) && <option value={symbol}>{symbol} — searched</option>}
+              {!SYMBOLS.includes(symbol) && <option value={symbol}>{symbol} (searched)</option>}
             </select>
           </div>
           <div>
@@ -184,7 +184,7 @@ export function ResearchView() {
         <div className="qe-panel-2 rounded-xl p-6 text-center">
           <p className="text-sm font-medium">Configure and run your first backtest.</p>
           <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-            The lab uses the same multi-factor signal engine as the live scan — so what you test is what you trade on paper. Entries execute at the next bar open with slippage; a walk-forward panel is on the roadmap.
+            The lab uses the same multi-factor signal engine as the live scan, so what you test is what you trade on paper. Entries execute at the next bar open with slippage; a walk-forward panel is on the roadmap.
           </p>
         </div>
       )}

@@ -16,6 +16,7 @@ import type { Order } from "@prisma/client";
 
 interface PortfolioPayload {
   intel: PortfolioIntelligence;
+  snap?: { t: number; equity: number }[];
   orders: (Order & { fills: unknown[] })[];
 }
 
@@ -140,7 +141,7 @@ export function PortfolioView() {
               </div>
               <EquityCurve
                 showBenchmark={false}
-                data={(JSON.parse((data as unknown as { snap?: never[] }).snap ?? "[]") as never[]) as never[]}
+                data={(data.snap ?? []).map((s) => ({ t: s.t, equity: s.equity, benchmark: s.equity }))}
               />
             </div>
           )}
