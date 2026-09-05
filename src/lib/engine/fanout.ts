@@ -277,11 +277,13 @@ export interface FanoutExitInput {
   reason: string;
 }
 
-/** Mirror one engine EXIT (close) onto every mirror opened for this position. */
+/** Mirror one engine EXIT (close) onto every mirror opened for this position.
+ *  Rows still PENDING are included: the engine can close within seconds of
+ *  opening, while the broker confirmation is still in flight. */
 export async function fanoutOnExit(input: FanoutExitInput): Promise<void> {
   try {
     const rows = await db.brokerMirrorTrade.findMany({
-      where: { positionId: input.positionId, status: { in: ["QUEUED", "FILLED"] } },
+      where: { positionId: input.positionId, status: { in: ["PENDING", "QUEUED", "FILLED"] } },
     });
     for (const row of rows) {
       const link = await db.brokerLink.findUnique({ where: { id: row.linkId } });
@@ -297,8 +299,25 @@ async function dispatchExit(
   input: FanoutExitInput,
 ): Promise<void> {
   try {
-    const row = await db.brokerMirrorTrade.findUnique({ where: { id: mirrorId } });
+    let row = await db.brokerMirrorTrade.findUnique({ where: { id: mirrorId } });
     if (!row) return;
+
+    // Entry still in flight? Wait (bounded) so the close targets a real
+    // broker position instead of racing the entry confirmation.
+    const settleDeadline = Date.now() + 30_000;
+    while (row.status === "PENDING" && Date.now() < settleDeadline) {
+      await new Promise((r) => setTimeout(r, 1000));
+      row = await db.brokerMirrorTrade.findUnique({ where: { id: mirrorId } });
+      if (!row) return;
+    }
+    if (row.status === "PENDING") {
+      await db.brokerMirrorTrade.update({ where: { id: mirrorId }, data: { status: "ERROR", detail: "Engine closed the trade but the broker entry never confirmed. Nothing was left open programmatically; check the broker account." } });
+      return;
+    }
+    if (row.status === "REJECTED" || row.status === "UNSUPPORTED" || row.status === "SKIPPED") {
+      await db.brokerMirrorTrade.update({ where: { id: mirrorId }, data: { detail: `${row.detail} Engine closed the paper trade; nothing to close at the broker (entry never filled).`.slice(0, 300) } });
+      return;
+    }
 
     if (link.platform === "DERIV") {
       const contractId = Number(row.brokerRef);

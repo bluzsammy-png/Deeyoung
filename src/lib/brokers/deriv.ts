@@ -35,10 +35,11 @@ function derivWsUrl(): string {
 interface DerivErrorShape { code: string; message: string }
 
 /** One websocket, optionally authorize first, send one payload, await its
- *  response by req_id, close. Bounded by `timeoutMs`. */
+ *  response by req_id, close. Bounded by `timeoutMs`. With `authorizeOnly`,
+ *  the authorize response itself is the answer (no second call is sent). */
 async function derivCall(
   payload: Record<string, unknown>,
-  opts: { authorizeToken?: string; timeoutMs?: number } = {},
+  opts: { authorizeToken?: string; timeoutMs?: number; authorizeOnly?: boolean } = {},
 ): Promise<DerivCallResult> {
   const timeoutMs = opts.timeoutMs ?? 15_000;
   const url = derivWsUrl();
@@ -78,6 +79,12 @@ async function derivCall(
         if (err) {
           clearTimeout(timer);
           finish({ ok: false, code: 401, detail: `Deriv rejected the API token: ${err.message ?? err.code ?? "authorization error"}` });
+          return;
+        }
+        if (opts.authorizeOnly) {
+          clearTimeout(timer);
+          finish({ ok: true, detail: "OK", data: msg });
+          return;
         }
         // authorized — now send the real call
         ws?.send(JSON.stringify({ ...payload, req_id: callId }));
@@ -118,7 +125,7 @@ interface AuthorizePayload {
 
 /** Read the account with the user's own token. This is the verification. */
 export async function derivAuthorize(token: string): Promise<DerivCallResult<DerivAccount>> {
-  const res = await derivCall({ authorize: token }, { authorizeToken: token });
+  const res = await derivCall({}, { authorizeToken: token, authorizeOnly: true });
   if (!res.ok || !res.data) return { ok: res.ok, code: res.code, detail: res.detail };
   const a = (res.data as unknown as AuthorizePayload).authorize;
   if (!a?.loginid) return { ok: false, detail: "Deriv answered but returned no account snapshot." };
