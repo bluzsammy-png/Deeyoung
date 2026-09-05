@@ -15,7 +15,7 @@ import { clientIpFromHeaders, hashIp, isPrivateNetworkIp, verifyTurnstile } from
 import { isDisposableEmail } from "@/lib/disposable-domains";
 import { assertEmailDomainDeliverable } from "@/lib/mx";
 import { emailConfigured, sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
-import { TRIAL_DAYS } from "@/lib/entitlements";
+// TRIAL_DAYS import removed — the free trial is abolished (serious business).
 
 // CGNAT reality: one MTN/Airtel tower can put hundreds of legitimate users behind a
 // single public IP, so the ceiling stays generous. The real abuse gate is the forced
@@ -58,6 +58,19 @@ export const auth = betterAuth({
       await sendVerificationEmail(String(user.email).toLowerCase(), user.name ?? "", token);
     },
   },
+  // Google sign-in/up — activates the moment GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET
+  // are set on the deployment (Railway variables). Redirect URI to register in the
+  // Google Cloud console: https://<domain>/api/auth/callback/google
+  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? {
+        socialProviders: {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          },
+        },
+      }
+    : {}),
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24,
@@ -66,7 +79,7 @@ export const auth = betterAuth({
     additionalFields: {
       role: { type: "string", defaultValue: "USER", input: false },
       status: { type: "string", defaultValue: "ACTIVE", input: false },
-      plan: { type: "string", defaultValue: "TRIAL", input: false },
+      plan: { type: "string", defaultValue: "FREE", input: false },
       trialEndsAt: { type: "date", required: false, input: false },
       ipHash: { type: "string", required: false, input: false },
     },
@@ -138,8 +151,8 @@ export const auth = betterAuth({
               email: String(user.email).toLowerCase(),
               role: adminEmails.includes(String(user.email).toLowerCase()) ? "ADMIN" : "USER",
               status: "ACTIVE",
-              plan: "TRIAL",
-              trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+              plan: "FREE",
+              trialEndsAt: null,
               ipHash,
             },
           };

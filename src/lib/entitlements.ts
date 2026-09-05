@@ -2,16 +2,14 @@
 // Source of truth for what a plan unlocks. Server routes enforce (§34);
 // client uses the same functions for cosmetic gating (lock overlays).
 //
-// Plan ladder (monetization v2):
-//   FREE    — expired/no trial. Terminal shell + markets stay visible;
-//             signals, portfolio risk and all Pro systems lock.
-//   TRIAL   — 2 days, no card. Full analytics so users can see what the
-//             product does. Pro systems (SENTINEL / Backtest / Briefing) stay
-//             locked until they subscribe — the trial shows, it doesn't give away.
+// Plan ladder (monetization v3 — trials abolished):
+//   FREE    — terminal shell + markets stay visible; signals, portfolio risk
+//             and all Pro systems lock. Serious business: value is paid.
 //   STARTER — full analytics forever.
 //   PRO     — Starter + SENTINEL Approve, Backtest Lab, AI Daily Briefing.
 //   ELITE   — Pro + SENTINEL Delegate (automation inside hard limits).
-// "PREMIUM" is a legacy stored value, read back as PRO.
+// "PREMIUM" is a legacy stored value, read back as PRO. Legacy "TRIAL" rows
+// (abolished) behave exactly like FREE.
 
 export type Plan = "FREE" | "TRIAL" | "STARTER" | "PRO" | "ELITE";
 export type UserStatus = "ACTIVE" | "WARNED" | "SUSPENDED" | "BANNED";
@@ -46,14 +44,10 @@ export const FEATURE_MIN_RANK = {
 
 export type GatedFeature = keyof typeof FEATURE_MIN_RANK;
 
-/** Resolve the effective plan. Legacy "PREMIUM" maps to PRO; expired trials fall to FREE. */
+/** Resolve the effective plan. Legacy "PREMIUM" maps to PRO. Trials are abolished — any legacy TRIAL row behaves as FREE. */
 export function effectivePlan(user: EntitledUser): Plan {
   if (user.plan === "STARTER" || user.plan === "PRO" || user.plan === "ELITE") return user.plan;
   if (user.plan === "PREMIUM") return "PRO";
-  if (user.plan === "TRIAL") {
-    const end = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
-    if (!end || Number.isNaN(end.getTime()) || end.getTime() > Date.now()) return "TRIAL";
-  }
   return "FREE";
 }
 
@@ -66,9 +60,9 @@ export function hasFeature(user: EntitledUser, feature: GatedFeature): boolean {
   return planRank(user) >= FEATURE_MIN_RANK[feature];
 }
 
-/** Anything better than FREE (trial or any paid plan). Used for soft-gated surfaces. */
+/** Anything better than FREE (any paid plan). */
 export function hasPaidAccess(user: EntitledUser): boolean {
-  return planRank(user) >= PLAN_RANK.TRIAL;
+  return planRank(user) >= PLAN_RANK.STARTER;
 }
 
 /** Kept for legacy call sites: previously meant "trial or paid". Now strictly paid. */

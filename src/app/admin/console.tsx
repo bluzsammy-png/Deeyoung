@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Activity, Ban, Bot, Cpu, Database, Gauge, Loader2, LogOut, PauseCircle,
+  Activity, Ban, Bot, CheckCircle2, Cpu, Database, Gauge, Loader2, LogOut, PauseCircle,
   Play, RefreshCw, ShieldAlert, ShieldCheck, Users as UsersIcon, XCircle,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -43,12 +43,48 @@ interface UsersPayload {
 const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const okTone = (v: number) => (v >= 0 ? "text-emerald-400" : "text-rose-400");
 
-export function AdminSignIn() {
+// ── success/failed marks + skeleton loading primitives ──
+function WinMark() {
+  return <CheckCircle2 aria-label="success" className="mr-1 inline h-3.5 w-3.5 text-emerald-400" />;
+}
+function FailMark() {
+  return <XCircle aria-label="failed" className="mr-1 inline h-3.5 w-3.5 text-rose-400" />;
+}
+function Skeleton({ className = "" }: { className?: string }) {
+  return <span className={`inline-block animate-pulse rounded bg-zinc-800 ${className}`} />;
+}
+function SkeletonRows({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="space-y-2" role="status" aria-label="loading">
+      {Array.from({ length: rows }).map((_, i) => <Skeleton key={i} className={`h-4 ${i % 2 ? "w-4/5" : "w-full"}`} />)}
+    </div>
+  );
+}
+
+export function AdminSignIn({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  const google = async () => {
+    setGoogleBusy(true); setErr(null);
+    try {
+      const r = await fetch("/api/auth/sign-in/social", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "google", callbackURL: "/admin" }),
+      });
+      const d = await r.json();
+      if (d?.url) { window.location.href = d.url; return; }
+      setErr("Google sign-in unavailable — falling back to email.");
+    } catch {
+      setErr("Google sign-in failed — use email and password.");
+    }
+    setGoogleBusy(false);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +115,18 @@ export function AdminSignIn() {
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-bold text-emerald-950 transition hover:brightness-110 disabled:opacity-50">
           {busy && <Loader2 className="h-4 w-4 animate-spin" />} Sign in
         </button>
+        {googleEnabled && (
+          <>
+            <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-zinc-600">
+              <span className="h-px flex-1 bg-zinc-800" /> or <span className="h-px flex-1 bg-zinc-800" />
+            </div>
+            <button type="button" onClick={google} disabled={googleBusy}
+              className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 disabled:opacity-50">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path fill="#EA4335" d="M12 5.04c1.7 0 3.22.59 4.42 1.74l3.29-3.29C17.73 1.63 15.09.5 12 .5 7.42.5 3.44 3.13 1.5 6.93l3.85 2.99C6.27 7.05 8.9 5.04 12 5.04z"/><path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.55-.2-2.27H12v4.51h6.44c-.29 1.48-1.14 2.73-2.41 3.57l3.72 2.89c2.17-2 3.75-4.96 3.75-8.7z"/><path fill="#FBBC05" d="M5.35 14.08a7.06 7.06 0 0 1 0-4.16L1.5 6.93a11.51 11.51 0 0 0 0 10.14l3.85-2.99z"/><path fill="#34A853" d="M12 23.5c3.09 0 5.68-1.02 7.58-2.76l-3.72-2.89c-1.03.7-2.36 1.11-3.86 1.11-3.1 0-5.73-2.01-6.65-4.88l-3.85 2.99C3.44 20.87 7.42 23.5 12 23.5z"/></svg>
+              {googleBusy ? "Redirecting to Google…" : "Continue with Google"}
+            </button>
+          </>
+        )}
         <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-600">
           Admin side of the platform. User product lives at <a href="/" className="text-zinc-400 underline decoration-dotted">/</a>.
         </p>
@@ -189,7 +237,7 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
       )}
 
       <footer className="mt-10 border-t border-zinc-800 pt-4 text-[11px] text-zinc-600">
-        {data ? <>build <span className="font-mono text-zinc-500">{data.snapshot.build.marker}</span>{data.snapshot.build.sha ? ` · commit ${String(data.snapshot.build.sha).slice(0, 7)}` : ""} · auto-refresh 30s · every number is a real ledger row</> : "loading build…"}
+        {data ? <>build <span className="font-mono text-zinc-500">{data.snapshot.build.marker}</span>{data.snapshot.build.sha ? ` · commit ${String(data.snapshot.build.sha).slice(0, 7)}` : ""} · auto-refresh 30s · every number is a real ledger row</> : <><Skeleton className="h-3 w-64" /></>}
       </footer>
     </main>
   );
@@ -351,7 +399,7 @@ function EngineTab({ data }: { data: EnginePayload }) {
                     <td className="py-1.5 pr-4">{p.bookKey}</td><td className="py-1.5 pr-4">{p.symbol}</td>
                     <td className="py-1.5 pr-4">{p.entryPrice?.toFixed(2)}</td><td className="py-1.5 pr-4">{p.exitPrice?.toFixed(2)}</td>
                     <td className="py-1.5 pr-4 text-zinc-400">{p.exitReason}</td>
-                    <td className={`py-1.5 pr-4 ${okTone(p.netPnlUsd ?? 0)}`}>{(p.netPnlUsd ?? 0) >= 0 ? "+" : ""}{(p.netPnlUsd ?? 0).toFixed(2)}</td>
+                    <td className={`py-1.5 pr-4 ${okTone(p.netPnlUsd ?? 0)}`}>{(p.netPnlUsd ?? 0) > 0 ? <WinMark /> : (p.netPnlUsd ?? 0) < 0 ? <FailMark /> : null}{(p.netPnlUsd ?? 0) >= 0 ? "+" : ""}{(p.netPnlUsd ?? 0).toFixed(2)}</td>
                     <td className={`py-1.5 pr-4 ${okTone(p.netR ?? 0)}`}>{(p.netR ?? 0) >= 0 ? "+" : ""}{(p.netR ?? 0).toFixed(2)}</td>
                     <td className="py-1.5 pr-4 text-zinc-500">{p.closedAt ? new Date(p.closedAt).toISOString().slice(5, 16).replace("T", " ") : "—"}</td>
                   </tr>
@@ -373,7 +421,7 @@ function EngineTab({ data }: { data: EnginePayload }) {
                     <td className="py-1.5 pr-4 text-zinc-500">{new Date(o.createdAt).toISOString().slice(5, 16).replace("T", " ")}Z</td>
                     <td className="py-1.5 pr-4">{o.symbol}</td><td className="py-1.5 pr-4">{o.side}</td><td className="py-1.5 pr-4">{o.kind}</td>
                     <td className="py-1.5 pr-4">{o.fillPrice?.toFixed(2) ?? "—"}</td>
-                    <td className={`py-1.5 pr-4 ${o.status === "FILLED" ? "text-emerald-400" : o.status === "REJECTED" ? "text-rose-400" : "text-zinc-400"}`}>{o.status}</td>
+                    <td className={`py-1.5 pr-4 ${o.status === "FILLED" ? "text-emerald-400" : o.status === "REJECTED" ? "text-rose-400" : "text-zinc-400"}`}>{o.status === "FILLED" ? <WinMark /> : o.status === "REJECTED" ? <FailMark /> : null}{o.status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -429,7 +477,7 @@ function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged:
         </div>
       )}
       <Panel title="User list & moderation" icon={UsersIcon}>
-        {!users ? <p className="text-xs text-zinc-500">loading users…</p> : users.users.length === 0 ? (
+        {!users ? <SkeletonRows rows={4} /> : users.users.length === 0 ? (
           <p className="text-xs text-zinc-500">No users have signed up yet.</p>
         ) : (
           <div className="qe-scroll max-h-[54vh] overflow-y-auto">

@@ -18,7 +18,7 @@ export const TIERS: Tier[] = [
     key: "STARTER",
     name: "Starter",
     tagline: "The full analytics terminal",
-    prices: { NGN: 5000, USD: 4, GBP: 3, EUR: 4, GHS: 55, KES: 520, ZAR: 75, CAD: 5, AUD: 7, INR: 350 },
+    prices: { NGN: 15000, USD: 12, GBP: 9, EUR: 11, GHS: 165, KES: 1550, ZAR: 220, CAD: 16, AUD: 18, INR: 1000 },
     features: [
       "Every market: stocks, FX majors and gold — charts, regimes, catalysts",
       "Multi-factor signal scores — math visible",
@@ -32,7 +32,7 @@ export const TIERS: Tier[] = [
     name: "Pro",
     tagline: "Analytics + the action layer",
     popular: true,
-    prices: { NGN: 15000, USD: 12, GBP: 9, EUR: 11, GHS: 165, KES: 1550, ZAR: 220, CAD: 16, AUD: 18, INR: 1000 },
+    prices: { NGN: 45000, USD: 35, GBP: 28, EUR: 33, GHS: 500, KES: 4650, ZAR: 660, CAD: 48, AUD: 55, INR: 3000 },
     features: [
       "Everything in Starter",
       "SENTINEL Approve — it drafts, you decide",
@@ -45,7 +45,7 @@ export const TIERS: Tier[] = [
     key: "ELITE",
     name: "Elite",
     tagline: "For traders who want it automated",
-    prices: { NGN: 35000, USD: 28, GBP: 22, EUR: 26, GHS: 385, KES: 3600, ZAR: 500, CAD: 38, AUD: 42, INR: 2400 },
+    prices: { NGN: 105000, USD: 79, GBP: 63, EUR: 75, GHS: 1150, KES: 10700, ZAR: 1520, CAD: 110, AUD: 125, INR: 6900 },
     features: [
       "Everything in Pro",
       "SENTINEL Delegate — auto-executes inside your hard limits",

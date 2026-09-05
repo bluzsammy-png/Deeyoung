@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Space_Grotesk, JetBrains_Mono } from "next/font/goog
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { PostHogProvider } from "@/components/posthog-provider";
+import { SupportWidget } from "@/components/support-widget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "DeeYoung Pro — Market Signals, Catalysts & Risk. One Terminal.",
   description:
-    "Gold, FX majors and US stocks — price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. 2-day trial, three plans, your currency.",
+    "Gold, FX majors and US stocks — price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. Three plans, your currency.",
   keywords: ["DeeYoung Pro", "DeeYoungs Ltd", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
   authors: [{ name: "DeeYoungs Ltd" }],
   icons: {
@@ -40,9 +41,10 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     title: "DeeYoung Pro — See what's moving. Know why it's moving.",
-    description: "Move first. Market signals, catalysts and risk in one terminal — Wall Street tools at a price that makes sense. 2-day free trial, three plans.",
+    description: "Move first. Market signals, catalysts and risk in one terminal — Wall Street tools at a price that makes sense. Three plans, your currency.",
     siteName: "DeeYoung Pro",
     type: "website",
   },
@@ -68,6 +70,7 @@ export default function RootLayout({
         <PostHogProvider>
           {children}
           <Toaster />
+          <SupportWidget />
         </PostHogProvider>
       </body>
     </html>

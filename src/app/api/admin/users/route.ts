@@ -19,6 +19,7 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: "FORBIDDEN", message: "Admin access required." }, { status: 403 });
 
   const users = await db.user.findMany({
+      take: 500, // scale guard — paginate beyond 500 users
     orderBy: { createdAt: "desc" },
     take: 200,
     select: {

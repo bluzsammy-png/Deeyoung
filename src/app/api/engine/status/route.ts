@@ -11,7 +11,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    return NextResponse.json(await buildEngineSnapshot());
+    const res = NextResponse.json(await buildEngineSnapshot());
+    // Scale hardening: the snapshot is the public audit surface hammered by
+    // dashboards, probes and the /status page. 15s edge cache + SWR keeps the
+    // DB cool under load without ever showing stale trade state (cycles are 15s).
+    res.headers.set("Cache-Control", "public, s-maxage=15, stale-while-revalidate=60");
+    return res;
   } catch (e) {
     return NextResponse.json(
       { error: "engine status unavailable", detail: String(e).slice(0, 200) },

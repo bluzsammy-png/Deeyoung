@@ -99,6 +99,8 @@ export function passwordResetLink(token: string): string {
 
 // ─── Branded HTML shell (dark, premium, email-client-safe inline styles) ────
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deeyoung-production.up.railway.app";
+
 function shell(title: string, bodyHtml: string, ctaLabel: string, ctaUrl: string): string {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -109,9 +111,7 @@ function shell(title: string, bodyHtml: string, ctaLabel: string, ctaUrl: string
         <tr><td style="padding:28px 32px 0 32px;">
           <table role="presentation" cellpadding="0" cellspacing="0"><tr>
             <td style="padding-right:10px;">
-              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-                <td style="width:30px;height:30px;background:#0a0a0c;border:1px solid rgba(220,38,38,0.5);border-radius:8px;text-align:center;font-size:16px;font-weight:800;color:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">D</td>
-              </tr></table>
+              <img src="${SITE_URL}/icon-192.png" width="34" height="34" alt="DeeYoung Pro logo" style="display:block;width:34px;height:34px;border-radius:8px;border:1px solid rgba(220,38,38,0.5);" />
             </td>
             <td style="font-size:15px;font-weight:700;color:#e6edf3;letter-spacing:-0.2px;">DeeYoung <span style="color:#ef4444;">Pro</span></td>
           </tr></table>
@@ -125,10 +125,10 @@ function shell(title: string, bodyHtml: string, ctaLabel: string, ctaUrl: string
           <p style="margin:14px 0 0 0;font-size:11px;line-height:1.6;color:#5b6672;word-break:break-all;">Or paste this link into your browser:<br>${ctaUrl}</p>
         </td></tr>
         <tr><td style="padding:22px 32px 28px 32px;border-top:1px solid #1e252e;margin-top:22px;">
-          <p style="margin:0;font-size:11px;line-height:1.6;color:#5b6672;">If you didn't request this, you can safely ignore this email — your account stays unchanged. One account per person; trial abuse leads to termination without refund.</p>
+          <p style="margin:0;font-size:11px;line-height:1.6;color:#5b6672;">If you didn't request this, you can safely ignore this email — your account stays unchanged. One account per person; abuse leads to termination without refund.</p>
         </td></tr>
       </table>
-      <p style="margin:18px 0 0 0;font-size:11px;color:#3d454f;">&#169; ${new Date().getFullYear()} DeeYoungs Ltd · <a href="mailto:deyongsltd@gmail.com" style="color:#8b98a5;">deyongsltd@gmail.com</a> · All rights reserved.</p>
+      <p style="margin:18px 0 0 0;font-size:11px;color:#3d454f;">&#169; ${new Date().getFullYear()} DeeYoungs Ltd · <a href="mailto:deyoungltd@gmail.com" style="color:#8b98a5;">deyoungltd@gmail.com</a> · All rights reserved.</p>
     </td></tr>
   </table>
 </body></html>`;

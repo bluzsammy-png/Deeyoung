@@ -520,6 +520,7 @@ model PaperEnginePosition {
 
   @@index([runId, status])
   @@index([bookKey, status])
+  @@index([closedAt])
 }
 
 model VenueMirrorOrder {

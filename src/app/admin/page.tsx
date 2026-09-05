@@ -9,6 +9,9 @@ import { AdminConsole, AdminSignIn, AdminForbidden } from "./console";
 
 export const dynamic = "force-dynamic";
 
+// Google sign-in button renders only when the provider is configured server-side.
+const GOOGLE_ENABLED = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
 async function adminEmails(): Promise<string[]> {
   return (process.env.ADMIN_EMAILS ?? "")
     .split(",")
@@ -37,7 +40,7 @@ export default async function AdminPage() {
     // db/auth warming — render sign-in rather than crashing the route
   }
 
-  if (!email || !userId) return <AdminSignIn />;
+  if (!email || !userId) return <AdminSignIn googleEnabled={GOOGLE_ENABLED} />;
   if (status === "BANNED" || status === "SUSPENDED") return <AdminForbidden reason={`Account ${status.toLowerCase()}.`} />;
 
   const listed = (await adminEmails()).includes(email);
