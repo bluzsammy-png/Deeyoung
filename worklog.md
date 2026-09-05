@@ -793,3 +793,22 @@ Work Log:
 Stage Summary:
 - PRODUCTION ANOMALY FOUND: ntfy digests 03:44-06:57Z show Railway deploying OLD commits in ascending order (8dff657 pos31 -> 0f7c97f -> 1ac1a6c -> 4890947 -> b7dd1e9 -> 253c4ca pos19), each with topicSet:false and a FRESH ledger (equity 10000, closed 0, new runId) — NOT the verified 28b0715 state (equity 9971.9, 2 closed). Looks like old deployments being redeployed (Railway Deployments tab?) or a second unconfigured environment. Real production state unverifiable from sandbox (edge 429). Flagged to owner.
 - DOMAIN: Railway side needs owner action (CLI unauthorized, token rejected, no creds in sandbox): add deyoungpro.site + www.deyoungpro.site in Service > Settings > Networking; Spaceship side: CNAME @ -> deeyoung-production.up.railway.app (flattened) + CNAME www -> deeyoung-production.up.railway.app, or exactly what Railway's dialog displays. Sandbox can verify DNS via dig once set.
+
+---
+Task ID: 36
+Agent: Super Z (main)
+Task: Twilio-style homepage campaign video replication (user: "check twilio.com ... campaign/ad video ... replicate same style layout placement everything") + fresh Railway pairing code.
+
+Work Log:
+- Measured twilio.com in headless browser at 1280w: hero = giant bold headline LEFT + 16:9 rounded video card RIGHT (576x324, 90px circular play button, Wistia poster); campaign block = near-full-bleed panel (10px gutters, 14px radius, ~451px tall) with cinematic footage and 56px bold white headline overlaid left (x=56, max-w 600).
+- Reused existing 80s brand film public/ad-film.mp4 (Task 16 asset). Extracted poster frames with ffmpeg; cut 14s ambient loop (55.5s-69.5s: dusk-city human shot into skyline) -> public/campaign-loop.mp4 (654KB, 420 frames verified, audio stripped).
+- landing.tsx rebuilt: removed WebGL HeroScene from hero (Twilio hero is flat); new HeroFilmCard (poster + circular play button + caption, click swaps to full film with sound, verified playing:true muted:false); new CampaignPanel (autoplay muted loop playsInline, reduced-motion pause, left scrim, headline "The engine behind every disciplined trade." at 56px lg); capability pills flattened to plain text strip; product preview moved to its own section.
+- Headline sizing iterated by measuring real text width in browser ("Know why it's moving." = 689px @68px font): final lg:text-[48px] xl:text-[52px] = exactly 3 clean lines in the 557px column (max-w-6xl caps column at all desktop widths).
+- Verified locally: build exit 0, src tsc clean, desktop hero 3-line headline + film card, campaign loop playing, click-to-play with sound works, mobile 390px stacks headline->copy->film card->campaign panel (Twilio mobile order). Full-page screenshot: all sections intact.
+- Deployed: b7aff71 pushed (force-added media: .gitignore has public/*.mp4 rule; campaign-loop.mp4 is 654KB).
+- Railway pairing re-armed (prior code TSZT-JCBL aged out): browserless device flow, new code delivered to owner.
+
+Stage Summary:
+- Homepage now mirrors Twilio's campaign video layout: hero text left + film card right, full-bleed cinematic campaign panel with overlaid campaign headline directly below.
+- No new pills/emoji/em dash/fake metrics; campaign headline is an honest product claim.
+- Pending: owner approves pairing code -> verify domain deyoungpro.site end-to-end (dig, cert, homepage, /api 401, checkout) with Railway access.
