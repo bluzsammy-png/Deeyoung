@@ -851,3 +851,23 @@ Stage Summary:
 - Bot: confluence-gated like a desk (4-of-7 aligned factors), analyst audits all 6 playbooks and verifies against the live web when users ask.
 - Analytics: PostHog activates the moment NEXT_PUBLIC_POSTHOG_KEY (+ POSTHOG_API_KEY for the admin panel) land in Railway; admin Control Room gains the Analytics tab either way (DB layer live immediately).
 - Pending: deploy verification of 68fb103 via ntfy; www.deyoungpro.site free Spaceship URL-forward steps handed to owner; PostHog keys from owner.
+
+---
+Task ID: 39
+Agent: Super Z (main)
+Task: Owner delivered PostHog keys (api = phx_TGUw…, mcp = phx_SFxf…). Validate keys, route PostHog analytics into the admin panel, keep secrets out of git, deliver beginner steps + recommendations.
+
+Work Log:
+- Sandbox had reset AGAIN (CLI gone, worklog stale at c6f6683). Recovered: rebuilt Railway CLI (5.49.2 at /home/z/.npm-global), re-armed device-flow pairing (code BRXJ-MKHS, pending owner approval), rebuilt telemetry reader (scripts/telemetry_read.sh), ntfy topic recovered from src/lib/engine/telemetry.ts.
+- KEY VALIDATION: both phx_ keys are VALID personal API keys on us.posthog.com (project list 200). Recovered from the API response: project "Default project" id 595377, org 01a07285-7e5d-0000-c792-7524be554843, and the PROJECT ingestion token phc_z7UJGw2taLinAPSEunTgznjQFHyz64rTD4MHfzeSRQPx (needed client-side; keys never committed to git).
+- DISCOVERED parallel session work on origin/main (Task 38 + 0999602): moving chart, VO, cross-market desk, GATE_CONFLUENCE=4, Finnhub fast-path, AND a PostHog architecture already wired but dormant awaiting keys. Local stale branch preserved as my-posthog; aligned main to origin (no force push, no overwrites).
+- Live-tested the whole PostHog surface before touching code: posthog-node capture → ingestion → read-back PASS (integration_smoke event visible via REST + HogQL); validated all HogQL admin queries parse; DISCOVERED us.i.posthog.com (ingestion proxy) 403s /insights/trend/ while serving /events/ — the deployed admin route's pageview trend silently degraded.
+- Surgical port (4 files, no duplication of Task 38 capture set): (1) posthog-provider.tsx → $pageview on EVERY route change (SPA-aware, replaces single-mount capture, no double count) + posthog.identify with real user id/email/plan; (2) billing webhook → captureServer("plan_upgrade") on webhook-paid upgrades (USDT on-chain rails keep their own payment_verified — no double counting); (3) admin analytics route → REST reads split to POSTHOG_API_HOST (default https://us.posthog.com) so trend works; (4) DEPLOY.md → exact 5-var contract + honest step-by-step + trial doc line corrected.
+- Verification: eslint clean, tsc clean on touched files (remaining errors pre-existing: stale .next types, capacitor dev dep), full production build exit 0, pushed aadb6bf → auto-deploy.
+- Railway env activation BLOCKED on pairing approval (BRXJ-MKHS); the 5-var set is ready to apply the moment whoami succeeds: NEXT_PUBLIC_POSTHOG_KEY=phc_…, NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com, POSTHOG_HOST=https://us.i.posthog.com, POSTHOG_API_KEY=phx_…, POSTHOG_API_HOST=https://us.posthog.com.
+- Telemetry sweep: build 0999602 ACTIVE, engine cycle running, equity 9940.79, closed 3 (winRatePct 0). FLAGGED ANOMALY: two SOLUSD "TARGET" exits with exit price ABOVE entry booked netUsd -14.05 / R -1.92 each — direction/label/R inconsistency (short target below entry, or fee/R math inverted) → must be audited under the win-7-or-8-of-10 mandate.
+
+Stage Summary:
+- PostHog pipeline proven end to end live (capture, ingestion, REST, HogQL); one real panel bug found and fixed before keys even land.
+- Code deployed (aadb6bf); activation is now pure config: pairing approval + 5 Railway variables, then first pageview flips the panel to live data.
+- Owner deliverables this round: pairing code BRXJ-MKHS, 5-var paste list, beginner activation steps, recommendations list, engine ledger anomaly flag.
