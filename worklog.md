@@ -724,3 +724,24 @@ Work Log:
 
 Stage Summary:
 - Product now matches the owner's model: paper default, per-user live execution the moment a broker is connected and verified. Owner engine unchanged (okx-demo). Deploy verification pending (telemetry boot).
+
+---
+Task ID: 34 (MT4/MT5 with Deriv: MetaApi bridge on per-user tokens)
+Agent: main (Super Z)
+
+Work Log:
+- Owner question: users without direct APIs, MT4/MT5 only (Deriv), how do they go live? Answer shipped: MetaApi cloud bridge, the industry path for MetaTrader (no official MT4/MT5 API exists).
+- REWROTE src/lib/brokers/metaapi.ts against the DOCUMENTED REST surface (old adapter used invented paths /accounts-api/v2.0/* + global METAAPI_TOKEN and was retired after rejection): provisioning POST/PUT /users/current/accounts(+/{id}/deploy) on api-v1.metaapi.cloud with agiliumtrade.ai fallback host; client API account-information, positions, trade, close-position, rpc (get_symbols, get_symbol_specification) on mt-client-api-v1.agiliumtrade.ai; numeric string coercion for RPC "numerictypes"; retcodes 10009/10010/10008/0 accepted; host fallback on network errors.
+- PER-USER TOKENS: no owner env needed. User creates free MetaApi account (app.metaapi.cloud, API access tokens), pastes token in Settings > MetaTrader; METAAPI_TOKEN env stays optional fallback. create-or-reuse by login+server+platform (corrected password triggers PUT update), deploy, bounded 50s poll for broker-verified read; NOTHING stored unless broker answers (same honesty as direct platforms); CONNECTED+FULL routes live automatically, INVESTOR stays paper.
+- resolveUserVenue now includes MT4/MT5 links (status CONNECTED, mode FULL, bridgeAccountId present); executeUserOrder MT branch: broker symbol resolution from the account's own symbol list (exact > prefix suffixes like SOLUSD.r/.m > containment; miss = honest rejection), lot sizing from broker contract spec (qty/contractSize, clamped to volumeMin/Max, rounded to volumeStep), market order with absolute SL/TP, fill confirmed ONLY from broker positions (3 x 800ms) before the position book changes; netting note: opposite market order closes on netting accounts (Deriv MT5).
+- /api/brokers: MT POST path requires metaapiToken (else honest BRIDGE_TOKEN_REQUIRED 422 with setup steps), region select (new-york/london/singapore/sydney), stores encrypted {password, metaapiToken, region} (AES-256-GCM, APP_SECRET), env BROKER/READONLY for MT links; GET refresh loop decrypts stored token per link (up to 3), pulls balance/equity snapshot, 401 marks link ERROR with reconnect message.
+- Settings MetaTrader card rebuilt: MetaApi token field, region select, server datalist with Deriv hints (DerivSVG5-Real, DerivSVG5-Demo), full honest copy (bridge requirement, verify-before-store, up to a minute, demo-server honesty, FULL access warning), Live badge for FULL+CONNECTED, balance display. Landing copy: MT4/MT5-only brokers connect through the MetaApi bridge (hero disclosure + footer).
+- metaapi-diag: MetaApi section now reports per-user token mode + a real reachability probe from the server (401/403 = reachable + auth enforced).
+- Sandbox egress filter blocks metaapi.cloud/agiliumtrade.ai (TLS interception), so endpoint probing from sandbox impossible by design -> production-side probe lives in the diag route; scripts/smoke_metaapi_bridge.ts kept for clean-egress environments (garbage-token 401/404/429 verdicts).
+- tsc clean on all touched files (pre-existing widgets.tsx/portfolio.tsx errors untouched); em dashes only in code comments, none in user-visible strings; zero schema changes (BrokerLink already had bridge fields).
+- Deployed: commit 072f801 -> boot 12:33:50Z -> snapshot 12:35:15Z build 072f801: engine ACTIVE, runId preserved, ledger intact (equity 9971.9, 2 closed legacy, dayPnlR -3.85 daily stop engaged), feed up (Binance while TD budget skips).
+
+Stage Summary:
+- MT4/MT5 users (Deriv and any MetaTrader broker) now have the same connect-and-go-live path as direct-API users: paste MetaApi token + MT login/server, bridge verifies by reading the account, FULL mode goes live automatically. Fill prices only ever come from the broker's own confirmations.
+- Sandbox cannot reach MetaApi hosts (egress filter); first real end-to-end connect will be a subscriber's own MetaApi token in production; the diag route gives the owner a one-look reachability verdict.
+- Engine baseline unchanged: ACTIVE, standing down on the daily risk stop (dayPnlR -3.85), 2 legacy closed (0-2), gate-64 config waiting for regime.
