@@ -9,7 +9,7 @@ import { Check, Clock, CreditCard, Loader2, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { authClient, type SessionUser } from "@/lib/auth-client";
-import { effectivePlan, trialTimeLeftLabel } from "@/lib/entitlements";
+import { effectivePlan } from "@/lib/entitlements";
 import { TIERS, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
 
 export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -24,7 +24,6 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
   }, [open]);
 
   const plan = user ? effectivePlan(user) : "FREE";
-  const trialLabel = user ? trialTimeLeftLabel(user) : null;
 
   const joinWaitlist = async () => {
     setBusy(true);
@@ -50,11 +49,9 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
             <Sparkles className="h-4 w-4 text-brand-hi" /> Choose your plan
           </DialogTitle>
           <DialogDescription className="text-left">
-            {plan === "TRIAL"
-              ? `${trialLabel ?? "2 days"} left in your trial. Pick a plan to keep everything.`
-              : plan === "FREE"
-                ? "Your trial has ended. Pick a plan to unlock the terminal again."
-                : `You're on ${plan} — manage or switch below.`}
+            {plan === "FREE"
+              ? "Free plan — pick a plan to unlock the full terminal."
+              : `You're on ${plan} — manage or switch below.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -108,7 +105,7 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
         <div className="flex items-start gap-2 rounded-xl border border-hairline bg-panel-2 px-3.5 py-3 text-[11px] leading-relaxed text-muted-foreground">
           <CreditCard className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
           <span>
-            Card details are requested <strong className="text-foreground">when you subscribe</strong> — never during the trial.
+            Card details are requested <strong className="text-foreground">when you subscribe</strong> — never at signup.
             Your card is charged only when your plan renews, and you can cancel anytime.
           </span>
         </div>
@@ -116,7 +113,7 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
         <div className="flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-3 text-[11px] leading-relaxed text-warn">
           <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           Card checkout is in final onboarding with our payment provider. Join the waitlist and we&apos;ll email
-          you the moment your plan can be activated — trials and analytics stay open meanwhile.
+          you the moment your plan can be activated — the free plan stays open meanwhile.
         </div>
 
         {plan === "PRO" || plan === "ELITE" || plan === "STARTER" ? (

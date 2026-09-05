@@ -168,8 +168,8 @@ export async function sendVerificationEmail(to: string, name: string, token: str
     "Verify your email — DeeYoung Pro",
     shell(
       `Welcome aboard, ${first}.`,
-      "Confirm this address to activate your 2-day free trial of the full analytics terminal — live markets, multi-factor signals, and portfolio risk. One account per person; subscribe anytime to keep it.",
-      "Verify my email & start my trial",
+      "Confirm this address to activate your account — live markets, multi-factor signals, and portfolio risk in one terminal. One account per person; subscribe anytime.",
+      "Verify my email",
       verificationLink(token),
     ),
     "verification",

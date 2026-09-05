@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Bot, FlaskConical, Lock, MessagesSquare, Newspaper, TrendingUp, Wallet } from "lucide-react";
 import { authClient, type SessionUser } from "@/lib/auth-client";
-import { effectivePlan, hasFeature, FEATURE_MIN_RANK, PREMIUM_FEATURES, type GatedFeature } from "@/lib/entitlements";
+import { hasFeature, FEATURE_MIN_RANK, PREMIUM_FEATURES, type GatedFeature } from "@/lib/entitlements";
 import { BillingModal } from "@/components/quantedge/billing-modal";
 
 const FEATURE_META: Record<GatedFeature, { icon: typeof Bot; title: string; blurb: string; tier: string }> = {
@@ -79,10 +79,6 @@ export function PremiumGate({ feature, children }: { feature: GatedFeature; chil
 function LockedScreen({ feature, onUpgrade }: { feature: GatedFeature; onUpgrade: () => void }) {
   const meta = FEATURE_META[feature];
   const Icon = meta.icon;
-  const { data: session } = authClient.useSession();
-  const user = session?.user as SessionUser | undefined;
-  const plan = user ? effectivePlan(user) : "FREE";
-  const duringTrial = plan === "TRIAL";
 
   // Show the other Pro systems on the upsell list (skip the one being viewed).
   const upsellList = (Object.keys(PREMIUM_FEATURES) as GatedFeature[])
@@ -127,9 +123,7 @@ function LockedScreen({ feature, onUpgrade }: { feature: GatedFeature; onUpgrade
           See plans & subscribe
         </button>
         <p className="mt-2.5 text-[11px] text-muted-foreground/70">
-          {duringTrial
-            ? "Your 2-day trial shows the full analytics. This system is part of a paid plan — subscribe to unlock it."
-            : "Subscribe from any plan to unlock this system."}
+          Subscribe from any plan to unlock this system.
         </p>
       </div>
     </motion.div>

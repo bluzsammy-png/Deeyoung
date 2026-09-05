@@ -397,7 +397,7 @@ export function Landing() {
                 <p className="qe-label text-brand-hi">Pricing</p>
                 <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">Three plans. No mystery tiers.</h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  Every plan starts with a 2-day trial — full analytics, no card. Card details only when you subscribe,
+                  Full analytics from day one on every plan — no trial games. Card details only when you subscribe,
                   charged when your plan renews, cancel anytime.
                 </p>
               </div>
@@ -455,7 +455,7 @@ export function Landing() {
                         : "border border-hairline bg-panel text-foreground hover:border-brand/40"
                     }`}
                   >
-                    Start 2-day trial
+                    Get started
                   </button>
                 </div>
               ))}

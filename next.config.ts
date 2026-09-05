@@ -7,12 +7,12 @@ const isDev = process.env.NODE_ENV !== "production";
 // frame; dev additionally needs unsafe-eval for React refresh.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com https://embed.tawk.to`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.tawk.to",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.posthog.com https://challenges.cloudflare.com https://api.metaapi.cloud https://query1.finance.yahoo.com https://query2.finance.yahoo.com",
-  "frame-src https://challenges.cloudflare.com",
+  "connect-src 'self' https://*.posthog.com https://challenges.cloudflare.com https://api.metaapi.cloud https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://*.tawk.to wss://*.tawk.to",
+  "frame-src https://challenges.cloudflare.com https://tawk.to https://*.tawk.to",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

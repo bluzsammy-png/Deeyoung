@@ -67,6 +67,9 @@ export function AuthView({ onBack }: { onBack: () => void }) {
   // When an error has an obvious next step, offer it directly (no dead ends).
   const [errorAction, setErrorAction] = useState<"signin" | "signup" | "forgot" | null>(null);
   const [busy, setBusy] = useState(false);
+  // Google sign-in availability — probed at runtime from /api/auth-methods (env-gated provider).
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
 
   // Password-reset deep link: the reset email lands on /?reset=<token>.
   useEffect(() => {
@@ -77,6 +80,37 @@ export function AuthView({ onBack }: { onBack: () => void }) {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
+
+  // "Continue with Google" renders only when the provider is configured server-side.
+  useEffect(() => {
+    fetch("/api/auth-methods")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setGoogleEnabled(!!d?.google))
+      .catch(() => setGoogleEnabled(false));
+  }, []);
+
+  const google = async () => {
+    setGoogleBusy(true);
+    setError(null);
+    setErrorAction(null);
+    setNotice(null);
+    try {
+      const r = await fetch("/api/auth/sign-in/social", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "google", callbackURL: "/?terminal=1" }),
+      });
+      const d = await r.json();
+      if (d?.url) {
+        window.location.href = d.url;
+        return;
+      }
+      fail("Google sign-in isn't available right now — use email and password.");
+    } catch {
+      fail("Google sign-in failed — use email and password.");
+    }
+    setGoogleBusy(false);
+  };
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -151,7 +185,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
     setBusy(true);
     try {
       await authClient.sendVerificationEmail({ email: email.trim() });
-      setNotice("Verification email sent — check your inbox (and spam). Click the link to activate your trial.");
+      setNotice("Verification email sent — check your inbox (and spam). Click the link to activate your account.");
     } catch {
       setError("Couldn't send the verification email. Double-check the address and try again.");
     } finally {
@@ -196,6 +230,23 @@ export function AuthView({ onBack }: { onBack: () => void }) {
               </button>
             ))}
           </div>
+
+          {googleEnabled && (mode === "signin" || mode === "signup") && (
+            <>
+              <button
+                type="button"
+                onClick={google}
+                disabled={googleBusy}
+                className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-xl border border-hairline bg-panel-2 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-brand/40 disabled:opacity-60"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path fill="#EA4335" d="M12 5.04c1.7 0 3.22.59 4.42 1.74l3.29-3.29C17.73 1.63 15.09.5 12 .5 7.42.5 3.44 3.13 1.5 6.93l3.85 2.99C6.27 7.05 8.9 5.04 12 5.04z"/><path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.55-.2-2.27H12v4.51h6.44c-.29 1.48-1.14 2.73-2.41 3.57l3.72 2.89c2.17-2 3.75-4.96 3.75-8.7z"/><path fill="#FBBC05" d="M5.35 14.08a7.06 7.06 0 0 1 0-4.16L1.5 6.93a11.51 11.51 0 0 0 0 10.14l3.85-2.99z"/><path fill="#34A853" d="M12 23.5c3.09 0 5.68-1.02 7.58-2.76l-3.72-2.89c-1.03.7-2.36 1.11-3.86 1.11-3.1 0-5.73-2.01-6.65-4.88l-3.85 2.99C3.44 20.87 7.42 23.5 12 23.5z"/></svg>
+                {googleBusy ? "Redirecting to Google…" : "Continue with Google"}
+              </button>
+              <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                <span className="h-px flex-1 bg-hairline" /> or with email <span className="h-px flex-1 bg-hairline" />
+              </div>
+            </>
+          )}
 
           {mode === "reset" && (
             <p className="mt-4 flex items-center gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-2.5 text-xs leading-snug text-warn">
@@ -327,7 +378,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
               {mode === "signup"
-                ? "Start my 2-day free trial"
+                ? "Create my account"
                 : mode === "forgot"
                   ? "Send reset link"
                   : mode === "reset"
@@ -356,11 +407,11 @@ export function AuthView({ onBack }: { onBack: () => void }) {
           <div className="mt-5 space-y-2 border-t border-hairline pt-4">
             <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-brand" />
-              2-day free trial · full analytics · subscribe from ₦5,000/mo
+              Full analytics from day one · plans from ₦15,000/mo or your currency
             </p>
             <p className="text-[11px] leading-relaxed text-muted-foreground/70">
               One account per person. Disposable or temporary email domains are rejected automatically,
-              and trial abuse leads to account termination without refund.
+              and accounts that violate the Terms of Service are terminated without refund.
             </p>
           </div>
         </div>

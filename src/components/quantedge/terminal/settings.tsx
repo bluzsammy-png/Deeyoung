@@ -9,7 +9,7 @@ import { CreditCard, KeyRound, Plug, Plus, ShieldCheck } from "lucide-react";
 import { SectionHead, InfoTip } from "@/components/quantedge/ui-bits";
 import { useApp } from "@/lib/store";
 import { authClient, type SessionUser } from "@/lib/auth-client";
-import { effectivePlan, trialTimeLeftLabel } from "@/lib/entitlements";
+import { effectivePlan } from "@/lib/entitlements";
 import { BillingModal } from "@/components/quantedge/billing-modal";
 
 interface HealthPayload {
@@ -23,7 +23,6 @@ export function SettingsView() {
   const { data: session } = authClient.useSession();
   const user = session?.user as SessionUser | undefined;
   const plan = user ? effectivePlan(user) : "FREE";
-  const trialLabel = user ? trialTimeLeftLabel(user) : null;
   const [billingOpen, setBillingOpen] = useState(false);
   const [health, setHealth] = useState<HealthPayload | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({
@@ -186,14 +185,12 @@ export function SettingsView() {
             >
               <div>
                 <p className="text-xs font-semibold">
-                  Plan: {plan === "TRIAL" ? `2-Day Trial${trialLabel ? ` · ${trialLabel} left` : ""}` : plan === "FREE" ? "Free — trial ended" : plan}
+                  Plan: {plan === "FREE" ? "Free" : plan}
                 </p>
                 <p className="text-[10.5px] text-muted-foreground">
                   {plan === "FREE"
-                    ? "Subscribe from ₦5,000/mo to restore the full terminal. Starter, Pro and Elite available."
-                    : plan === "TRIAL"
-                      ? "Full analytics for 48 hours. SENTINEL, Backtest Lab and the Briefing unlock when you subscribe."
-                      : "Everything your plan includes is unlocked. Manage or upgrade below."}
+                    ? "Subscribe from ₦15,000/mo to unlock the full terminal. Starter, Pro and Elite available."
+                    : "Everything your plan includes is unlocked. Manage or upgrade below."}
                 </p>
               </div>
               <CreditCard className="h-4 w-4 shrink-0 text-brand-hi" />

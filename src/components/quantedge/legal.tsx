@@ -2,7 +2,7 @@
 
 // DEEYOUNG PRO — Legal surfaces (§51 addendum / §70 / §2026-09 privacy+security refresh):
 // ToS, Privacy, Security, Refund. Plain-language, honest, linked from landing + in-app.
-// Content reflects CURRENT product reality: subscriptions + 2-day trial, MT4/MT5 broker
+// Content reflects CURRENT product reality: subscriptions (no trial), MT4/MT5 broker
 // linking (AES-256-GCM credential vault), AI Trade Desk, IP rate limits, Turnstile,
 // PostHog analytics, Resend transactional email, local-currency pricing.
 
@@ -37,9 +37,9 @@ const CONTENT: Record<LegalDoc, { title: string; sections: Section[] }> = {
         ],
       },
       {
-        h: "Plans, trial, and billing",
+        h: "Plans and billing",
         ps: [
-          "DeeYoung Pro offers a Free plan, a 2-day trial, and paid subscriptions (Starter, Pro, Elite) priced in your local currency where available. The trial unlocks analytics features only and does not require a card — you cannot be charged during a trial.",
+          "DeeYoung Pro offers a Free plan and paid subscriptions (Starter, Pro, Elite) priced in your local currency where available. The Free plan never requires a card — you cannot be charged without an active subscription.",
           "Card or payment details are only requested when you actively choose to subscribe, and payment processing is handled by our payment processor at checkout; the exact billing terms are restated at checkout before any charge. Feature availability is gated by plan and enforced server-side. Prices and plan features may change with notice; changes never apply retroactively to a period you have already paid for.",
         ],
       },
@@ -160,7 +160,7 @@ const CONTENT: Record<LegalDoc, { title: string; sections: Section[] }> = {
     sections: [
       {
         ps: [
-          "The Free plan and the 2-day trial cost nothing and require no card — you can never be charged by starting a trial.",
+          "The Free plan costs nothing and requires no card — you can never be charged without an active subscription.",
         ],
       },
       {

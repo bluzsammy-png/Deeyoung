@@ -79,3 +79,6 @@ verify-*.png
 
 # large media served from public (kit files live in download/)
 public/*.mp4
+
+# dev-only sandbox helper (reaper escape hatch) — never deploy, never commit
+src/app/api/dev-pair/

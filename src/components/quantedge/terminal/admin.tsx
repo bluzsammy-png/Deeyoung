@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { trialDaysLeft } from "@/lib/entitlements";
 
 interface AdminUser {
   id: string; name: string | null; email: string; role: string; status: string; plan: string;
@@ -118,10 +117,9 @@ export function AdminView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stat("Users", data.stats.total)}
-        {stat("Trial", data.stats.trial)}
-        {stat("Pro", data.stats.premium)}
+        {stat("Paid", data.stats.premium)}
         {stat("Suspended", data.stats.suspended)}
         {stat("Banned", data.stats.banned)}
       </div>
@@ -148,9 +146,6 @@ export function AdminView() {
                   </TableCell>
                   <TableCell>
                     <span className="text-[11px] font-medium">{u.plan}</span>
-                    {u.plan === "TRIAL" && trialDaysLeft(u) !== null && (
-                      <span className="ml-1 text-[10px] text-muted-foreground">{trialDaysLeft(u)}d</span>
-                    )}
                   </TableCell>
                   <TableCell>
                     <span className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold ${STATUS_STYLES[u.status] ?? "border-hairline"}`}>
@@ -239,7 +234,7 @@ export function AdminView() {
               <div>
                 <label htmlFor="mod-reason" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Reason (required, shown to user)</label>
                 <Input id="mod-reason" value={reason} onChange={(e) => setReason(e.target.value)}
-                  placeholder="e.g. Multiple trial accounts from one device" className="border-hairline bg-panel-2" />
+                  placeholder="e.g. Multiple accounts from one device" className="border-hairline bg-panel-2" />
               </div>
               <div>
                 <label htmlFor="mod-message" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Message (optional context)</label>
