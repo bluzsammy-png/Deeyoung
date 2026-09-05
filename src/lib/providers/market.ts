@@ -559,6 +559,85 @@ export class YahooProvider implements MarketDataProvider {
   }
 }
 
+// ─── Finnhub real-time quote fast-path (US equities/ETFs on the free tier) ────
+// Finnhub /quote is real-time for US stocks where Yahoo is delayed per exchange
+// terms. Plain 1-5 letter tickers only: FX pairs (6 letters), crypto (the -USD
+// namespace), indices (^) and futures keep the Yahoo namespaces. Finnhub
+// failures NEVER feed the shared breaker — a Finnhub outage must not degrade
+// the Yahoo path. An unknown symbol returns c=0 and falls through honestly.
+const FINNHUB_PLAIN_TICKER = /^[A-Z]{1,5}$/;
+let finnhubCooldownUntil = 0;
+
+async function finnhubQuote(symbol: string): Promise<Quote | null> {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key || !FINNHUB_PLAIN_TICKER.test(symbol)) return null;
+  if (Date.now() < finnhubCooldownUntil) return null;
+  const ck = `fh:quote:${symbol}`;
+  const hit = cacheGet<Quote>(ck);
+  if (hit) return hit;
+  const num = (v: unknown, fb: number): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fb;
+  };
+  try {
+    const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${key}`;
+    const res = await paced(() => fetchWithRetry(url));
+    if (!res) return null;
+    if (res.status === 401 || res.status === 403 || res.status === 429) {
+      finnhubCooldownUntil = Date.now() + 10 * 60_000; // bad/rate-limited key: stop hammering
+      return null;
+    }
+    if (!res.ok) return null;
+    const j = await res.json();
+    const c = num(j?.c, 0);
+    if (c <= 0) return null; // 0 = Finnhub holds no data for this symbol
+    const pc = num(j?.pc, c);
+    const t = num(j?.t, Math.floor(Date.now() / 1000));
+    const fresh = Date.now() / 1000 - t < 300; // traded within 5 min -> treat as live
+    const quote: Quote = {
+      symbol,
+      name: UNIVERSE[symbol]?.name ?? symbol,
+      assetClass: UNIVERSE[symbol]?.assetClass ?? "EQUITY",
+      sector: UNIVERSE[symbol]?.sector ?? "UNKNOWN",
+      price: c,
+      change: num(j?.d, c - pc),
+      changePct: num(j?.dp, pc ? (c - pc) / pc * 100 : 0),
+      open: num(j?.o, c),
+      dayHigh: num(j?.h, c),
+      dayLow: num(j?.l, c),
+      prevClose: pc,
+      volume: 0, // free /quote carries no volume — refined from Yahoo below, honestly
+      avgVolume: cacheGet<number>(`avgvol:${symbol}`) ?? 0,
+      currency: "USD",
+      exchange: "FINNHUB_US",
+      marketState: fresh ? "REGULAR" : "CLOSED",
+      asOf: t * 1000,
+      dataState: fresh ? "LIVE" : "DELAYED",
+      provider: "FINNHUB",
+    };
+    cacheSet(ck, quote, 20_000);
+    cacheSet(`quote:${symbol}`, quote, 20_000); // feeds the shared stale-fallback layer
+    // Volume fill: free /quote has none. At most one Yahoo session call per
+    // symbol per 5 min; the result patches both cache entries and never blocks
+    // the fast path.
+    if (!cacheGetStale<number>(`fhvolfill:${symbol}`)) {
+      cacheSet(`fhvolfill:${symbol}`, 1, 5 * 60_000);
+      void yahooChart(symbol, "1d", "5m").then((r) => {
+        if (!r) return;
+        const vol = r.candles.reduce((a, cd) => a + cd.v, 0);
+        if (vol <= 0) return;
+        const avg = cacheGet<number>(`avgvol:${symbol}`) ?? Math.round(vol * 0.92);
+        const cur = cacheGetStale<Quote>(ck);
+        if (cur) cacheSet(ck, { ...cur, volume: vol, avgVolume: avg }, 20_000);
+        cacheSet(`quote:${symbol}`, { ...(cur ?? quote), volume: vol, avgVolume: avg }, 20_000);
+      }).catch(() => undefined);
+    }
+    return quote;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Simulated provider (fallback — ALWAYS labeled SIMULATED, §43/§55) ────────
 
 /** Deterministic pseudo-random from symbol so simulated data is stable across calls. */
@@ -645,6 +724,8 @@ const sim = new SimulatedProvider();
 export const marketProvider = {
   async getQuote(symbol: string): Promise<Quote> {
     if (!breakerOpen()) {
+      const fh = await withDeadline(finnhubQuote(symbol), UPSTREAM_DEADLINE_MS);
+      if (fh) return fh;
       const q = await withDeadline(yahoo.getQuote(symbol), UPSTREAM_DEADLINE_MS);
       if (q) return q;
     }
@@ -655,9 +736,12 @@ export const marketProvider = {
   },
 
   async getQuotes(symbols: string[]): Promise<{ quotes: Quote[]; provider: string }> {
+    let fhCount = 0;
     const results = await Promise.all(
       symbols.map(async (s) => {
         if (breakerOpen()) return null;
+        const fh = await withDeadline(finnhubQuote(s), UPSTREAM_DEADLINE_MS);
+        if (fh) { fhCount++; return fh; }
         return withDeadline(yahoo.getQuote(s), UPSTREAM_DEADLINE_MS);
       }),
     );
@@ -672,7 +756,10 @@ export const marketProvider = {
         else quotes.push((await sim.getQuote(symbols[i])) as Quote);
       }
     }
-    return { quotes, provider: degraded ? "YAHOO_CHART+DEEYOUNG_SIM" : "YAHOO_CHART" };
+    const labels: string[] = [];
+    if (fhCount > 0) labels.push("FINNHUB");
+    labels.push(degraded ? "YAHOO_CHART+DEEYOUNG_SIM" : "YAHOO_CHART");
+    return { quotes, provider: labels.join("+") };
   },
 
   async getCandles(symbol: string, tf: keyof typeof RANGE_MAP): Promise<CandleSeries> {

@@ -25,7 +25,7 @@ async function fetchPosthog(): Promise<PosthogPayload> {
   if (!key) {
     return {
       configured: false,
-      note: "PostHog is not connected yet. Add POSTHOG_API_KEY (a PostHog personal API key) in Railway to activate this panel. Client events already capture pageviews, signups, checkouts, payments, analyst queries and broker connections.",
+      note: "PostHog is not connected yet. In Railway add NEXT_PUBLIC_POSTHOG_KEY (the PostHog Project API key, starts with phc_) to activate event capture, and POSTHOG_API_KEY (a PostHog Personal API key, starts with phx_) to power this panel. Client events already capture pageviews, signups, checkouts, payments, analyst queries and broker connections once the project key is live.",
     };
   }
   const host = (process.env.POSTHOG_HOST || "https://us.i.posthog.com").replace(/\/$/, "");
