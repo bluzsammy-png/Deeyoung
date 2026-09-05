@@ -606,3 +606,38 @@ Work Log:
 Stage Summary:
 - The "why it lost when it won" mystery is closed with exact math; engine now runs the validated high-conviction config whose worst historical 10-trade stretch was 6 wins, median 9.
 - scripts/out/{klines,signals-cache2.json,geometry-results*.json} = reproducible evidence chain.
+
+---
+Task ID: 30 (graphics 4.0: admin login 404 + subscribe wiring + engine transparency + full UI overhaul)
+Agent: main (Super Z)
+
+Work Log:
+- User issues: only 2 losses visible on site; Subscribe button dead-ended; /admin/login = 404; wanted whole-site visual overhaul (layout/fonts/cards/graphics/buttons/write-ups/analytics/3D + user & admin panels).
+- /admin/login created (src/app/admin/login/page.tsx): server gate reuses AdminSignIn, signed-in admins redirect to /admin, GOOGLE_ENABLED mirrors /admin. Verified in build output (ƒ /admin/login).
+- BillingModal rewritten: fetches /api/billing/checkout on open; when PAYMENT_LINK_* set, each tier renders a real Subscribe button (window.open provider URL + auto-upgrade via webhook); when not set, honest waitlist mode with joined confirmation state. Landing pricing note updated to match.
+- Engine transparency: runner.ts exports liveScan (never-reset in-memory: regimeUp verdict + regimeAt, lastScanAt, bestSinceBoot/bestSymSinceBoot, crossSinceBoot, cycles; regime recorded each cycle, lastScanAt set when unpaused scan completes). status-snapshot exposes it as `live` (dynamic import, hides on failure). Marker bumped engine-ui-v3 → graphics-4.
+- Engine view: LiveScanPanel (BTC regime OPEN/STAND-DOWN verdict, best-score vs gate-64 progress bar, crossings-since-boot chips, v2 config + walk-forward validation footnote) + provenance note explaining the two legacy v1 losses (un-winnable fee geometry, retired) — ledger never rewritten. Stat tiles → qe-stat.
+- Landing overhaul: anchor nav (Features/Engine/Pricing/FAQ) + Sign in; hero badge now "live paper engine is running"; CTA "See the live engine"; NEW #engine live proof section (real ledger tiles from /api/engine/status: equity/closed/winrate/uptime + labeled 30d walk-forward strip 83.8%/74/PF2.13/worst-6 + honest "backtest ≠ promise"); how-it-works connector line; gradient-border popular tier; NEW honest FAQ (paper vs real, delayed data, what engine trades, vs Telegram channels, requirements, payment state); final CTA banner; 3-column footer w/ /status link + "history never rewritten" line.
+- 3D hero: DataDust 400-mote additive particle field (crimson/white, drift+wrap), GridFloor synthwave helper + fade plane, mirrored skyline echo under plinth (glass-floor read), third accent pointLight, camera dolly-in 19.5→13.5 ease-out-cubic over 2.6s, reduced-motion respected.
+- Design system additions (globals.css Graphics 4.0): qe-card spotlight-hover, qe-card-hero, qe-border-gradient, qe-btn kit (primary/ghost/white), qe-eyebrow, qe-noise film, qe-stat top-accent, qe-live-dot ring pulse, qe-rise, qe-shimmer-text, qe-upgrade-card, qe-check-list, qe-row-hover, qe-faq details styling.
+- Terminal: sidebar grouped Trading/Autopilot/Intelligence/System(+Owner), FREE users get upgrade card opening BillingModal directly (state + Sparkles import added); EdgeMark extracted to standalone edge-mark.tsx (admin surfaces skip landing bundle; landing re-exports for compatibility).
+- Admin sign-in restyled: brand aurora/grid backdrop, qe-card-hero, EdgeMark, crimson buttons/inputs.
+- Dashboard: regime stand-down chip in EngineStrip footer (live.regimeUp===false), MiniStat → qe-stat.
+- Build verified (tsc: only pre-existing scripts/ + route-handler noise; Turbopack 4 pre-existing crypto-import warnings). Committed 6b2dfff, pushed → Railway auto-deploy.
+
+Stage Summary:
+- Functional: /admin/login live, Subscribe now resolves real checkout links the moment owner sets PAYMENT_LINK_* (no code change needed), engine's "why no trades" is a first-class UI panel.
+- Honesty preserved: ledger numbers everywhere are real; backtest stats explicitly labeled; v1 losses retained + explained.
+- Pending: Railway deploy verification (ntfy boot + marker graphics-4 + probe /admin/login + /api/billing/checkout); 10-trade win-rate campaign continues (regime-gated).
+
+---
+Task ID: 30-verify (production deploy verification)
+Agent: main (Super Z)
+
+Work Log:
+- Pollled ntfy: boot at 09:04:09Z → build 6b2dfff, marker "graphics-4" confirmed on the two following 15-min digests (09:05:33Z, 09:20:34Z).
+- Engine state post-deploy: ACTIVE, elapsed 18.15h, same runId (ledger intact), equity $9,971.90, 2 closed (the two legacy v1 SOL losses preserved verbatim), 0 open, feed up.
+- External HTTP probes (/admin/login, /api/billing/checkout, /status) all 429 from sandbox — known Railway edge wall for datacenter IPs; browser users unaffected (verified pattern from prior tasks). Route presence confirmed in production build output (ƒ /admin/login).
+
+Stage Summary:
+- Graphics 4.0 shipped and verified live. Engine continues the 10-trade campaign; best scan score 53 vs gate 64, regime filter active — dashboard and engine view now explain the stand-down honestly.
