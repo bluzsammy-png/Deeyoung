@@ -46,15 +46,15 @@ export function SignalsView() {
     <div className="space-y-4">
       <SectionHead
         title="Signals"
-        sub="What is happening, and where factors align — the primary brain's output"
+        sub="What is happening, and where factors align: the primary brain's output"
         right={<DataBadge state={scan?.signals[0]?.dataState ?? "LIVE"} />}
       />
 
       {/* education strip (§9) */}
       <div className="qe-panel flex flex-wrap items-center gap-x-6 gap-y-2 p-4 text-[11.5px] leading-relaxed text-muted-foreground">
-        <span><strong className="text-foreground">Signal</strong> — a factor-aligned setup worth your attention. <InfoTip title="What is a Signal?">DeeYoung computes factor contributions from trend (EMA), intraday control (VWAP), momentum (RSI/MACD), stretch (Bollinger), participation (volume), verified catalysts, and regime. Alignment above your threshold becomes a signal.</InfoTip></span>
-        <span><strong className="text-foreground">Confidence</strong> — factor alignment, NOT win probability. <InfoTip title="What is Signal Confidence?">An 84% score means strong alignment across measured factors. It is NOT an 84% probability that the trade will win. Past alignment says nothing about any single outcome.</InfoTip></span>
-        <span><strong className="text-foreground">Regime-adjusted</strong> — thresholds shift with the market. <InfoTip title="Regime influence">In Risk-Off or High Volatility regimes, DeeYoung raises signal thresholds, reduces sizing, and widens stops automatically.</InfoTip></span>
+        <span><strong className="text-foreground">Signal</strong>: a factor-aligned setup worth your attention. <InfoTip title="What is a Signal?">DeeYoung computes factor contributions from trend (EMA), intraday control (VWAP), momentum (RSI/MACD), stretch (Bollinger), participation (volume), verified catalysts, and regime. Alignment above your threshold becomes a signal.</InfoTip></span>
+        <span><strong className="text-foreground">Confidence</strong>: factor alignment, NOT win probability. <InfoTip title="What is Signal Confidence?">An 84% score means strong alignment across measured factors. It is NOT an 84% probability that the trade will win. Past alignment says nothing about any single outcome.</InfoTip></span>
+        <span><strong className="text-foreground">Regime-adjusted</strong>: thresholds shift with the market. <InfoTip title="Regime influence">In Risk-Off or High Volatility regimes, DeeYoung raises signal thresholds, reduces sizing, and widens stops automatically.</InfoTip></span>
       </div>
 
       {/* filters */}
@@ -121,7 +121,7 @@ export function SignalsView() {
               <span>Stop <span className="text-neg">{fmtPrice(s.stop)}</span></span>
               <span>Target <span className="text-pos">{fmtPrice(s.target)}</span></span>
               <span>R:R <span className="text-foreground">{s.rr.toFixed(1)}</span></span>
-              <span>Rel vol <span className={s.catalystScore >= 3 ? "text-warn" : ""}>{s.factors.find((f) => f.key === "VOLUME")?.detail.match(/[\d.]+×/)?.[0] ?? "—"}</span></span>
+              <span>Rel vol <span className={s.catalystScore >= 3 ? "text-warn" : ""}>{s.factors.find((f) => f.key === "VOLUME")?.detail.match(/[\d.]+×/)?.[0] ?? "…"}</span></span>
               <span className="ml-auto">{fmtAgo(s.generatedAt)}</span>
             </div>
 

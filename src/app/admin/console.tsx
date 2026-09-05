@@ -8,11 +8,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity, Ban, Bot, CheckCircle2, Cpu, Database, Gauge, Loader2, LogOut, MessageCircle, PauseCircle,
-  Play, RefreshCw, ShieldAlert, ShieldCheck, Users as UsersIcon, XCircle,
+  Play, RefreshCw, ShieldAlert, ShieldCheck, Users as UsersIcon, Wallet, XCircle,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { SupportTab } from "./support-tab";
+import { BillingTab } from "./billing-tab";
 
 // ── types (mirrors /api/admin/engine + /api/admin/users) ──
 interface Snapshot {
@@ -81,9 +82,9 @@ export function AdminSignIn({ googleEnabled = false }: { googleEnabled?: boolean
       });
       const d = await r.json();
       if (d?.url) { window.location.href = d.url; return; }
-      setErr("Google sign-in unavailable — falling back to email.");
+      setErr("Google sign-in unavailable. Falling back to email.");
     } catch {
-      setErr("Google sign-in failed — use email and password.");
+      setErr("Google sign-in failed. Use email and password.");
     }
     setGoogleBusy(false);
   };
@@ -162,7 +163,7 @@ export function AdminForbidden({ reason }: { reason: string }) {
 
 export function AdminConsole({ adminEmail }: { adminEmail: string }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "engine" | "users" | "support">("overview");
+  const [tab, setTab] = useState<"overview" | "engine" | "users" | "support" | "billing">("overview");
   const [data, setData] = useState<EnginePayload | null>(null);
   const [users, setUsers] = useState<UsersPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -203,6 +204,7 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
     { id: "overview" as const, label: "Overview", icon: Gauge },
     { id: "engine" as const, label: "Engine", icon: Cpu },
     { id: "users" as const, label: "Users", icon: UsersIcon },
+    { id: "billing" as const, label: "Billing", icon: Wallet },
     { id: "support" as const, label: "Support", icon: MessageCircle },
   ];
 
@@ -213,7 +215,7 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
           <ShieldCheck className="h-7 w-7 text-emerald-400" />
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-100">DeeYoung Control Room</h1>
-            <p className="text-[11px] text-zinc-500">signed in as <span className="font-mono text-zinc-400">{adminEmail}</span> · separate admin side — user product at <a href="/" className="underline decoration-dotted text-zinc-400">/</a></p>
+            <p className="text-[11px] text-zinc-500">signed in as <span className="font-mono text-zinc-400">{adminEmail}</span> · separate admin side; user product at <a href="/" className="underline decoration-dotted text-zinc-400">/</a></p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -247,6 +249,8 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
         <EngineTab data={data} />
       ) : tab === "support" ? (
         <SupportTab />
+      ) : tab === "billing" ? (
+        <BillingTab />
       ) : (
         <UsersTab users={users} onChanged={loadUsers} />
       )}
@@ -271,12 +275,12 @@ function Overview({ data }: { data: EnginePayload }) {
       {e.control.paused && (
         <div className="flex items-center gap-2 rounded-xl border border-amber-800/60 bg-amber-950/40 px-4 py-3 text-sm text-amber-300">
           <PauseCircle className="h-4 w-4 shrink-0" />
-          <span><b>Engine PAUSED</b> — no new entries. Exits still managed. Reason: {e.control.reason ?? "—"} ({e.control.updatedBy ?? "admin"})</span>
+          <span><b>Engine PAUSED</b>: no new entries. Exits still managed. Reason: {e.control.reason ?? "…"} ({e.control.updatedBy ?? "admin"})</span>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Tile label="Win rate" value={a.winRatePct === null ? "—" : `${a.winRatePct}%`} />
+        <Tile label="Win rate" value={a.winRatePct === null ? "…" : `${a.winRatePct}%`} />
         <Tile label="Closed trades" value={String(a.closedCount)} />
         <Tile label="Realized P&L" value={`${a.realizedPnlUsd >= 0 ? "+" : ""}${usd(a.realizedPnlUsd)}`} tone={okTone(a.realizedPnlUsd)} />
         <Tile label="Equity" value={usd(a.settledEquityUsd)} />
@@ -299,7 +303,7 @@ function Overview({ data }: { data: EnginePayload }) {
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[10.5px] leading-relaxed text-zinc-600">{tdLive}/{feedEntries.length} symbols last read from authenticated Twelve Data — free plan rotates a 7/min share across {feedEntries.length || 10} symbols; the rest ride the keyless Binance public feed.</p>
+          <p className="mt-2 text-[10.5px] leading-relaxed text-zinc-600">{tdLive}/{feedEntries.length} symbols last read from authenticated Twelve Data; the free share rotates a 7/min share across {feedEntries.length || 10} symbols; the rest ride the keyless Binance public feed.</p>
         </Panel>
 
         <Panel title="Execution venue" icon={Bot}>
@@ -314,7 +318,7 @@ function Overview({ data }: { data: EnginePayload }) {
 
       <Panel title="Per-book performance (closed trades)" icon={Activity}>
         {Object.keys(s.books).length === 0 ? (
-          <p className="text-xs text-zinc-500">No closed trades yet — playbook gates refuse low-conviction entries by design.</p>
+          <p className="text-xs text-zinc-500">No closed trades yet; playbook gates refuse low-conviction entries by design.</p>
         ) : (
           <table className="w-full text-left font-mono text-xs">
             <thead className="text-[10px] uppercase tracking-wider text-zinc-500">
@@ -325,7 +329,7 @@ function Overview({ data }: { data: EnginePayload }) {
                 <tr key={k}>
                   <td className="py-1.5 pr-4">{k}</td>
                   <td className="py-1.5 pr-4">{b.trades}</td>
-                  <td className="py-1.5 pr-4">{b.winRatePct ?? "—"}%</td>
+                  <td className="py-1.5 pr-4">{b.winRatePct ?? "…"}%</td>
                   <td className={`py-1.5 pr-4 ${okTone(b.netUsd)}`}>{b.netUsd >= 0 ? "+" : ""}{b.netUsd.toFixed(2)}</td>
                   <td className={`py-1.5 pr-4 ${okTone(b.netR)}`}>{b.netR >= 0 ? "+" : ""}{b.netR.toFixed(2)}</td>
                 </tr>
@@ -366,7 +370,7 @@ function EngineTab({ data }: { data: EnginePayload }) {
     <div className="mt-5 space-y-4">
       <Panel title="Engine control" icon={Gauge}>
         <p className="text-xs leading-relaxed text-zinc-500">
-          Pause blocks <b className="text-zinc-300">new entries only</b> — open positions keep being managed to their stops, targets and time exits. The change takes effect on the runner&apos;s next cycle (≤ ~20s) and is audit-logged.
+          Pause blocks <b className="text-zinc-300">new entries only</b>. Open positions keep being managed to their stops, targets and time exits. The change takes effect on the runner&apos;s next cycle (≤ ~20s) and is audit-logged.
         </p>
         {err && <p className="mt-2 rounded-lg border border-rose-900/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">{err}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -416,7 +420,7 @@ function EngineTab({ data }: { data: EnginePayload }) {
                     <td className="py-1.5 pr-4 text-zinc-400">{p.exitReason}</td>
                     <td className={`py-1.5 pr-4 ${okTone(p.netPnlUsd ?? 0)}`}>{(p.netPnlUsd ?? 0) > 0 ? <WinMark /> : (p.netPnlUsd ?? 0) < 0 ? <FailMark /> : null}{(p.netPnlUsd ?? 0) >= 0 ? "+" : ""}{(p.netPnlUsd ?? 0).toFixed(2)}</td>
                     <td className={`py-1.5 pr-4 ${okTone(p.netR ?? 0)}`}>{(p.netR ?? 0) >= 0 ? "+" : ""}{(p.netR ?? 0).toFixed(2)}</td>
-                    <td className="py-1.5 pr-4 text-zinc-500">{p.closedAt ? new Date(p.closedAt).toISOString().slice(5, 16).replace("T", " ") : "—"}</td>
+                    <td className="py-1.5 pr-4 text-zinc-500">{p.closedAt ? new Date(p.closedAt).toISOString().slice(5, 16).replace("T", " ") : "…"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -435,7 +439,7 @@ function EngineTab({ data }: { data: EnginePayload }) {
                   <tr key={o.clientOid}>
                     <td className="py-1.5 pr-4 text-zinc-500">{new Date(o.createdAt).toISOString().slice(5, 16).replace("T", " ")}Z</td>
                     <td className="py-1.5 pr-4">{o.symbol}</td><td className="py-1.5 pr-4">{o.side}</td><td className="py-1.5 pr-4">{o.kind}</td>
-                    <td className="py-1.5 pr-4">{o.fillPrice?.toFixed(2) ?? "—"}</td>
+                    <td className="py-1.5 pr-4">{o.fillPrice?.toFixed(2) ?? "…"}</td>
                     <td className={`py-1.5 pr-4 ${o.status === "FILLED" ? "text-emerald-400" : o.status === "REJECTED" ? "text-rose-400" : "text-zinc-400"}`}>{o.status === "FILLED" ? <WinMark /> : o.status === "REJECTED" ? <FailMark /> : null}{o.status}</td>
                   </tr>
                 ))}
@@ -503,13 +507,13 @@ function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged:
               <tbody className="divide-y divide-zinc-800/70">
                 {users.users.map((u) => (
                   <tr key={u.id}>
-                    <td className="px-2 py-2"><p className="font-semibold text-zinc-200">{u.name ?? "—"}</p><p className="text-[10.5px] text-zinc-500">{u.email}{u.role === "ADMIN" ? " · ADMIN" : ""}{u.emailVerified ? "" : " · unverified"}</p></td>
+                    <td className="px-2 py-2"><p className="font-semibold text-zinc-200">{u.name ?? "…"}</p><p className="text-[10.5px] text-zinc-500">{u.email}{u.role === "ADMIN" ? " · ADMIN" : ""}{u.emailVerified ? "" : " · unverified"}</p></td>
                     <td className="px-2 py-2 text-[11px]">{u.plan}</td>
                     <td className="px-2 py-2"><span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${tone[u.status] ?? "border-zinc-700 text-zinc-300"}`}>{u.status}</span></td>
                     <td className={`px-2 py-2 font-mono text-[11px] ${u.signupCountFromIp >= 3 ? "font-bold text-rose-400" : "text-zinc-500"}`}>{u.signupCountFromIp}</td>
                     <td className="px-2 py-2 text-[11px] text-zinc-500">{new Date(u.createdAt).toISOString().slice(0, 10)}</td>
                     <td className="px-2 py-2">
-                      {u.role === "ADMIN" ? <span className="text-[10px] text-zinc-600">—</span> : (
+                      {u.role === "ADMIN" ? <span className="text-[10px] text-zinc-600">·</span> : (
                         <div className="flex flex-wrap justify-end gap-1 sm:justify-start">
                           {u.status !== "BANNED" && u.status !== "SUSPENDED" && (
                             <>
@@ -540,7 +544,7 @@ function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged:
               <h3 className="text-sm font-bold text-zinc-100">{dialog.action === "UNBAN" ? "Restore access" : `Confirm ${dialog.action.toLowerCase()}`}</h3>
               <button onClick={() => setDialog(null)} aria-label="Close"><XCircle className="h-4 w-4 text-zinc-500" /></button>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-400">{dialog.email}{dialog.action === "BAN" ? " — permanent block, all sessions revoked" : dialog.action === "SUSPEND" ? " — read-only lock, sessions revoked" : dialog.action === "UNBAN" ? " — full access restored" : " — warning recorded + user notified"}</p>
+            <p className="mt-1.5 text-xs text-zinc-400">{dialog.email}{dialog.action === "BAN" ? ": permanent block, all sessions revoked" : dialog.action === "SUSPEND" ? ": read-only lock, sessions revoked" : dialog.action === "UNBAN" ? ": full access restored" : ": warning recorded + user notified"}</p>
             {dialog.action !== "UNBAN" && (
               <>
                 <label htmlFor="md-reason" className="mt-4 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Reason (required, shown to user + audited)</label>

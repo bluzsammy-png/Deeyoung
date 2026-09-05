@@ -87,7 +87,7 @@ export function TradeDeskView() {
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        setError(json.message ?? "The analyst is unavailable right now — try again shortly.");
+        setError(json.message ?? "The analyst is unavailable right now. Try again shortly.");
         if (json.plan) setResult(json);
       } else {
         setResult(json);
@@ -108,7 +108,7 @@ export function TradeDeskView() {
     <div className="space-y-4">
       <SectionHead
         title="Trade Desk"
-        sub="Grounded trade plans — live data in, disciplined plan out, nothing invented"
+        sub="Grounded trade plans: live data in, disciplined plan out, nothing invented"
         right={<DataBadge state={(result?.dataState as Quote["dataState"]) ?? active?.dataState ?? "DELAYED"} />}
       />
 
@@ -124,10 +124,10 @@ export function TradeDeskView() {
               onChange={(e) => { setSymbol(e.target.value); setResult(null); }}
               className="w-full rounded-xl border border-hairline bg-panel-2 px-3 py-2.5 text-sm font-semibold outline-none focus:border-brand/50"
             >
-              {quotes.length === 0 && <option value="XAUUSD">XAUUSD — Gold</option>}
+              {quotes.length === 0 && <option value="XAUUSD">XAUUSD · Gold</option>}
               {quotes.map((q) => (
                 <option key={q.symbol} value={q.symbol}>
-                  {q.symbol} — {q.assetClass === "FX" ? "FX" : q.assetClass === "METAL" ? "Metals" : q.sector}
+                  {q.symbol} · {q.assetClass === "FX" ? "FX" : q.assetClass === "METAL" ? "Metals" : q.sector}
                 </option>
               ))}
             </select>
@@ -251,7 +251,7 @@ export function TradeDeskView() {
 
       {!result && !busy && (
         <div className="qe-panel-2 rounded-xl p-5 text-sm leading-relaxed text-muted-foreground">
-          Pick a market — <span className="font-semibold text-foreground">XAUUSD (gold)</span> is preselected — add a question if you
+          Pick a market. <span className="font-semibold text-foreground">XAUUSD (gold)</span> is preselected; add a question if you
           have one, and the bot returns a short plan: direction, entry, stop, two targets, R:R and what kills the idea.
           Every number is grounded in live data and the signal engine&apos;s factor math. The bot proposes; nothing executes
           without you.

@@ -7,10 +7,11 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useApp } from "@/lib/store";
 import { authClient, type SessionUser } from "@/lib/auth-client";
-import { isAccountBlocked } from "@/lib/entitlements";
+import { hasPaidAccess, isAccountBlocked } from "@/lib/entitlements";
 import { Landing } from "@/components/quantedge/landing";
 import { Terminal } from "@/components/quantedge/terminal/terminal";
 import { AuthView, BlockedView } from "@/components/quantedge/auth-view";
+import { PaywallView } from "@/components/quantedge/paywall";
 import { EdgeMark } from "@/components/quantedge/landing";
 
 function AuthSplash() {
@@ -51,6 +52,10 @@ export function DeeYoungApp() {
     content = <AuthView key="auth" onBack={() => setEntered(false)} />;
   } else if (isAccountBlocked(user.status)) {
     content = <BlockedView key="blocked" status={user.status} />;
+  } else if (!hasPaidAccess(user) && user.role !== "ADMIN") {
+    // Hard paywall: nothing is free beyond the homepage. Signed-in accounts
+    // without a paid plan see the plan picker; admins bypass (operators).
+    content = <PaywallView key="paywall" />;
   } else {
     content = (
       <motion.div

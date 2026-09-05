@@ -58,7 +58,7 @@ function EngineStrip() {
   return (
     <section>
       <SectionHead
-        title="Bot performance — live paper engine"
+        title="Bot performance · live paper engine"
         sub="Autonomous engine trading real market prices 24/7"
         right={
           <button onClick={() => setView("engine")} className="group inline-flex items-center gap-1 text-xs font-semibold text-brand-hi">
@@ -68,10 +68,10 @@ function EngineStrip() {
       />
       <div className="qe-panel p-4">
         {eng.engine.control.paused && (
-          <p className="mb-3 rounded-lg border border-warn/30 bg-warn/[0.08] px-3 py-1.5 text-[11px] font-semibold text-warn">PAUSED by admin — no new entries; exits still managed</p>
+          <p className="mb-3 rounded-lg border border-warn/30 bg-warn/[0.08] px-3 py-1.5 text-[11px] font-semibold text-warn">PAUSED by admin: no new entries; exits still managed</p>
         )}
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          <MiniStat label="Win rate" value={a.winRatePct === null ? "—" : `${a.winRatePct}%`} tone={a.winRatePct !== null && a.winRatePct >= 50 ? "text-pos" : undefined} />
+          <MiniStat label="Win rate" value={a.winRatePct === null ? "…" : `${a.winRatePct}%`} tone={a.winRatePct !== null && a.winRatePct >= 50 ? "text-pos" : undefined} />
           <MiniStat label="Closed" value={String(a.closedCount)} />
           <MiniStat label="Realized P&L" value={`${pnlPos ? "+" : ""}$${Math.abs(a.realizedPnlUsd).toFixed(2)}`} tone={pnlPos ? "text-pos" : "text-neg"} />
           <MiniStat label="Equity" value={`$${a.settledEquityUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`} />
@@ -243,7 +243,7 @@ export function DashboardView() {
         {canSignals ? (
           <StatTile
             label="Your Portfolio (Paper)"
-            value={portfolio ? fmtMoney(portfolio.equity, 0) : "—"}
+            value={portfolio ? fmtMoney(portfolio.equity, 0) : "…"}
             sub={portfolio ? (
               <span className="flex items-center gap-2">
                 <Pct value={portfolio.totalPnlPct} />
@@ -253,7 +253,7 @@ export function DashboardView() {
                 <span className="text-[11px]">today</span>
               </span>
             ) : "loading…"}
-            tip="This is your paper brokerage equity: cash plus positions at delayed market prices. It is simulated money — always."
+            tip="This is your paper brokerage equity: cash plus positions at delayed market prices. It is simulated money, always."
           >
             {portfolio && portfolio.warnings.length > 0 && (
               <div className="mt-3 rounded-lg border border-warn/25 bg-warn/[0.07] px-3 py-2">
@@ -265,7 +265,7 @@ export function DashboardView() {
             )}
           </StatTile>
         ) : (
-          lockedPanel("Portfolio risk is part of every paid plan", "Equity, P&L, concentration and correlation — included with every plan, starting at Starter.")
+          lockedPanel("Portfolio risk is part of every paid plan", "Equity, P&L, concentration and correlation, included with every plan starting at Starter.")
         )}
       </div>
 
@@ -314,7 +314,7 @@ export function DashboardView() {
           />
           <div className="space-y-2">
             {!canSignals ? (
-              lockedPanel("Multi-factor signals are part of every paid plan", "Seven factors, visible math, entry/stop/target on every setup — included with every plan, starting at Starter.")
+              lockedPanel("Multi-factor signals are part of every paid plan", "Seven factors, visible math, entry/stop/target on every setup, included with every plan starting at Starter.")
             ) : (
               <>
                 {opportunities.map((s, i) => (
@@ -359,7 +359,7 @@ export function DashboardView() {
           {opportunities[0] && (
             <div className="qe-panel mt-3 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="qe-label">Signal anatomy — {opportunities[0].symbol}</span>
+                <span className="qe-label">Signal anatomy · {opportunities[0].symbol}</span>
                 <InfoTip title="Signal Score">
                   The score is the sum of factor contributions (each factor has a max weight). It measures alignment, not win probability. Hover each factor for its reasoning.
                 </InfoTip>

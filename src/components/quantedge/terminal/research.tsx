@@ -45,7 +45,7 @@ export function ResearchView() {
       if (!res.ok) setError(json.error ?? "Backtest failed");
       else setResult(json);
     } catch {
-      setError("Network error — the engine did not run.");
+      setError("Network error; the engine did not run.");
     }
     setBusy(false);
   };
@@ -55,7 +55,7 @@ export function ResearchView() {
   return (
     <div className="space-y-4">
       <SectionHead
-        title="Strategy Lab — Backtesting"
+        title="Strategy Lab · Backtesting"
         sub="The same signal engine your terminal uses, tested against history"
         right={<InfoTip title="Honest backtests">
           Entries fill at the next bar&apos;s open with modeled slippage — never at the signal price. When a bar touches both stop and target, we assume the stop hit first (conservative). Results are approximations, not promises.
@@ -66,7 +66,7 @@ export function ResearchView() {
       <div className="qe-panel p-4">
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-56">
-            <label className="qe-label mb-1.5 block">Symbol — search anything worldwide</label>
+            <label className="qe-label mb-1.5 block">Symbol · search anything worldwide</label>
             <SymbolSearch onPick={(h) => setSymbol(h.symbol)} placeholder="e.g. TM, 7203.T, BTC-USD, EURGBP…" />
             <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="mt-2 w-full rounded-lg border border-input bg-panel-2 px-3 py-2 text-sm font-semibold outline-none focus:border-brand">
               {SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}

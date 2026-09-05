@@ -124,7 +124,7 @@ export function SentinelView() {
     <div className="space-y-4">
       <SectionHead
         title="SENTINEL"
-        sub="The optional action layer — it proposes, disposes nothing without permission"
+        sub="The optional action layer: it proposes, disposes nothing without permission"
         right={<button onClick={runTick} disabled={ticking} className="inline-flex items-center gap-2 rounded-xl bg-brand/12 px-4 py-2 text-xs font-semibold text-brand-hi transition-colors hover:bg-brand/20 disabled:opacity-50">
           {ticking ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand border-t-transparent" /> : <Play className="h-3.5 w-3.5" />}
           Run scan now
@@ -158,10 +158,10 @@ export function SentinelView() {
           </div>
           <p className={`mt-2 text-2xl font-bold tracking-tight ${STATE_STYLES[data.state] ?? ""}`}>{data.state.replace(/_/g, " ")}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {data.killSwitch ? "Kill switch engaged — see banner." :
+            {data.killSwitch ? "Kill switch engaged. See banner." :
              data.state === "WAITING_FOR_APPROVAL" ? "Proposals are queued and expire in 2 minutes. Your move." :
              data.state === "ACTIVE" ? `Mode ${data.mode}. Risk engine gates every action; nothing bypasses it.` :
-             `SENTINEL is ${data.state.toLowerCase().replace(/_/g, " ")} — analytics keeps running, action layer waits.`}
+             `SENTINEL is ${data.state.toLowerCase().replace(/_/g, " ")}: analytics keeps running, action layer waits.`}
           </p>
 
           {/* modes */}
@@ -247,7 +247,7 @@ export function SentinelView() {
       </div>
 
       {/* risk limits */}
-      <AdvancedPanel title="Risk limits — the deterministic cage (editable)">
+      <AdvancedPanel title="Risk limits · the deterministic cage (editable)">
         <RiskLimitsEditor config={data.config} onSaved={load} />
       </AdvancedPanel>
 
@@ -255,7 +255,7 @@ export function SentinelView() {
       {resolvedSignals.length > 0 && (
         <div className="qe-panel overflow-hidden">
           <div className="border-b border-hairline px-4 py-3">
-            <span className="qe-label">Signal history — outcomes, not cherry-picks (§24)</span>
+            <span className="qe-label">Signal history · outcomes, not cherry-picks</span>
           </div>
           <div className="qe-scroll max-h-[280px] overflow-y-auto">
             <table className="w-full text-xs">
@@ -279,7 +279,7 @@ export function SentinelView() {
                       </span>
                     </td>
                     <td className={`qe-num px-4 py-2.5 text-right font-semibold ${(s.resultPct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
-                      {s.resultPct == null ? "—" : `${s.resultPct > 0 ? "+" : ""}${s.resultPct.toFixed(2)}%`}
+                      {s.resultPct == null ? "…" : `${s.resultPct > 0 ? "+" : ""}${s.resultPct.toFixed(2)}%`}
                     </td>
                     <td className="hidden px-4 py-2.5 text-right text-[10px] text-muted-foreground sm:table-cell">{fmtDateTime(s.openedAt)}</td>
                   </tr>
@@ -293,7 +293,7 @@ export function SentinelView() {
       {/* audit trail */}
       <div className="qe-panel overflow-hidden">
         <div className="border-b border-hairline px-4 py-3">
-          <span className="qe-label">Audit trail — immutable record (§45)</span>
+          <span className="qe-label">Audit trail · immutable record</span>
         </div>
         <div className="qe-scroll max-h-[300px] overflow-y-auto">
           {data.auditEvents.map((e) => {
@@ -346,18 +346,18 @@ function ApprovalCard({ approval, onDecided }: { approval: Approval; onDecided: 
       const json = await res.json();
       if (res.ok) {
         toast({
-          title: decision === "APPROVE" ? `Approved — routing ${approval.symbol}` : `Rejected ${approval.symbol}`,
+          title: decision === "APPROVE" ? `Approved · routing ${approval.symbol}` : `Rejected ${approval.symbol}`,
           description: decision === "APPROVE"
             ? json.execution?.status === "REJECTED"
               ? json.execution.rejectReason
-              : `Filled ${json.execution?.filledQty ?? 0} @ $${json.execution?.avgFillPrice?.toFixed(2) ?? "—"} (${json.execution?.brokerLabel ?? "paper"})`
+              : `Filled ${json.execution?.filledQty ?? 0} @ $${json.execution?.avgFillPrice?.toFixed(2) ?? "…"} (${json.execution?.brokerLabel ?? "paper"})`
             : "No order sent. Decision logged to audit trail.",
         });
       } else {
         toast({ title: "Decision failed", description: json.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Network error", description: "Your decision was not recorded. The approval may expire — that is safe behavior.", variant: "destructive" });
+      toast({ title: "Network error", description: "Your decision was not recorded. The approval may expire; that is safe behavior.", variant: "destructive" });
     }
     setBusy(null);
     onDecided();
@@ -402,7 +402,7 @@ function ApprovalCard({ approval, onDecided }: { approval: Approval; onDecided: 
       {/* risk checks */}
       <details className="mt-3 rounded-lg border border-hairline bg-panel-2 px-3 py-2">
         <summary className="cursor-pointer text-[11px] font-semibold text-muted-foreground">
-          Risk check: <span className={passedAll ? "font-bold text-pos" : "font-bold text-neg"}>{passedAll ? "PASSED" : "PARTIAL"}</span> — {checks.length} deterministic gates
+          Risk check: <span className={passedAll ? "font-bold text-pos" : "font-bold text-neg"}>{passedAll ? "PASSED" : "PARTIAL"}</span> · {checks.length} deterministic gates
         </summary>
         <div className="mt-2 space-y-1">
           {checks.map((c) => (
@@ -452,7 +452,7 @@ function RiskLimitsEditor({ config, onSaved }: { config: SentinelStatePayload["c
     { key: "maxDailyLossPct", label: "Daily loss breaker", min: 0.5, max: 20, step: 0.5, suffix: "%", tip: "Realized daily loss that locks the risk engine (circuit breaker)." },
     { key: "minSignalScore", label: "Min signal score", min: 40, max: 95, step: 1, tip: "Regime adjustments are added on top of this floor." },
     { key: "minRR", label: "Min risk:reward", min: 0.5, max: 10, step: 0.1, tip: "Proposals below this ratio never reach you." },
-    { key: "maxCorrelatedExposurePct", label: "Max correlated exposure", min: 5, max: 100, step: 5, suffix: "%", tip: "Same-sector exposure cap — blocks 'three positions, one trade'." },
+    { key: "maxCorrelatedExposurePct", label: "Max correlated exposure", min: 5, max: 100, step: 5, suffix: "%", tip: "Same-sector exposure cap; blocks 'three positions, one trade'." },
   ];
 
   const save = async () => {

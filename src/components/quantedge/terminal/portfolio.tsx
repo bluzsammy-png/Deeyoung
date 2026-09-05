@@ -120,7 +120,7 @@ export function PortfolioView() {
                   <div key={o.id} className="flex items-center gap-3 border-b border-hairline px-4 py-2.5 text-xs last:border-0">
                     <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${o.side === "BUY" ? "bg-pos/15 text-pos" : "bg-neg/15 text-neg"}`}>{o.side}</span>
                     <span className="font-semibold">{o.symbol}</span>
-                    <span className="qe-num text-muted-foreground">{o.filledQty || o.qty} @ {o.avgFillPrice ? fmtPrice(o.avgFillPrice) : "—"}</span>
+                    <span className="qe-num text-muted-foreground">{o.filledQty || o.qty} @ {o.avgFillPrice ? fmtPrice(o.avgFillPrice) : "…"}</span>
                     <span className={`ml-auto rounded-md px-1.5 py-0.5 text-[9px] font-bold ${o.status === "REJECTED" ? "bg-neg/15 text-neg" : o.status === "FILLED" ? "bg-pos/15 text-pos" : "bg-panel-3 text-muted-foreground"}`}>
                       {o.status}
                     </span>
@@ -181,7 +181,7 @@ export function PortfolioView() {
             <div className="qe-panel p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="qe-label">Sector allocation</span>
-                <InfoTip title="Allocation">Share of invested value by sector. Several tech names can quietly equal one big tech bet — this is where that hides.</InfoTip>
+                <InfoTip title="Allocation">Share of invested value by sector. Several tech names can quietly equal one big tech bet. This is where that hides.</InfoTip>
               </div>
               <AllocationDonut slices={intel.allocation.map((a) => ({ label: a.sector, pct: a.pct }))} />
             </div>
@@ -192,7 +192,7 @@ export function PortfolioView() {
             <div className="qe-panel p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="qe-label">Correlation (1M daily)</span>
-                <InfoTip title="Correlation">1.00 = moves together, −1.00 = opposite. Pairs above 0.85 tend to draw down together — read the warm cells as shared risk.</InfoTip>
+                <InfoTip title="Correlation">1.00 = moves together, −1.00 = opposite. Pairs above 0.85 tend to draw down together. Read the warm cells as shared risk.</InfoTip>
               </div>
               <CorrelationMatrix symbols={intel.correlation.symbols} matrix={intel.correlation.matrix} />
             </div>
@@ -215,7 +215,7 @@ export function PortfolioView() {
         </div>
       </div>
 
-      <AdvancedPanel title="Trade ticket — paper execution">
+      <AdvancedPanel title="Trade ticket · paper execution">
         <TradeTicket onDone={load} />
       </AdvancedPanel>
     </div>
@@ -240,7 +240,7 @@ function TradeTicket({ onDone }: { onDone: () => void }) {
       if (json.ok) {
         toast({
           title: `${side} ${json.execution.filledQty} ${symbol.toUpperCase()} @ $${json.execution.avgFillPrice}`,
-          description: `${json.execution.brokerLabel} · slippage ${json.execution.fills?.[0]?.slippageBps ?? 0}bps · latency ${json.execution.latencyMs}ms. This was a simulated fill — not real money.`,
+          description: `${json.execution.brokerLabel} · slippage ${json.execution.fills?.[0]?.slippageBps ?? 0}bps · latency ${json.execution.latencyMs}ms. This was a simulated fill, not real money.`,
         });
         onDone();
       } else {

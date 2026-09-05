@@ -31,7 +31,7 @@ export function MediaKitModal({ open, onClose }: { open: boolean; onClose: () =>
             <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
               <div>
                 <h2 className="qe-display text-base font-bold">Launch Media Kit</h2>
-                <p className="text-[11px] text-muted-foreground">Film, reels, ad stills, screenshots & docs — stream or download</p>
+                <p className="text-[11px] text-muted-foreground">Film, reels, ad stills, screenshots & docs: stream or download</p>
               </div>
               <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-panel-3 hover:text-foreground" aria-label="Close media kit">
                 <X className="h-4.5 w-4.5" />
@@ -43,7 +43,7 @@ export function MediaKitModal({ open, onClose }: { open: boolean; onClose: () =>
               <div className="overflow-hidden rounded-xl border border-hairline bg-black/40">
                 <div className="flex items-center gap-2 px-4 pt-3 pb-2">
                   <Film className="h-4 w-4 text-brand" />
-                  <span className="text-[13px] font-semibold">80-Second Ad Film — narrated, 720p</span>
+                  <span className="text-[13px] font-semibold">80-Second Ad Film · narrated, 720p</span>
                   <a href={K(FILM_FILE)} download={FILM_FILE} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[11px] font-semibold text-white transition-transform hover:scale-[1.03]">
                     <Download className="h-3.5 w-3.5" /> Download MP4
                   </a>

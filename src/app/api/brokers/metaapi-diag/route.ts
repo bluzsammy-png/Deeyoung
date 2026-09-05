@@ -10,6 +10,7 @@
 // echoes keys, secrets, account ids or balances — health-route presence-boolean pattern.
 
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin";
 import { oandaConfigured, oandaAccountSummary } from "@/lib/brokers/oanda";
 import { bybitConfigured, bybitAccountSummary, bybitEnvLabel } from "@/lib/brokers/bybit";
 import { alpacaConfigured, alpacaAccountSummary, alpacaEnvLabel } from "@/lib/brokers/alpaca";
@@ -23,6 +24,10 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Admin-only: operational venue diagnostics are not a public surface.
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
   const out: Record<string, unknown> = {};
 
   // ── PAPER (PRIMARY — own engine, Postgres execution-of-record) ───────────────

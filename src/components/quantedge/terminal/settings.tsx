@@ -48,7 +48,7 @@ export function SettingsView() {
 
   return (
     <div className="space-y-4">
-      <SectionHead title="Settings" sub="Your control center — trading, SENTINEL, notifications, providers, account" />
+      <SectionHead title="Settings" sub="Your control center: trading, SENTINEL, notifications, providers, account" />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── Trading presentation ── */}
@@ -70,7 +70,7 @@ export function SettingsView() {
         </SettingsCard>
 
         {/* ── Broker ── */}
-        <SettingsCard title="Broker" desc="Execution provider — paper only in this product">
+        <SettingsCard title="Broker" desc="Execution provider; paper only in this product">
           <div className="space-y-2">
             <BrokerOption
               active={broker === "DEEYOUNG_SIM"}
@@ -96,17 +96,17 @@ export function SettingsView() {
         <MetaTraderCard />
 
         {/* ── Data providers (BYOK §30) ── */}
-        <SettingsCard title="Data providers" desc="Bring your own key — secrets stay server-side, encrypted, never returned by APIs">
+        <SettingsCard title="Data providers" desc="Bring your own key; secrets stay server-side, encrypted, never returned by APIs">
           <div>
             <label className="qe-label mb-1.5 flex items-center gap-1.5">
-              <KeyRound className="h-3 w-3" /> Finnhub API key (free tier — news & catalysts)
+              <KeyRound className="h-3 w-3" /> Finnhub API key (free tier: news & catalysts)
             </label>
             <div className="flex gap-2">
               <input
                 type="password"
                 value={finnhubKey}
                 onChange={(e) => setFinnhubKey(e.target.value)}
-                placeholder="Paste key — stored server-side only"
+                placeholder="Paste key; stored server-side only"
                 className="flex-1 rounded-lg border border-input bg-panel-2 px-3 py-2 text-xs outline-none focus:border-brand"
               />
               <button
@@ -157,7 +157,7 @@ export function SettingsView() {
         </SettingsCard>
 
         {/* ── System health (§60) ── */}
-        <SettingsCard title="System health" desc="Visible internal monitoring — what is up, degraded, or down">
+        <SettingsCard title="System health" desc="Visible internal monitoring: what is up, degraded, or down">
           <div className="space-y-1.5">
             {health && Object.entries(health.sources).map(([src, s]) => (
               <div key={src} className="flex items-start justify-between gap-3 rounded-lg bg-panel-2 px-3 py-2">
@@ -335,7 +335,7 @@ function MetaTraderCard() {
     : "border-warn/40 bg-warn/10 text-warn";
 
   return (
-    <SettingsCard title="MetaTrader" desc="Connect MT4 / MT5 accounts — read-only (investor) recommended">
+    <SettingsCard title="MetaTrader" desc="Connect MT4 / MT5 accounts; read-only (investor) recommended">
       <div className="space-y-3">
         {links.map((l) => (
           <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-panel-2 px-3 py-2.5">
@@ -347,7 +347,7 @@ function MetaTraderCard() {
                 </span>
               </p>
               <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-                {l.server} · {l.login} · {l.mode === "INVESTOR" ? "read-only" : "full access"} — {l.statusDetail}
+                {l.server} · {l.login} · {l.mode === "INVESTOR" ? "read-only" : "full access"}; {l.statusDetail}
               </p>
             </div>
             <button
@@ -387,7 +387,7 @@ function MetaTraderCard() {
             </div>
             <label className="flex items-center gap-2 text-[10.5px] text-muted-foreground">
               <input type="checkbox" checked={mode === "INVESTOR"} onChange={(e) => setMode(e.target.checked ? "INVESTOR" : "FULL")} className="accent-[#dc2626]" />
-              Read-only investor password (recommended — DeeYoung can watch, never trade)
+              Read-only investor password (recommended: DeeYoung can watch, never trade)
             </label>
             <div className="flex gap-2">
               <button onClick={submit} disabled={busy} className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white transition-all hover:brightness-110 disabled:opacity-60">
@@ -400,7 +400,7 @@ function MetaTraderCard() {
             <p className="text-[10px] leading-relaxed text-muted-foreground">
               Credentials are AES-256-GCM encrypted with the server&apos;s secret before storage and are never returned by
               any API. {bridgeReady
-                ? "The bridge is live — verification runs against your broker's server."
+                ? "The bridge is live; verification runs against your broker's server."
                 : "Automated verification activates when the MetaApi bridge token is configured server-side; until then your link is saved and queued."}
             </p>
           </div>

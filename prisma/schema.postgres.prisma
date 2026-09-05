@@ -52,6 +52,7 @@ model User {
   authAccounts    Account[]
   warnings        Warning[]
   links        BrokerLink[]
+  billingOrders   BillingOrder[]
 }
 
 // ─── Better Auth (better-auth.com) ───────────────────────────────────────────
@@ -560,4 +561,49 @@ model EngineControl {
   reason    String?
   updatedBy String?
   updatedAt DateTime @updatedAt
+}
+
+// DEEYOUNG PRO — in-house live support chat (free, zero third-party).
+// Visitors post under an anonymous threadKey (localStorage token — no email
+// required to ask a question); the owner replies from the /admin Support tab.
+// role: VISITOR = from the site widget, AGENT = from the admin console.
+// seen: for VISITOR rows = admin has read it; for AGENT rows = visitor has read it.
+model SupportMessage {
+  id          String   @id @default(cuid())
+  threadKey   String
+  role        String
+  body        String
+  visitorName String?
+  page        String?
+  ipHash      String?
+  seen        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([threadKey, createdAt])
+  @@index([seen, createdAt])
+}
+
+// DEEYOUNG PRO — subscription orders (hosted checkout or manual verification).
+// One row per purchase attempt. PENDING = created, awaiting payment;
+// SUBMITTED = buyer supplied a txid/reference, awaiting admin verification;
+// PAID = verified (webhook HMAC or admin approval) and the plan was upgraded;
+// CANCELLED = abandoned or rejected. The user's plan only ever changes on PAID.
+model BillingOrder {
+  id        String    @id @default(cuid())
+  userId    String
+  tier      String // STARTER | PRO | ELITE
+  currency  String // NGN | USD | GBP | EUR | GHS | KES | ZAR | CAD | AUD | INR
+  amount    Float
+  status    String    @default("PENDING")
+  provider  String    @default("MANUAL") // MANUAL | hosted provider label
+  reference String? // txid / provider payment id supplied by buyer
+  note      String?
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }

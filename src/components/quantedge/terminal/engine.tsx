@@ -68,7 +68,7 @@ function LiveScanPanel({ live }: { live: NonNullable<EngineSnapshot["live"]> }) 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Radar className="h-4 w-4 text-brand" />
-          <span className="text-xs font-bold uppercase tracking-wider">Scanner — why it trades or waits</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Scanner · why it trades or waits</span>
         </div>
         <span className="qe-num text-[10px] text-muted-foreground">
           {live.cycles.toLocaleString()} cycles · last scan {scanAge === null ? "warming up" : scanAge < 2 ? "just now" : `${scanAge}m ago`}
@@ -84,7 +84,7 @@ function LiveScanPanel({ live }: { live: NonNullable<EngineSnapshot["live"]> }) 
           </div>
           <p className={`qe-display mt-1.5 text-sm font-bold ${regimeUp === false ? "text-warn" : "text-pos"}`}
           >
-            {regimeUp === null ? "checking…" : regimeUp ? "OPEN — hunting longs" : "STAND-DOWN — longs paused"}
+            {regimeUp === null ? "checking…" : regimeUp ? "OPEN · hunting longs" : "STAND-DOWN · longs paused"}
           </p>
           <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
             BTC vs its 60m EMA20. Longs only fire while the broad market trends up — part of the validated edge.
@@ -104,7 +104,7 @@ function LiveScanPanel({ live }: { live: NonNullable<EngineSnapshot["live"]> }) 
             />
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Strongest setup since boot: <b className="text-foreground">{live.bestSymSinceBoot || "—"}</b>. Only score ≥ {GATE} books an entry — quality over quantity.
+            Strongest setup since boot: <b className="text-foreground">{live.bestSymSinceBoot || "…"}</b>. Only score ≥ {GATE} books an entry. Quality over quantity.
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export function EngineView() {
         if (latest) {
           const net = latest.netPnlUsd ?? 0;
           toast(`${latest.bookKey} closed ${latest.exitReason ?? ""}`, {
-            description: `net ${net >= 0 ? "+" : ""}${usd(net)} · ${latest.netR !== null ? `${latest.netR!.toFixed(2)}R` : "—"}`,
+            description: `net ${net >= 0 ? "+" : ""}${usd(net)} · ${latest.netR !== null ? `${latest.netR!.toFixed(2)}R` : "…"}`,
           });
         }
       }
@@ -262,14 +262,14 @@ export function EngineView() {
         <Stat label="Fees paid" value={usd(account.feesUsd)} />
         <Stat label="Max drawdown" value={`${account.maxDrawdownPct.toFixed(2)}%`} tone={account.maxDrawdownPct > 5 ? "warn" : undefined} />
         <Stat label="Open / closed" value={`${account.openCount} / ${account.closedCount}`} />
-        <Stat label="Win rate" value={account.winRatePct === null ? "—" : `${account.winRatePct}%`} tone={account.winRatePct !== null && account.winRatePct >= 50 ? "good" : undefined} />
+        <Stat label="Win rate" value={account.winRatePct === null ? "…" : `${account.winRatePct}%`} tone={account.winRatePct !== null && account.winRatePct >= 50 ? "good" : undefined} />
       </div>
 
       {/* equity curve */}
       <div className="qe-panel p-4">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Equity curve (marked every cycle)</span>
-          <span className="qe-num text-[11px] text-muted-foreground">day {account.dayKey ?? "—"}: {account.dayPnlR >= 0 ? "+" : ""}{account.dayPnlR.toFixed(2)}R</span>
+          <span className="qe-num text-[11px] text-muted-foreground">day {account.dayKey ?? "…"}: {account.dayPnlR >= 0 ? "+" : ""}{account.dayPnlR.toFixed(2)}R</span>
         </div>
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -297,7 +297,7 @@ export function EngineView() {
             <Activity className="h-3.5 w-3.5" /> Book performance (net R)
           </div>
           {books.length === 0 ? (
-            <p className="py-8 text-center text-xs text-muted-foreground">No closed trades yet — gate-{GATE} entries only, every guard must pass.</p>
+            <p className="py-8 text-center text-xs text-muted-foreground">No closed trades yet. Gate-{GATE} entries only; every guard must pass.</p>
           ) : (
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -321,7 +321,7 @@ export function EngineView() {
             <Database className="h-3.5 w-3.5" /> Open positions
           </div>
           {snap.openPositions.length === 0 ? (
-            <p className="py-8 text-center text-xs text-muted-foreground">None right now — the engine waits for gate-{GATE} signals that pass every guard.</p>
+            <p className="py-8 text-center text-xs text-muted-foreground">None right now. The engine waits for gate-{GATE} signals that pass every guard.</p>
           ) : (
             <div className="qe-scroll max-h-[200px] overflow-y-auto">
               <table className="w-full text-left text-xs">
@@ -367,7 +367,7 @@ export function EngineView() {
                     <td className="px-2 py-1.5">{p.exitReason}</td>
                     <td className={`px-2 py-1.5 ${(p.netPnlUsd ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>{(p.netPnlUsd ?? 0) >= 0 ? "+" : ""}{(p.netPnlUsd ?? 0).toFixed(2)}</td>
                     <td className={`px-2 py-1.5 ${(p.netR ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>{(p.netR ?? 0) >= 0 ? "+" : ""}{(p.netR ?? 0).toFixed(2)}</td>
-                    <td className="px-2 py-1.5 text-muted-foreground">{p.closedAt ? new Date(p.closedAt).toISOString().slice(5, 16).replace("T", " ") : "—"}Z</td>
+                    <td className="px-2 py-1.5 text-muted-foreground">{p.closedAt ? new Date(p.closedAt).toISOString().slice(5, 16).replace("T", " ") : "…"}Z</td>
                   </tr>
                 ))}
               </tbody>

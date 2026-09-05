@@ -49,7 +49,7 @@ async function agentmailInbox(key: string): Promise<string> {
   const org = (await res.json()) as { inboxes?: Array<{ inbox_id?: string; email?: string }> };
   const first = org.inboxes?.[0];
   const inboxId = first?.inbox_id ?? first?.email;
-  if (!inboxId) throw new Error("AgentMail org has no inboxes — create one or set AGENTMAIL_INBOX");
+  if (!inboxId) throw new Error("AgentMail org has no inboxes; create one or set AGENTMAIL_INBOX");
   amInboxCache = inboxId;
   return inboxId;
 }
@@ -125,7 +125,7 @@ function shell(title: string, bodyHtml: string, ctaLabel: string, ctaUrl: string
           <p style="margin:14px 0 0 0;font-size:11px;line-height:1.6;color:#5b6672;word-break:break-all;">Or paste this link into your browser:<br>${ctaUrl}</p>
         </td></tr>
         <tr><td style="padding:22px 32px 28px 32px;border-top:1px solid #1e252e;margin-top:22px;">
-          <p style="margin:0;font-size:11px;line-height:1.6;color:#5b6672;">If you didn't request this, you can safely ignore this email — your account stays unchanged. One account per person; abuse leads to termination without refund.</p>
+          <p style="margin:0;font-size:11px;line-height:1.6;color:#5b6672;">If you didn't request this, you can safely ignore this email and your account stays unchanged. One account per person; abuse leads to termination without refund.</p>
         </td></tr>
       </table>
       <p style="margin:18px 0 0 0;font-size:11px;color:#3d454f;">&#169; ${new Date().getFullYear()} DeeYoungs Ltd · <a href="mailto:deyoungltd@gmail.com" style="color:#8b98a5;">deyoungltd@gmail.com</a> · All rights reserved.</p>
@@ -165,10 +165,10 @@ export async function sendVerificationEmail(to: string, name: string, token: str
   const first = name.trim().split(" ")[0] || "there";
   await deliver(
     to,
-    "Verify your email — DeeYoung Pro",
+    "Verify your email · DeeYoung Pro",
     shell(
       `Welcome aboard, ${first}.`,
-      "Confirm this address to activate your account — live markets, multi-factor signals, and portfolio risk in one terminal. One account per person; subscribe anytime.",
+      "Confirm this address to activate your account: live markets, multi-factor signals, and portfolio risk in one terminal. One account per person; subscribe anytime.",
       "Verify my email",
       verificationLink(token),
     ),
@@ -180,10 +180,10 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
   const first = name.trim().split(" ")[0] || "there";
   await deliver(
     to,
-    "Reset your password — DeeYoung Pro",
+    "Reset your password · DeeYoung Pro",
     shell(
       `Password reset, ${first}.`,
-      "We received a request to reset the password on your account. This link works once and expires soon — set a new password to regain terminal access.",
+      "We received a request to reset the password on your account. This link works once and expires soon. Set a new password to regain terminal access.",
       "Choose a new password",
       passwordResetLink(token),
     ),

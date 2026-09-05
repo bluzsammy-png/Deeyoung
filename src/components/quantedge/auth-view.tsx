@@ -105,9 +105,9 @@ export function AuthView({ onBack }: { onBack: () => void }) {
         window.location.href = d.url;
         return;
       }
-      fail("Google sign-in isn't available right now — use email and password.");
+      fail("Google sign-in isn't available right now. Use email and password.");
     } catch {
-      fail("Google sign-in failed — use email and password.");
+      fail("Google sign-in failed. Use email and password.");
     }
     setGoogleBusy(false);
   };
@@ -143,7 +143,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
         if (err) {
           const dup = err.status === 422 || (err.code ?? "").includes("USER_ALREADY_EXISTS");
           if (dup) {
-            fail("That email already has an account. Sign in instead — or reset your password if you've forgotten it.", "signin");
+            fail("That email already has an account. Sign in instead, or reset your password if you've forgotten it.", "signin");
           } else {
             fail(err.message || "Couldn't create your account. Check your details and retry.");
           }
@@ -153,9 +153,9 @@ export function AuthView({ onBack }: { onBack: () => void }) {
         if (err) {
           if (err.status === 403 || err.code === "EMAIL_NOT_VERIFIED") {
             setNeedVerify(true);
-            fail("Please verify your email before signing in — check your inbox.");
+            fail("Please verify your email before signing in. Check your inbox.");
           } else {
-            fail("No account matches that email and password. Double-check both — or create an account in 20 seconds.", "signup");
+            fail("No account matches that email and password. Double-check both, or create an account in 20 seconds.", "signup");
           }
         }
       } else if (mode === "forgot") {
@@ -185,7 +185,7 @@ export function AuthView({ onBack }: { onBack: () => void }) {
     setBusy(true);
     try {
       await authClient.sendVerificationEmail({ email: email.trim() });
-      setNotice("Verification email sent — check your inbox (and spam). Click the link to activate your account.");
+      setNotice("Verification email sent. Check your inbox (and spam), then click the link to activate your account.");
     } catch {
       setError("Couldn't send the verification email. Double-check the address and try again.");
     } finally {

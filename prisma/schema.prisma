@@ -52,6 +52,7 @@ model User {
   authAccounts    Account[]
   warnings        Warning[]
   links        BrokerLink[]
+  billingOrders   BillingOrder[]
 }
 
 // ─── Better Auth (better-auth.com) ───────────────────────────────────────────
@@ -581,4 +582,26 @@ model SupportMessage {
 
   @@index([threadKey, createdAt])
   @@index([seen, createdAt])
+}
+
+// DEEYOUNG PRO — subscription orders (hosted checkout or manual verification).
+// Mirror of the postgres model; see schema.postgres.prisma for the full doc.
+model BillingOrder {
+  id        String    @id @default(cuid())
+  userId    String
+  tier      String // STARTER | PRO | ELITE
+  currency  String // NGN | USD | GBP | EUR | GHS | KES | ZAR | CAD | AUD | INR
+  amount    Float
+  status    String    @default("PENDING")
+  provider  String    @default("MANUAL")
+  reference String?
+  note      String?
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }

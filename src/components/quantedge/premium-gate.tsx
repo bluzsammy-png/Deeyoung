@@ -15,14 +15,14 @@ const FEATURE_META: Record<GatedFeature, { icon: typeof Bot; title: string; blur
     icon: TrendingUp,
     title: "Multi-factor signals",
     blurb:
-      "Seven factors — EMA structure, VWAP, RSI, MACD, volume, catalysts and regime — scored in the open, with entry, stop and target on every setup. Included with every plan, starting at Starter.",
+      "Seven factors (EMA structure, VWAP, RSI, MACD, volume, catalysts and regime) scored in the open, with entry, stop and target on every setup. Included with every plan, starting at Starter.",
     tier: "Starter",
   },
   portfolio: {
     icon: Wallet,
     title: "Portfolio risk",
     blurb:
-      "Equity, P&L, concentration, correlation and scenario shocks — the numbers that keep one bad week from ending your journey. Included with every plan, starting at Starter.",
+      "Equity, P&L, concentration, correlation and scenario shocks: the numbers that keep one bad week from ending your journey. Included with every plan, starting at Starter.",
     tier: "Starter",
   },
   sentinel: {
@@ -36,28 +36,28 @@ const FEATURE_META: Record<GatedFeature, { icon: typeof Bot; title: string; blur
     icon: FlaskConical,
     title: "Backtest Lab",
     blurb:
-      "Validate a strategy against years of candles with bias guards on every result. Stop guessing whether your edge is real — measure win rate, drawdown, and R-multiples before you risk money. Part of Pro.",
+      "Validate a strategy against years of candles with bias guards on every result. Stop guessing whether your edge is real. Measure win rate, drawdown, and R-multiples before you risk money. Part of Pro.",
     tier: "Pro",
   },
   desk: {
     icon: MessagesSquare,
     title: "Trade Desk AI",
     blurb:
-      "Ask for a short, disciplined trade plan on gold, FX majors or equities — grounded in live prices and the signal engine's factor math, never invented. Part of every paid plan.",
+      "Ask for a short, disciplined trade plan on gold, FX majors or equities, grounded in live prices and the signal engine's factor math, never invented. Part of every paid plan.",
     tier: "Starter",
   },
   briefing: {
     icon: Newspaper,
     title: "AI Daily Briefing",
     blurb:
-      "A grounded morning read of regime, names, and risk — written only from verified market data, never invented. Your five-minute edge before the open. Part of Pro.",
+      "A grounded morning read of regime, names, and risk, written only from verified market data, never invented. Your five-minute edge before the open. Part of Pro.",
     tier: "Pro",
   },
   delegate: {
     icon: Bot,
     title: "SENTINEL Delegate",
     blurb:
-      "Automatic execution inside your hard limits — risk caps, daily loss ceilings and minimum quality bars you set once. Elite hands it the keys, carefully.",
+      "Automatic execution inside your hard limits: risk caps, daily loss ceilings and minimum quality bars you set once. Elite hands it the keys, carefully.",
     tier: "Elite",
   },
 };

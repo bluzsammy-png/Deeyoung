@@ -29,9 +29,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DeeYoung Pro — Market Signals, Catalysts & Risk. One Terminal.",
+  title: "DeeYoung Pro · Market Signals, Catalysts & Risk. One Terminal.",
   description:
-    "Gold, FX majors and US stocks — price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL — an autopilot that waits for your approval. Three plans, your currency.",
+    "Stocks, ETFs, FX, crypto, indices and commodities: price action, news flow and portfolio risk in one screen. Seven visible signal factors, honest delayed data, paper trading, and SENTINEL, an autopilot that waits for your approval. Three plans, your currency.",
   keywords: ["DeeYoung Pro", "DeeYoungs Ltd", "market intelligence", "signals", "SENTINEL", "paper trading", "quantitative", "risk engine"],
   authors: [{ name: "DeeYoungs Ltd" }],
   icons: {
@@ -39,13 +39,14 @@ export const metadata: Metadata = {
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
     ],
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "DeeYoung Pro — See what's moving. Know why it's moving.",
-    description: "Move first. Market signals, catalysts and risk in one terminal — Wall Street tools at a price that makes sense. Three plans, your currency.",
+    title: "DeeYoung Pro · See what's moving. Know why it's moving.",
+    description: "Move first. Market signals, catalysts and risk in one terminal. Wall Street tools at a price that makes sense. Three plans, your currency.",
     siteName: "DeeYoung Pro",
     type: "website",
   },

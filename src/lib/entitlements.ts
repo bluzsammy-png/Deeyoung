@@ -101,11 +101,11 @@ export function isAccountBlocked(status: string): boolean {
 
 /** Feature names shown on lock screens / upgrade prompts. */
 export const PREMIUM_FEATURES = {
-  signals: "Multi-factor signals — every score shows its math",
-  portfolio: "Portfolio risk — concentration, correlation, drawdown",
-  sentinel: "SENTINEL automation — supervised execution",
-  research: "Backtest Lab — bias-guarded strategy validation",
-  briefing: "AI Daily Briefing — the morning edge",
-  desk: "Trade Desk AI — grounded trade plans on gold, FX and equities",
-  delegate: "SENTINEL Delegate — automation inside hard limits",
+  signals: "Multi-factor signals; every score shows its math",
+  portfolio: "Portfolio risk: concentration, correlation, drawdown",
+  sentinel: "SENTINEL automation; supervised execution",
+  research: "Backtest Lab; bias-guarded strategy validation",
+  briefing: "AI Daily Briefing: the morning edge",
+  desk: "Trade Desk AI: grounded trade plans on gold, FX and equities",
+  delegate: "SENTINEL Delegate; automation inside hard limits",
 } as const;

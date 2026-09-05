@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { MEDIA_KIT_ENABLED } from "@/lib/kit";
 
 // Media Kit delivery: streams launch-kit files from the media dir with
 // HTTP Range support (so <video> seeking works) and strict name validation.
@@ -41,6 +42,10 @@ function parseRange(range: string | null, size: number): { start: number; end: n
 }
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ file: string }> }) {
+  // Feature-flagged: when the media kit is off, the endpoint does not exist.
+  if (!MEDIA_KIT_ENABLED) {
+    return Response.json({ error: "Media kit is not available on this deployment." }, { status: 503 });
+  }
   const { file } = await ctx.params;
   // Strict name check — no separators, no traversal, exact whitelist match below.
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/.test(file)) {

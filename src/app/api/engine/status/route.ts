@@ -2,7 +2,8 @@
 // GET /api/engine/status — the visible, auditable state of the autonomous
 // paper trading engine. "No lies" rule: reads ONLY real rows from Postgres
 // written by real fills at real market prices.
-// No auth (like metaapi-diag): aggregates only, no secrets exist here.
+// Deliberately public (homepage proof surface): aggregates + ledger only, no
+// secrets, no user data. Every other data route is paywalled.
 
 import { NextResponse } from "next/server";
 import { buildEngineSnapshot } from "@/lib/engine/status-snapshot";

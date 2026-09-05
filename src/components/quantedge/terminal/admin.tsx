@@ -141,7 +141,7 @@ export function AdminView() {
               {data.users.map((u) => (
                 <TableRow key={u.id} className="border-hairline">
                   <TableCell>
-                    <p className="text-xs font-semibold">{u.name ?? "—"}</p>
+                    <p className="text-xs font-semibold">{u.name ?? "…"}</p>
                     <p className="text-[11px] text-muted-foreground">{u.email}</p>
                   </TableCell>
                   <TableCell>
@@ -154,7 +154,7 @@ export function AdminView() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <span className={`text-[11px] ${u.signupCountFromIp >= 3 ? "font-bold text-neg" : "text-muted-foreground"}`}>
-                      {u.signupCountFromIp}{u.signupCountFromIp >= 3 ? " ⚠" : ""}
+                      {u.signupCountFromIp}{u.signupCountFromIp >= 3 ? " !" : ""}
                     </span>
                   </TableCell>
                   <TableCell className="hidden text-[11px] text-muted-foreground lg:table-cell">

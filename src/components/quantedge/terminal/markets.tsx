@@ -103,7 +103,7 @@ export function MarketsView() {
                       <td className="px-3 py-2.5 text-right"><Pct value={q.changePct} /></td>
                       <td className="qe-num hidden px-3 py-2.5 text-right md:table-cell">
                         <span className={(q.volume / Math.max(1, q.avgVolume)) >= 1.5 ? "font-semibold text-warn" : "text-muted-foreground"}>
-                          {q.avgVolume ? (q.volume / q.avgVolume).toFixed(2) : "—"}×
+                          {q.avgVolume ? (q.volume / q.avgVolume).toFixed(2) : "…"}×
                         </span>
                       </td>
                       <td className="hidden px-3 py-2.5 md:table-cell">

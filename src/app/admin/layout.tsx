@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 
 export const metadata: Metadata = {
-  title: "DeeYoung — Control Room",
+  title: "DeeYoung · Control Room",
   description: "Owner-only admin side: users, engine, venue, feed",
   other: { refresh: "60" },
 };

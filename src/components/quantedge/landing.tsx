@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { DataBadge, Price, Pct } from "@/components/quantedge/ui-bits";
-import { SignalRing } from "@/components/quantedge/charts/widgets";
 import { Sparkline } from "@/components/quantedge/charts/core";
 import { AuroraBackdrop } from "@/components/quantedge/charts/aurora";
 import { LegalModal } from "@/components/quantedge/legal";
@@ -24,6 +23,7 @@ import { MEDIA_KIT_ENABLED } from "@/lib/kit";
 import { TiltCard } from "@/components/quantedge/three/tilt-card";
 import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { TIERS, CURRENCY_SYMBOL, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
+import { universeSymbols } from "@/lib/providers/market";
 import type { Quote } from "@/lib/types";
 
 const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"), {
@@ -52,9 +52,10 @@ function usePricingCurrency(): [CurrencyCode, (c: CurrencyCode) => void] {
 interface LiveEngine {
   equity: number | null; closed: number | null; open: number | null;
   winRate: number | null; elapsed: number | null; feed: string | null;
+  regimeUp: boolean | null; best: number | null; bestSym: string | null;
 }
 function useLiveEngine(): LiveEngine {
-  const [s, setS] = useState<LiveEngine>({ equity: null, closed: null, open: null, winRate: null, elapsed: null, feed: null });
+  const [s, setS] = useState<LiveEngine>({ equity: null, closed: null, open: null, winRate: null, elapsed: null, feed: null, regimeUp: null, best: null, bestSym: null });
   useEffect(() => {
     let alive = true;
     const load = async () => {
@@ -70,6 +71,9 @@ function useLiveEngine(): LiveEngine {
             winRate: j.account.winRatePct ?? null,
             elapsed: j.engine?.elapsedHours ?? null,
             feed: j.engine?.dataVenue?.primary ?? null,
+            regimeUp: j.live?.regimeUp ?? null,
+            best: j.live?.bestSinceBoot ?? null,
+            bestSym: j.live?.bestSymSinceBoot ?? null,
           });
         }
       } catch { /* strip stays empty until data returns — never invented */ }
@@ -88,7 +92,6 @@ export function Landing() {
   const setLegalModal = useApp((s) => s.setLegalModal);
   const legalModal = useApp((s) => s.legalModal);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [signalDemo] = useState({ score: 84 });
   const [scrolled, setScrolled] = useState(false);
   const [ccy, setCcy] = usePricingCurrency();
   const [kitOpen, setKitOpen] = useState(false);
@@ -170,8 +173,8 @@ export function Landing() {
             </h1>
             <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
               DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget.
-              Gold, FX majors and US stocks — price action, news flow and portfolio risk sit in one screen. Every signal shows the
-              math behind its score — seven factors, nothing hidden. And an autonomous paper engine trades a validated playbook
+              Stocks, ETFs, FX, crypto, indices and commodities: price action, news flow and portfolio risk sit in one screen. Every signal shows the
+              math behind its score, seven factors, nothing hidden. And an autonomous paper engine trades a validated playbook
               in public, every number auditable in the ledger.
             </p>
 
@@ -179,7 +182,7 @@ export function Landing() {
             <div className="mt-6 inline-flex max-w-xl items-start gap-2 rounded-xl border border-warn/25 bg-warn/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-warn">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong className="font-semibold">Straight talk:</strong> quotes are <strong className="font-semibold">delayed per exchange terms</strong>, not real-time. Simulated data is always labeled. Paper trading only — your money never moves here.
+                <strong className="font-semibold">Straight talk:</strong> quotes are <strong className="font-semibold">delayed per exchange terms</strong>, not real-time. Simulated data is always labeled. Paper trading only: your money never moves here.
               </span>
             </div>
 
@@ -189,7 +192,7 @@ export function Landing() {
                 className="qe-btn qe-btn-primary px-6 py-3.5 text-sm"
               >
                 <Play className="h-4 w-4 fill-current" />
-                Open the terminal — it&rsquo;s free
+                Open the terminal
                 <ArrowRight className="h-4 w-4" />
               </button>
               <a
@@ -199,7 +202,7 @@ export function Landing() {
                 <Radar className="h-4 w-4 text-brand-hi" />
                 See the live engine
               </a>
-              <span className="text-xs text-muted-foreground">No account needed to look around · delayed data · paper trading</span>
+              <span className="text-xs text-muted-foreground">Public engine ledger · delayed data · paper execution</span>
             </div>
 
             {/* capability strip */}
@@ -242,7 +245,7 @@ export function Landing() {
                 <span className="h-2.5 w-2.5 rounded-full bg-neg/70" />
                 <span className="h-2.5 w-2.5 rounded-full bg-warn/70" />
                 <span className="h-2.5 w-2.5 rounded-full bg-pos/70" />
-                <span className="ml-3 text-[11px] font-medium text-muted-foreground">DeeYoung Pro — Live Preview</span>
+                <span className="ml-3 text-[11px] font-medium text-muted-foreground">DeeYoung Pro · Live Preview</span>
               </div>
               <div className="flex items-center gap-2">
                 <DataBadge state={quotes[0]?.dataState ?? "LIVE"} />
@@ -273,15 +276,26 @@ export function Landing() {
               </div>
 
               <div className="qe-panel-2 hidden flex-col items-center justify-center gap-3 rounded-xl p-4 sm:flex">
-                <SignalRing score={signalDemo.score} />
-                <div className="text-center">
-                  <p className="text-xs font-semibold">NVDA · Strong bullish setup</p>
-                  <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">EMA +18 · VWAP +15 · MACD +14 · Catalyst +9</p>
+                <p className="qe-label text-brand-hi">Engine state · live</p>
+                <div className="w-full space-y-2 text-[11px]">
+                  <div className="flex items-center justify-between rounded-lg border border-hairline bg-panel px-3 py-2">
+                    <span className="text-muted-foreground">BTC regime filter</span>
+                    <span className={`font-bold ${live.regimeUp === null ? "text-muted-foreground" : live.regimeUp ? "text-pos" : "text-warn"}`}>
+                      {live.regimeUp === null ? "reading" : live.regimeUp ? "OPEN" : "STAND-DOWN"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-hairline bg-panel px-3 py-2">
+                    <span className="text-muted-foreground">Best scan score</span>
+                    <span className="qe-num font-bold">{live.best !== null ? live.best : "…"}{live.bestSym ? ` · ${live.bestSym}` : ""}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-hairline bg-panel px-3 py-2">
+                    <span className="text-muted-foreground">Playbook gate</span>
+                    <span className="qe-num font-bold">64</span>
+                  </div>
                 </div>
-                <div className="mt-1 flex w-full items-center justify-between rounded-lg border border-brand/25 bg-brand/10 px-3 py-2">
-                  <span className="text-[10px] font-bold tracking-wider text-brand">SENTINEL</span>
-                  <span className="text-[10px] text-foreground/80">Approve mode · 1 pending</span>
-                </div>
+                <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+                  The engine only buys when its regime filter is open and a setup clears the gate. Standing down is a feature.
+                </p>
               </div>
             </div>
           </div>
@@ -295,12 +309,12 @@ export function Landing() {
           <div className="relative">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="qe-eyebrow"><Radar className="h-3.5 w-3.5" /> Live engine — trading in public</p>
+                <p className="qe-eyebrow"><Radar className="h-3.5 w-3.5" /> Live engine · trading in public</p>
                 <h2 className="qe-display mt-2 text-2xl font-bold tracking-tight sm:text-3xl">An autopilot with its ledger open.</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   Most platforms show you a highlight reel. We show the book. The engine below runs one validated playbook on
                   real market data, trades a $10,000 paper account, and publishes every fill, fee, stop-out and winner. When
-                  it loses, the loss stays in the ledger — history is never rewritten.
+                  it loses, the loss stays in the ledger. History is never rewritten.
                 </p>
               </div>
               <button onClick={() => setEntered(true)} className="qe-btn qe-btn-ghost px-4 py-2.5 text-[13px]">
@@ -315,22 +329,22 @@ export function Landing() {
                   <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Settled equity</span>
                   <span className="qe-live-dot" />
                 </div>
-                <div className="qe-num mt-1 text-xl font-bold">{live.equity !== null ? usd(live.equity) : "—"}</div>
+                <div className="qe-num mt-1 text-xl font-bold">{live.equity !== null ? usd(live.equity) : "…"}</div>
                 <div className="text-[10px] text-muted-foreground">$10,000 start · paper account</div>
               </div>
               <div className="qe-stat px-4 py-3.5">
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Trades closed</span>
-                <div className="qe-num mt-1 text-xl font-bold">{live.closed !== null ? live.closed : "—"}</div>
+                <div className="qe-num mt-1 text-xl font-bold">{live.closed !== null ? live.closed : "…"}</div>
                 <div className="text-[10px] text-muted-foreground">{live.open !== null ? `${live.open} open right now` : "position-ledger truth"}</div>
               </div>
               <div className="qe-stat px-4 py-3.5">
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Win rate (ledger)</span>
-                <div className="qe-num mt-1 text-xl font-bold">{live.winRate !== null ? `${live.winRate}%` : "—"}</div>
+                <div className="qe-num mt-1 text-xl font-bold">{live.winRate !== null ? `${live.winRate}%` : "…"}</div>
                 <div className="text-[10px] text-muted-foreground">every closed trade, no exceptions</div>
               </div>
               <div className="qe-stat px-4 py-3.5">
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Uptime</span>
-                <div className="qe-num mt-1 text-xl font-bold">{live.elapsed !== null ? `${live.elapsed.toFixed(1)}h` : "—"}</div>
+                <div className="qe-num mt-1 text-xl font-bold">{live.elapsed !== null ? `${live.elapsed.toFixed(1)}h` : "…"}</div>
                 <div className="text-[10px] text-muted-foreground">feed: {live.feed ?? "connecting"}</div>
               </div>
             </div>
@@ -341,7 +355,7 @@ export function Landing() {
               <span><b className="qe-num text-foreground">83.8%</b> win rate · 74 trades</span>
               <span><b className="qe-num text-foreground">2.13</b> profit factor</span>
               <span>worst 10-trade stretch: <b className="qe-num text-foreground">6 wins</b></span>
-              <span className="text-warn">Backtest ≠ promise — the live ledger above is the only record that counts.</span>
+              <span className="text-warn">Backtest ≠ promise: the live ledger above is the only record that counts.</span>
             </div>
           </div>
         </div>
@@ -359,10 +373,10 @@ export function Landing() {
               </p>
             </div>
             <button
-              onClick={() => setEntered(true)}
+              onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
               className="qe-btn qe-btn-white px-5 py-3 text-sm"
             >
-              Start free — no card
+              See the plans
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -379,7 +393,7 @@ export function Landing() {
           {[
             {
               icon: Activity, title: "Multi-factor signals",
-              body: "EMA structure, VWAP, RSI, MACD, catalysts and regime — on stocks, FX majors and gold. Every score shows its factor contributions. No black boxes.",
+              body: "EMA structure, VWAP, RSI, MACD, catalysts and regime, across stocks, ETFs, FX, crypto and commodities. Every score shows its factor contributions. No black boxes.",
               sketch: (
                 <svg viewBox="0 0 120 36" className="h-9 w-full">
                   {[14, 30, 22, 38, 26, 34, 18, 30].map((h, i) => (
@@ -390,7 +404,7 @@ export function Landing() {
             },
             {
               icon: BarChart3, title: "Catalyst intelligence",
-              body: "News becomes intelligence: headline, source, sentiment and strength mapped to your tickers. Verified feeds only — never fabricated.",
+              body: "News becomes intelligence: headline, source, sentiment and strength mapped to your tickers. Verified feeds only, never fabricated.",
               sketch: (
                 <svg viewBox="0 0 120 36" className="h-9 w-full">
                   <path d="M4 28 L24 20 L44 24 L64 10 L84 16 L104 6 L116 12" stroke="#ef4444" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -455,7 +469,7 @@ export function Landing() {
           </div>
           <div className="relative mt-7 grid gap-5 sm:grid-cols-5">
             <div className="pointer-events-none absolute left-0 right-0 top-3.5 hidden h-px bg-gradient-to-r from-transparent via-brand/30 to-transparent sm:block" />
-            {["Read the regime", "Spot the setup", "Check the risk", "Make the call", "Let SENTINEL draft — you approve"].map((s, i) => (
+            {["Read the regime", "Spot the setup", "Check the risk", "Make the call", "Let SENTINEL draft, you approve"].map((s, i) => (
               <div key={s} className="relative">
                 <span className="qe-num relative inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold text-brand-hi ring-1 ring-brand/25">{`0${i + 1}`}</span>
                 <p className="mt-2 text-[13px] font-medium leading-snug">{s}</p>
@@ -467,9 +481,9 @@ export function Landing() {
         {/* levels */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { lvl: "Level 1", name: "Analytics", body: "Charts, catalysts, regime calls and portfolio risk — one view.", icon: TrendingUp, plan: "Starter" },
+            { lvl: "Level 1", name: "Analytics", body: "Charts, catalysts, regime calls and portfolio risk in one view.", icon: TrendingUp, plan: "Starter" },
             { lvl: "Level 2", name: "Signals", body: "Alerts when something interesting happens on your watchlist.", icon: Bell, plan: "Starter" },
-            { lvl: "Level 3", name: "SENTINEL Approve", body: "SENTINEL proposes. You approve or reject — every time.", icon: CheckCircle2, plan: "Pro" },
+            { lvl: "Level 3", name: "SENTINEL Approve", body: "SENTINEL proposes. You approve or reject, every time.", icon: CheckCircle2, plan: "Pro" },
             { lvl: "Level 4", name: "SENTINEL Delegate", body: "Automatic execution inside your hard limits. Off by default.", icon: Sparkles, plan: "Elite" },
           ].map((l) => (
             <motion.div
@@ -508,8 +522,8 @@ export function Landing() {
                 <p className="qe-eyebrow">Pricing</p>
                 <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">Three plans. No mystery tiers.</h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  Full analytics from day one on every plan — no trial games. Card details only when you subscribe,
-                  charged when your plan renews, cancel anytime.
+                  Pick a plan and the full terminal opens. Payment happens on a dedicated checkout page and only when you
+                  choose to subscribe. Cancel anytime.
                 </p>
               </div>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -558,22 +572,22 @@ export function Landing() {
                       </li>
                     ))}
                   </ul>
-                  <button
-                    onClick={() => setEntered(true)}
+                  <a
+                    href={`/checkout/${tier.key.toLowerCase()}`}
                     className={`qe-btn mt-5 w-full py-2.5 text-sm ${
                       tier.popular ? "qe-btn-primary" : "qe-btn-ghost"
                     }`}
                   >
-                    Get started
+                    Subscribe to {tier.name}
                     <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
+                  </a>
                 </div>
               ))}
             </div>
 
             <p className="mt-5 text-center text-[11px] text-muted-foreground">
-              Card checkout is going live — the in-app subscribe flow shows the live payment option the moment it&rsquo;s on,
-              and a waitlist before that. Questions?{" "}
+              Checkout runs on its own secure page: your order is created first, then payment opens. Your plan unlocks the
+              moment payment is verified. Questions?{" "}
               <a className="text-brand-hi hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             </p>
           </div>
@@ -590,27 +604,27 @@ export function Landing() {
           {[
             {
               q: "Is this real trading?",
-              a: "No — and we say so everywhere. Execution is paper: fills happen at real observed market prices with modeled slippage and fees, but your money never moves. The public engine mirrors its fills to a OKX demo account for extra scrutiny. When you're ready for real money, that's a venue you connect yourself — the product never holds funds.",
+              a: "No, and we say so everywhere. Execution is paper: fills happen at real observed market prices with modeled slippage and fees, but your money never moves. The public engine mirrors its fills to an OKX demo account for extra scrutiny. When you're ready for real money, that's a venue you connect yourself; the product never holds funds.",
             },
             {
               q: "Why are the quotes delayed?",
-              a: "Exchange licensing terms. Real-time equity feeds cost tens of thousands per year — we'd rather be honest and cheap than fast and quiet about it. FX and gold data comes from institutional aggregators with the same terms. Every surface is labeled with exactly what you're looking at.",
+              a: "Exchange licensing terms. Real-time equity feeds cost tens of thousands per year, and we would rather be honest and cheap than fast and quiet about it. FX, metals and commodity data comes from institutional aggregators with the same terms. Every surface is labeled with exactly what you're looking at.",
             },
             {
               q: "What does the live engine actually trade?",
-              a: "Crypto majors (BTC, ETH, SOL, BNB, XRP, DOGE, ADA, AVAX, DOT, LINK) on 30-minute bars, long-only, with a validated playbook: score-64 gate, −3% stop, +1.2% target, 12-hour time stop, $1,000 notional per trade on the $10,000 paper account, and a BTC-trend regime filter. It stands down completely when conditions don't meet the playbook — that discipline is the point.",
+              a: "Crypto majors (BTC, ETH, SOL, BNB, XRP, DOGE, ADA, AVAX, DOT, LINK) on 30-minute bars, long-only, with a validated playbook: score-64 gate, −3% stop, +1.2% target, 12-hour time stop, $1,000 notional per trade on the $10,000 paper account, and a BTC-trend regime filter. It stands down completely when conditions don't meet the playbook. That discipline is the point.",
             },
             {
               q: "How is this different from a signals Telegram channel?",
-              a: "Cherry-picking is the business model there. Here, every signal shows the seven factor scores behind it, every engine trade lands in a public ledger with timestamps, fees and exit reason — wins and losses alike. You can recompute the math. If the ledger stops being good, that's visible immediately.",
+              a: "Cherry-picking is the business model there. Here, every signal shows the seven factor scores behind it, and every engine trade lands in a public ledger with timestamps, fees and exit reason, wins and losses alike. You can recompute the math. If the ledger stops being good, that's visible immediately.",
             },
             {
               q: "What do I need to run it?",
-              a: "A browser. The terminal, engine and support desk all run server-side — there's nothing to install, and the free plan never asks for a card. Installable as an app on Android/iOS via PWA, with a native Android shell available.",
+              a: "A browser. The terminal, engine and support desk all run server-side, so there's nothing to install. Works as a PWA on Android and iOS, with a native Android shell available.",
             },
             {
-              q: "How do I pay when I'm ready?",
-              a: "Card checkout is being switched on with our payment provider right now. The subscribe button in the app always reflects the live state — it opens secure checkout the moment it's available, and collects your email for the heads-up before that. You can also write to " + SUPPORT_EMAIL + ".",
+              q: "How do I pay, and what am I paying for?",
+              a: "Pick a plan on the pricing section or inside the app; checkout creates your order and then opens payment. Your subscription unlocks the full terminal for that tier. You can cancel anytime. If anything is unclear, write to " + SUPPORT_EMAIL + " and a human answers.",
             },
           ].map((f) => (
             <details key={f.q} className="qe-faq qe-card group p-5">
@@ -635,7 +649,7 @@ export function Landing() {
               The market doesn&rsquo;t wait. <span className="text-brand-hi">Now you don&rsquo;t have to guess.</span>
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Open the terminal free. Watch the engine work. Upgrade only when the ledger convinces you.
+              Create an account, pick a plan, and watch the engine work in public before your eyes.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <button onClick={() => setEntered(true)} className="qe-btn qe-btn-primary px-7 py-3.5 text-sm">
@@ -681,12 +695,12 @@ export function Landing() {
             <div>
               <p className="qe-label">Legal</p>
               <div className="mt-3 flex flex-col items-start gap-2.5 text-xs text-muted-foreground">
-                <button onClick={() => setLegalModal("TOS")} className="transition-colors hover:text-foreground">Terms of Service</button>
-                <button onClick={() => setLegalModal("PRIVACY")} className="transition-colors hover:text-foreground">Privacy Policy</button>
+                <a href="/terms" className="transition-colors hover:text-foreground">Terms &amp; Conditions</a>
+                <a href="/privacy" className="transition-colors hover:text-foreground">Privacy Policy</a>
                 <button onClick={() => setLegalModal("SECURITY")} className="transition-colors hover:text-foreground">Security</button>
-                <button onClick={() => setLegalModal("REFUND")} className="transition-colors hover:text-foreground">Refund & Cancellation</button>
+                <button onClick={() => setLegalModal("REFUND")} className="transition-colors hover:text-foreground">Refund &amp; Cancellation</button>
                 {MEDIA_KIT_ENABLED && (
-                  <button onClick={() => setKitOpen(true)} className="font-semibold transition-colors hover:text-brand">Media Kit — film & ads</button>
+                  <button onClick={() => setKitOpen(true)} className="font-semibold transition-colors hover:text-brand">Media Kit · film &amp; ads</button>
                 )}
               </div>
             </div>

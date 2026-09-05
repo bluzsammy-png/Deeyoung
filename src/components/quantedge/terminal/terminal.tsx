@@ -179,7 +179,7 @@ export function Terminal() {
           <div className="qe-upgrade-card mx-3 mb-3 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-hi">Unlock full terminal</p>
             <p className="mt-1 text-[11px] leading-relaxed text-foreground/75">
-              Signals, Trade Desk, SENTINEL and research — from {"₦15,000"}/mo.
+              Signals, Trade Desk, SENTINEL and research. From {"₦30,000"}/mo.
             </p>
             <button
               onClick={() => setBillingOpen(true)}

@@ -13,7 +13,7 @@ export interface SymbolHit {
   assetClass: string;
 }
 
-export function SymbolSearch({ onPick, placeholder = "Search any symbol — stocks, FX, crypto, indices, futures…" }: {
+export function SymbolSearch({ onPick, placeholder = "Search any symbol: stocks, FX, crypto, indices, futures…" }: {
   onPick: (hit: SymbolHit) => void;
   placeholder?: string;
 }) {
@@ -57,7 +57,7 @@ export function SymbolSearch({ onPick, placeholder = "Search any symbol — stoc
       {open && q.trim().length > 0 && (
         <div className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-hairline bg-panel-2 shadow-xl">
           {busy && hits.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>}
-          {!busy && hits.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">No matches — try a ticker or company name.</div>}
+          {!busy && hits.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">No matches. Try a ticker or company name.</div>}
           {hits.map((h) => (
             <button
               key={`${h.symbol}:${h.exchange}`}
