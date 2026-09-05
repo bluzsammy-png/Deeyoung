@@ -641,3 +641,38 @@ Work Log:
 
 Stage Summary:
 - Graphics 4.0 shipped and verified live. Engine continues the 10-trade campaign; best scan score 53 vs gate 64, regime filter active — dashboard and engine view now explain the stand-down honestly.
+
+---
+Task ID: 31 (paywall + real checkout + security lockdown + launch blockers)
+Agent: main (Super Z)
+
+Work Log:
+- User directive: plans must be CLICKABLE (not dead-end), wipe ALL mock/placeholder/fake data, full pen test + security hardening, double prices (15,000->30,000 NGN etc.), nothing free except homepage (no terminal for unpaid), no purple gradients/pill buttons/emoji icons/em dashes/fake reviews or metrics/AI slop/scroll circus, launch blocked until: custom domain + favicon + no Made-with-AI tag + privacy page + terms page.
+- SECURITY AUDIT (every API route enumerated):
+  * DELETED /api/dev-venue-test — UNAUTHENTICATED DB writer (comment even said "NEVER COMMIT"). Anyone on the internet could inject fabricated venue mirror orders.
+  * DELETED /api/route.ts ("Hello, world!" stub).
+  * Gated behind withGuard (auth): /api/news, /api/regime, /api/brain/status, /api/market/candles, /api/market/search. /api/brokers/metaapi-diag now requireAdmin.
+  * /api/kit/[file] now feature-flag gated (was public file server; strict whitelist already, 503 in prod, defense in depth).
+  * Verified solid: withGuard session->status->plan chain, requireAdmin two-layer, webhook HMAC timing-safe, sim/okx HMAC verified + in-memory ring cap, kit path-traversal whitelist, CSP/XFO/HSTS headers, better-auth signup stack (disposable blocklist + MX + Turnstile + IP velocity), /api/support rate caps.
+  * /api/market/quotes stays deliberately public: it feeds the HOMEPAGE live ticker (the one free surface the owner defined).
+- CRITICAL SCHEMA BUG FOUND + FIXED: prisma/schema.postgres.prisma (the file production `prisma db push` AND `prisma generate` run against per deploy/start.sh + package.json build) was MISSING the SupportMessage model shipped in b7dd1e9 -> production client lacked db.supportMessage (support desk API would 500 in prod). Added SupportMessage + new BillingOrder to postgres schema; BillingOrder to sqlite schema; both validated.
+- BILLING (plans clickable end to end):
+  * BillingOrder model (userId/tier/currency/amount/status PENDING|SUBMITTED|PAID|CANCELLED/provider/reference/paidAt, audited).
+  * POST /api/billing/order (withGuard auth): caps 5 open orders/user, amount ALWAYS from pricing.ts server-side, resolves rail: PAYMENT_LINK_<TIER> -> hosted redirect; CRYPTO_USDT_ADDRESS -> USDT instructions + txid submit (PATCH -> SUBMITTED); neither -> honest "order saved, checkout being connected" state.
+  * PATCH submits txid (regex-validated, ownership-or-404, no IDOR oracle). GET = own orders.
+  * /api/admin/billing (requireAdmin): list 100 w/ buyer, approve (PAID + plan upgrade + audit event), cancel, reopen.
+  * /admin new Billing tab (billing-tab.tsx) = verification desk.
+  * NEW /checkout/[tier] page + client: public page, sign-in aware, plan summary w/ currency selector, renders rail states honestly. Landing pricing cards, BillingModal, and PaywallView ALL route here.
+  * BillingModal rewritten: no waitlist dead-end; Subscribe always navigates to checkout.
+- HARD PAYWALL: app.tsx renders PaywallView (paywall.tsx: 3 plan cards + checkout links + sign out) for signed-in non-admin FREE accounts. Terminal unreachable without a paid plan. Server 402s unchanged (FEATURE_MIN_RANK).
+- PRICING DOUBLED all currencies: NGN 30k/90k/210k, USD 24/70/158, GBP 18/56/126, EUR 22/66/150, GHS 330/1k/2.3k, KES 3.1k/9.3k/21.4k, ZAR 440/1.32k/3.04k, CAD 32/96/220, AUD 36/110/250, INR 2k/6k/13.8k.
+- FAKE DATA PURGE: removed fabricated landing signal demo (static "NVDA score 84 / SENTINEL 1 pending" panel) -> replaced with REAL engine state panel (BTC regime verdict OPEN/STAND-DOWN, best scan score+symbol, gate 64) fed by /api/engine/status live block; "26 markets" -> universeSymbols().length = 191 real symbols; every "free" CTA rewritten ("it's free", "Start free no card", "No account needed"); FAQ free-plan claims removed.
+- COPY CODE ENFORCED: 100+ em dashes removed from user-visible strings via 2 codemods (landing, learn, engine, dashboard, signals, sentinel, settings, portfolio, research, trade-desk, auth-view, admin console+layout, emails, manifest name, metadata, entitlements lock labels, premium-gate, symbol-search, media-kit, billing modal); "—" null placeholders -> "…"; admin "⚠" emoji -> " !". No purple/violet anywhere (grep clean). qe-btn radius 0.75rem (no pill buttons; rounded-full only on dots/chips). No fake counters/reviews exist (verified).
+- LAUNCH BLOCKERS: /terms + /privacy real pages from NEW shared src/lib/legal-content.ts (modal + pages single source); legal copy updated to paid model + crypto-refund honesty + billing-data + support-chat privacy; favicon.ico generated (16/32/48 PNG-compressed ICO from brand icon-192) + declared in metadata icons.
+- VERIFIED in sandbox: tsc clean in src/ (pre-existing scripts/ noise only); next build OOM-killed locally (sandbox RAM) -> Railway builder is authoritative; dev-server smoke: /checkout/STARTER 200, /checkout/NOPE 404, /terms 200, /privacy 200, /api/regime 401 (was public), /api/billing/order 401, /api/admin/billing 403, /api/market/quotes 200 (homepage), POST /api/dev-venue-test 404, /api 404.
+- Engine Task A unchanged: telemetry shows new gate-64 config standing down (BTC regime filter closed, best scan 48 vs gate 64) — by design; ledger still 2 legacy v1 losses, never rewritten. Campaign continues automatically.
+
+Stage Summary:
+- Commit 0e5f0be pushed -> Railway auto-deploy. Marker: "paywall+rails+security" build.
+- Owner-only inputs still required (can't be automated, need owner secrets): (1) PAYMENT_LINK_STARTER/PRO/ELITE (Cryptomus/LemonSqueezy) OR CRYPTO_USDT_ADDRESS (+CRYPTO_NETWORK) to switch checkout fully live; (2) custom domain name to connect (Railway + DNS). "Made with AI" tag: NOT in the codebase (grep clean) — it is the preview-host badge, disappears on the custom domain.
+- Honest note: until owner sets rails, checkout shows real order-saved state + support email, NOT payment.
