@@ -745,3 +745,27 @@ Stage Summary:
 - MT4/MT5 users (Deriv and any MetaTrader broker) now have the same connect-and-go-live path as direct-API users: paste MetaApi token + MT login/server, bridge verifies by reading the account, FULL mode goes live automatically. Fill prices only ever come from the broker's own confirmations.
 - Sandbox cannot reach MetaApi hosts (egress filter); first real end-to-end connect will be a subscriber's own MetaApi token in production; the diag route gives the owner a one-look reachability verdict.
 - Engine baseline unchanged: ACTIVE, standing down on the daily risk stop (dayPnlR -3.85), 2 legacy closed (0-2), gate-64 config waiting for regime.
+
+---
+Task ID: 15
+Agent: main (Super Z)
+Task: Task D - per-user broker auto-mirror. User directive: "No it stays like that when users concentrate [connect] broker it automatically reads the api and goes live" + "What about others that don't have that and use only mt4 and mt5 with deriv?" + "I don't have an account... if you can connect to it through the agent mailer [MetaApi] then do if can't then build one".
+
+Work Log:
+- MetaApi verdict honored: endpoints unreachable from Railway (Task 9 forensics) and no account exists, so per user instruction we BUILT OUR OWN bridge. Default execution stays paper; a connected user's account follows the engine live automatically.
+- Prisma (both schemas): BrokerLink + bridgeTokenHash/lastHandshakeAt/eaVersion/autoMirror/autoLots/autoStakeUsd/autoNotionalUsd; new models BridgeCommand (terminal command queue) and BrokerMirrorTrade (mirror audit ledger). Deployed via boot-time db push (postgres).
+- src/lib/brokers/deriv.ts: native Deriv websocket API connector (global WebSocket, no new deps; app_id 1089 default). authorize (single round trip), active_symbols with 10-min cache, MULTUP/MULTDOWN multiplier buy, market sell close, proposal_open_contract state. Honest REJECTED (bad token) vs UNSUPPORTED (symbol not listed) split.
+- src/lib/brokers/bridge.ts + /api/bridge/{handshake,poll,report}: own EA bridge. Token shown once, stored SHA-256; handshake flips link CONNECTED with terminal snapshot; poll claims PENDING -> SENT atomically (no double delivery) + 5-min stale reclaim; report propagates terminal fills to commands and mirrors; failed closes re-queued (max 3).
+- public/broker/QuantEdgeBridge.mq5 + .mq4: real EA source (WebRequest JSON client, symbol fuzzy mapping with suffix scan, lot normalization, hedging+netting safe position matching, MT4 stop-reject retry without SL/TP, AutoTrading guard with honest report).
+- src/lib/engine/fanout.ts: fire-and-forget mirror of every engine entry/exit onto CONNECTED FULL autoMirror links. Per-link serialized queues; guard rails 3 open / 20 per day; sizing: MT lots (0.01 def), Deriv stake (5 def), direct notional (100 def). Direct APIs (Alpaca/Binance/Bybit) market orders; OANDA skipped with explicit reason (engine universe is crypto). Exits include PENDING rows and wait bounded 30s for entry settlement (no orphaned live positions).
+- runner.ts: fanoutOnEntry after mirrorOnEntry, fanoutOnExit at all 6 close sites (bars STOP/TARGET/TIME + tick STOP/TARGET/TIME).
+- /api/brokers: POST DERIV (token verified via real authorize before storage), POST MT bridge (key issued, no password ever), PATCH autoMirror/sizing, GET adds live/bridge fields + EA download paths. Legacy MetaApi GET refresh kept for old rows.
+- settings.tsx: Deriv card + MT bridge card (one-time key display, EA downloads, 4-step setup), per-link auto-mirror toggle, per-link sizing fields, Live/Terminal-offline badges.
+- status-snapshot + telemetry: brokerMirror counters in /api/engine/status and the ntfy digest. Markers bridge-1.
+- Tests: scripts/smoke_broker_live.ts, 20 checks, ALL PASS 3x consecutive: 401 on bad token, handshake snapshot, poll claim atomicity, fill propagation, close retry, fanout queueing, autoMirror=false skip, REAL Deriv API rejection honesty (live network), no phantom rows.
+- Deploys: cf65870 -> ee404f8 (telemetry counters) -> 28b0715 (race fixes). Production verified via ntfy: sha 28b0715, marker bridge-1, engine ACTIVE, brokerMirror zeros (no users connected yet, honest).
+
+Stage Summary:
+- Users can now connect: (a) Deriv native API token, (b) any MT4/MT5 broker incl. Deriv MT5 via our own EA bridge, (c) Alpaca/Binance/Bybit/OANDA keys (existing). Connection = verification = automatic live mirroring of engine signals on their account; everyone else stays on paper.
+- EA binaries cannot be compiled in sandbox; users compile the provided .mq5/.mq4 in MetaEditor (standard practice, instructions in UI).
+- Task A unchanged: 0-2 legacy record, v2 gate-64 ACTIVE, still iterating toward 7-8/10.
