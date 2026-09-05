@@ -769,3 +769,27 @@ Stage Summary:
 - Users can now connect: (a) Deriv native API token, (b) any MT4/MT5 broker incl. Deriv MT5 via our own EA bridge, (c) Alpaca/Binance/Bybit/OANDA keys (existing). Connection = verification = automatic live mirroring of engine signals on their account; everyone else stays on paper.
 - EA binaries cannot be compiled in sandbox; users compile the provided .mq5/.mq4 in MetaEditor (standard practice, instructions in UI).
 - Task A unchanged: 0-2 legacy record, v2 gate-64 ACTIVE, still iterating toward 7-8/10.
+
+---
+Task ID: 35 (pre-domain strict audit + launch fixes)
+Agent: main (Super Z)
+Task: Owner shipped domain deyoungpro.site (Spaceship). Mandate: final strict audit + verify, then connect the domain.
+
+Work Log:
+- tsc: drove src/ from 12 pre-existing errors to ZERO. Fixed real bugs found underneath:
+  - admin/users duplicate take property (500 shadowed by 200, TS1117).
+  - ai/analyst: withGuard handler typed NextRequest->Request; REAL runtime bug: snapshot sent sig.topFactors/sig.summary (nonexistent -> undefined) to the LLM; now sig.factors.slice(0,5) + sig.explanation.
+  - signals route: signals array was never[]; typed with extra display fields.
+  - market/candles + search + news: req.nextUrl -> new URL(req.url) (Request-safe).
+  - news sentiment: undefined-safe bearish/bullish comparison.
+  - portfolio equity trace: UI parsed nonexistent data.snap (permanent skeleton) -> /api/portfolio now returns real account equitySnapshot; panel renders actual trace.
+  - widgets AllocationDonut accumulator typing (acc), backtest dead NEUTRAL comparison made type-safe, sentinel/config + kill handler signatures.
+- Design bans: stripped ALL user-visible em dashes (status page 8x, 65+37 string lines across API messages/engine factors/guard notes/format placeholders, 18 JSX text lines). Remaining em dashes are code comments and server logs only. Verified: no emojis in UI (arrows only), no purple/violet/fuchsia, no pill CTAs (badges/dots only), no cursor animation, no testimonials, no mock/fake/sample strings.
+- Security re-verified: all 4 admin routes requireAdmin; bridge poll/report SHA-256 token auth; billing webhook HMAC timingSafeEqual; kit route whitelist (no traversal); sim/okx fixed upstream; engine/status leaks no secrets; paywall = client gate + withGuard minPlan server wall on 20 route files; /api/dev-pair not in git; no secrets in client bundles.
+- Payment: smoke_crypto_verify vs live TronGrid all four verdicts correct (PAID exact 300, MISMATCH amount, NOT_FOUND replay, NOT_FOUND garbage); billing order keeps 12-lookups/15min cap.
+- Build: npm run build green (6 pre-existing Turbopack warnings on node:crypto imports, nodejs runtime, non-blocking).
+- Deployed: commit da22b39 (5b02255 + audit fixes) pushed to origin/main.
+
+Stage Summary:
+- PRODUCTION ANOMALY FOUND: ntfy digests 03:44-06:57Z show Railway deploying OLD commits in ascending order (8dff657 pos31 -> 0f7c97f -> 1ac1a6c -> 4890947 -> b7dd1e9 -> 253c4ca pos19), each with topicSet:false and a FRESH ledger (equity 10000, closed 0, new runId) — NOT the verified 28b0715 state (equity 9971.9, 2 closed). Looks like old deployments being redeployed (Railway Deployments tab?) or a second unconfigured environment. Real production state unverifiable from sandbox (edge 429). Flagged to owner.
+- DOMAIN: Railway side needs owner action (CLI unauthorized, token rejected, no creds in sandbox): add deyoungpro.site + www.deyoungpro.site in Service > Settings > Networking; Spaceship side: CNAME @ -> deeyoung-production.up.railway.app (flattened) + CNAME www -> deeyoung-production.up.railway.app, or exactly what Railway's dialog displays. Sandbox can verify DNS via dig once set.
