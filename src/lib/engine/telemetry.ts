@@ -29,7 +29,7 @@ function compactClosed(rows: Array<Record<string, unknown>>): Array<Record<strin
   }));
 }
 
-function digest(s: Record<string, unknown>): string {
+function digest(s: Record<string, unknown>, scan: Record<string, unknown> | null = null): string {
   const eng = s.engine as Record<string, unknown> | undefined;
   const acct = s.account as Record<string, unknown> | undefined;
   const build = s.build as Record<string, unknown> | undefined;
@@ -71,6 +71,7 @@ function digest(s: Record<string, unknown>): string {
       billing: !!(process.env.PAYMENT_LINK_PRO || process.env.PAYMENT_LINK_STARTER || process.env.PAYMENT_LINK_ELITE),
       adminList: (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean).length,
     },
+    scan,
   };
   return JSON.stringify(out);
 }
@@ -95,13 +96,41 @@ async function tick() {
   try {
     const { buildEngineSnapshot } = await import("@/lib/engine/status-snapshot");
     const snap = (await buildEngineSnapshot()) as unknown as Record<string, unknown>;
-    await publish("engine-snapshot", digest(snap));
+    await publish("engine-snapshot", digest(snap, await scanSnapshot()));
   } catch (e) {
     // snapshot failure is itself the diagnosis (e.g. database unreachable)
     await publish("engine-snapshot-ERROR", JSON.stringify({
       ts: new Date().toISOString(),
       snapshotError: String(e).slice(0, 400),
     }));
+  }
+}
+
+// Pull the engine's live scan counters (accumulated since the last digest),
+// then reset the window. Dynamic import keeps the telemetry module loadable
+// without dragging the full runner graph into every entry point.
+async function scanSnapshot(): Promise<Record<string, unknown>> {
+  try {
+    const { scanStats } = await import("@/lib/engine/runner");
+    const out = {
+      windowMin: Math.round((Date.now() - scanStats.since) / 60_000),
+      best: scanStats.best,
+      bestSym: scanStats.bestSym || null,
+      longSignals: scanStats.longSignals,
+      cross55: scanStats.cross55,
+      cross60: scanStats.cross60,
+      denied: { ...scanStats.denied },
+    };
+    scanStats.since = Date.now();
+    scanStats.best = 0;
+    scanStats.bestSym = "";
+    scanStats.longSignals = 0;
+    scanStats.cross55 = 0;
+    scanStats.cross60 = 0;
+    scanStats.denied = {};
+    return out;
+  } catch {
+    return null;
   }
 }
 

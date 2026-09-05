@@ -43,7 +43,12 @@ export const RISK = {
   MAX_CONCURRENT: 3,           // [P1] correlated-exposure + attention limits
   DAILY_LOSS_CAP_R: -2,        // [P1] stop for the day at -2R (protects the learning curve)
   COOLDOWN_AFTER_LOSS_MIN: 30, // [P1] + [C1] campaign used 30-bar cooldowns
-  MIN_SCORE: 65,               // [C1] upgraded campaign: monotonic edge gradient ≥62-65
+  MIN_SCORE: 55,               // [C1] campaign gradient ≥62-65 was measured on the PRE-regression
+                               // scale; the horizon re-weighting shifted scores ~9 points down
+                               // (see signals.ts header). Re-based alongside runner GATES [55,60]
+                               // — MUST stay ≤ GATES[0] or this guard silently vetoes every
+                               // setup the gate books allow (prod incident 2026-09-05: 10 gate-55
+                               // crossings in 4h, all denied here with SCORE_BELOW_GATE).
 } as const;
 
 export function evaluateOpenGuards(i: OpenGuardInput, deadHours?: number[]): OpenGuardVerdict {

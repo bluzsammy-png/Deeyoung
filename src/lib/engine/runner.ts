@@ -44,6 +44,25 @@ const POLL_MS = 15_000;
 const SCAN_STRIDE_MS = 120_000;
 const SEED_PACE_MS = 1_000;
 
+// Live scan observability — the "why no trades yet" answer, always measured.
+// Accumulates between telemetry digests (telemetry.ts snapshots + resets).
+// best = top LONG score seen since window start; cross55/cross60 = scan instants
+// reaching each book; denied = guard veto counts by rule id (SCORE_BELOW_GATE,
+// RR_TOO_LOW, DEAD_HOUR, ...). Honest counters only — no estimates.
+export const scanStats = {
+  since: Date.now(),
+  best: 0,
+  bestSym: "",
+  longSignals: 0,
+  cross55: 0,
+  cross60: 0,
+  denied: {} as Record<string, number>,
+};
+
+function noteDenied(rules: string[]) {
+  for (const r of rules) scanStats.denied[r] = (scanStats.denied[r] ?? 0) + 1;
+}
+
 export interface RunnerOpts {
   maxMinutes?: number;   // chunk limit (sandbox); undefined = run forever
   maxHours?: number;     // total run cap; undefined = unlimited
@@ -241,9 +260,15 @@ async function loopBody(
             candlePatterns: false, // A/B round 1 rejected the candle bonus — control stays honest
           });
           if (!sig || sig.direction !== "LONG") continue;
+          scanStats.longSignals += 1;
+          if (sig.score > scanStats.best) {
+            scanStats.best = sig.score;
+            scanStats.bestSym = `${sym}/${hzName}`;
+          }
 
           for (const gate of GATES) {
             if (sig.score < gate) continue;
+            if (gate === 55) scanStats.cross55 += 1; else scanStats.cross60 += 1;
             const bookKey = `${gate}_${h}_${sym}`;
             if (open.has(bookKey)) continue;
 
@@ -260,7 +285,10 @@ async function loopBody(
               lastLossAtMs, dataState: "LIVE", liquidityOk: true,
             };
             const verdict = evaluateOpenGuards(guardIn, brain.deadHours(hzName));
-            if (!verdict.allowed) continue;
+            if (!verdict.allowed) {
+              noteDenied(verdict.deniedBy);
+              continue;
+            }
 
             const entryOid = `E_${bookKey}_${Math.floor(now / 60_000)}`;
             const res = await paperEntry({
