@@ -495,3 +495,23 @@ Work Log:
 Stage Summary:
 - Owner now has full /admin access with existing credentials: https://deeyoung-production.up.railway.app/admin → sign in bluzsammy@gmail.com.
 - Panel controls: Overview (win rate/PnL/equity/feed provenance/venue/rails/per-book), Engine (pause/resume + audit, open/closed/orders), Users (warn/suspend/ban/unban ladder + stats).
+
+---
+Task ID: 26 (business v3 batch: roster, pricing, trial removal, Google auth, support, UX, scale, mobile, billing)
+Agent: main (Super Z)
+
+Work Log:
+- ROSTER (owner directive, applied directly to prod DB + verified readback): bluzsammy@gmail.com → USER; deyoungltd@gmail.com upserted verified ADMIN/ACTIVE; ADMIN_EMAILS env → deyoungsltd@agentmail.to,deyoungltd@gmail.com (--skip-deploy).
+- TRIAL ABOLISHED: auth.ts signup plan FREE (trialEndsAt null, TRIAL_DAYS import gone), entitlements effectivePlan() maps any TRIAL → FREE, layout meta copy scrubbed, 1 prod row migrated TRIAL→FREE.
+- PRICING ~3x (src/lib/pricing.ts — landing imports it, QuantEdge files untouched): Starter $12/₦15k, Pro $35/₦45k, Elite $79/₦105k + all 10 currencies rescaled.
+- EMAIL LOGO ROOT CAUSE: template used a text "D" box vs site logo.svg → header now embeds ${SITE_URL}/icon-192.png; footer email typo deyongsltd→deyoungltd@gmail.com; "trial abuse" line reworded.
+- GOOGLE SIGN-IN: better-auth socialProviders.google env-gated (activates when GOOGLE_CLIENT_ID+SECRET set; callback /api/auth/callback/google); "Continue with Google" button on /admin gate (GoogleColors SVG), server-passed googleEnabled prop.
+- FREE LIVE SUPPORT: Tawk.to widget (src/components/support-widget.tsx, inert until NEXT_PUBLIC_TAWK_PROPERTY_ID set; env holds PROPERTY_ID/WIDGET_ID) mounted in root layout — free Smartsupp alternative, unlimited, Nigeria-friendly.
+- UX: WinMark/FailMark check badges (CheckCircle2/XCircle) on closed-trade PnL + order FILLED/REJECTED; Skeleton/SkeletonRows replace text loading on admin footer + users tab.
+- SCALE: /api/engine/status Cache-Control s-maxage=15 SWR=60; admin users take:500 guard; PaperEnginePosition @@index([closedAt]) (boot db push applies). Hot-path indexes already existed (runId+status, runId+createdAt).
+- BILLING (no Paystack/Stripe, Nigeria): universal HMAC-SHA256 webhook /api/billing/webhook (parses Cryptomus + Lemon Squeezy + generic payloads, upgrades User.plan) + /api/billing/checkout link resolver (PAYMENT_LINK_STARTER/PRO/ELITE, BILLING_PROVIDER_NAME). Rec: Cryptomus (USDT, no monthly, no chargebacks) primary + Lemon Squeezy (cards, MoR) fallback.
+- MOBILE: PWA manifest (manifest.webmanifest, standalone, icons, shortcuts) + Capacitor shell (capacitor.config.ts, server-driven webview → prod URL, appId com.deeyoungs.pro) + free CI Android APK workflow (.github/workflows/android-apk.yml, artifact on every push). iOS honest answer: Apple's $99/yr + macOS signing is unavoidable; PWA install covers iOS today.
+- Deploy 1ac1a6c verified LIVE via telemetry; engine cycle 197, feed clean, ledger still 0 trades (momentum-dependent).
+
+Stage Summary:
+- Everything code-side shipped + deployed in one batch; remaining activations are owner-account creations (Google Cloud OAuth keys, Tawk.to property, Cryptomus/LemonSqueezy merchant) — all pre-wired, paste-and-go.
