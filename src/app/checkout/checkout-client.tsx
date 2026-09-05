@@ -20,7 +20,8 @@ type RailState =
   | { kind: "hosted"; url: string }
   | { kind: "crypto"; orderId: string; address: string; network: string; asset: string; amountUsd: number }
   | { kind: "unavailable"; orderId: string }
-  | { kind: "submitted" }
+  | { kind: "verified"; plan: string }
+  | { kind: "submitted"; message?: string; retryable?: boolean }
   | { kind: "error"; message: string };
 
 export function CheckoutClient({ tierKey }: { tierKey: "STARTER" | "PRO" | "ELITE" }) {
@@ -31,6 +32,7 @@ export function CheckoutClient({ tierKey }: { tierKey: "STARTER" | "PRO" | "ELIT
 
   const [ccy, setCcy] = useState<CurrencyCode>("USD");
   const [rail, setRail] = useState<RailState>({ kind: "idle" });
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [txRef, setTxRef] = useState("");
   const [copied, setCopied] = useState(false);
@@ -59,8 +61,10 @@ export function CheckoutClient({ tierKey }: { tierKey: "STARTER" | "PRO" | "ELIT
         setRail({ kind: "hosted", url: j.url });
         window.location.href = j.url;
       } else if (j.state === "crypto") {
+        setOrderId(j.orderId);
         setRail({ kind: "crypto", orderId: j.orderId, address: j.address, network: j.network, asset: j.asset, amountUsd: j.amountUsd });
       } else {
+        setOrderId(j.orderId);
         setRail({ kind: "unavailable", orderId: j.orderId });
       }
     } catch {
@@ -71,20 +75,24 @@ export function CheckoutClient({ tierKey }: { tierKey: "STARTER" | "PRO" | "ELIT
   };
 
   const submitRef = async () => {
-    if (rail.kind !== "crypto") return;
+    if (!orderId || !txRef.trim()) return;
     setBusy(true);
     try {
       const res = await fetch("/api/billing/order", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: rail.orderId, reference: txRef.trim() }),
+        body: JSON.stringify({ orderId, reference: txRef.trim() }),
       });
       const j = await res.json();
       if (!res.ok) {
         setRail({ kind: "error", message: j?.message ?? "Could not submit that reference." });
         return;
       }
-      setRail({ kind: "submitted" });
+      if (j.verified === true) {
+        setRail({ kind: "verified", plan: j.plan ?? tierKey });
+      } else {
+        setRail({ kind: "submitted", message: j.message, retryable: j.retryable === true });
+      }
     } catch {
       setRail({ kind: "error", message: "Network error. Please retry." });
     } finally {
@@ -191,13 +199,19 @@ export function CheckoutClient({ tierKey }: { tierKey: "STARTER" | "PRO" | "ELIT
       {/* rail states */}
       {rail.kind === "crypto" && (
         <div className="qe-card mt-4 border border-brand/30 p-5">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <Wallet className="h-4 w-4 text-brand-hi" /> Pay {rail.amountUsd} {rail.asset} ({rail.network})
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <Wallet className="h-4 w-4 text-brand-hi" /> Send exactly {rail.amountUsd} {rail.asset}
+            </div>
+            <span className="rounded border border-hairline px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{rail.network}</span>
           </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            This amount is unique to your order. It is how the payment is matched to you on-chain, so send it exactly.
+          </p>
           <ol className="mt-3 space-y-2 text-xs leading-relaxed text-muted-foreground">
             <li>1. Send exactly {rail.amountUsd} {rail.asset} on the {rail.network} network to the address below.</li>
             <li>2. Copy your transaction id (hash) from your wallet or exchange.</li>
-            <li>3. Paste it here. The owner verifies the payment and your plan unlocks, usually within a few hours.</li>
+            <li>3. Paste it here. We check the blockchain for the transfer; when it confirms, your plan unlocks automatically, usually within a minute.</li>
           </ol>
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-hairline bg-panel-2 px-3 py-2.5">
             <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground">{rail.address}</code>
@@ -220,15 +234,40 @@ export function CheckoutClient({ tierKey }: { tierKey: "STARTER" | "PRO" | "ELIT
         </div>
       )}
 
-      {rail.kind === "submitted" && (
-        <div className="qe-card mt-4 border border-pos/40 p-5">
+      {rail.kind === "verified" && (
+        <div className="qe-card mt-4 border border-pos/50 p-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-pos">
-            <CheckCircle2 className="h-4 w-4" /> Payment reference received
+            <CheckCircle2 className="h-4 w-4" /> Payment confirmed on-chain
           </div>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Your order is queued for verification. Once the payment is confirmed, your {tier.name} plan unlocks automatically
-            and you get an email at your account address. You can close this page.
+            Your transfer matched this order exactly and your {tier.name} plan is now active on your account. The terminal
+            is fully unlocked; sign back in if you were asked to.
           </p>
+          <button onClick={() => router.push("/?terminal=1")} className="qe-btn qe-btn-primary mt-4 w-full px-4 py-3 text-sm">
+            Open your terminal <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {rail.kind === "submitted" && (
+        <div className="qe-card mt-4 border border-hairline p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <CheckCircle2 className="h-4 w-4 text-brand-hi" /> Reference received
+          </div>
+          {rail.message ? (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{rail.message}</p>
+          ) : (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Your order is queued for verification. If the on-chain check does not complete here, the team reviews it
+              manually and your {tier.name} plan unlocks as soon as it clears.
+            </p>
+          )}
+          {rail.retryable && (
+            <button onClick={submitRef} disabled={busy} className="qe-btn qe-btn-ghost mt-3 w-full px-4 py-2.5 text-sm disabled:opacity-50">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Check the blockchain again
+            </button>
+          )}
         </div>
       )}
 

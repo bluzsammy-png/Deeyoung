@@ -68,7 +68,8 @@ function digest(s: Record<string, unknown>, scan: Record<string, unknown> | null
     platform: {
       googleAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       support: process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID && process.env.NEXT_PUBLIC_TAWK_WIDGET_ID ? "tawk" : "inhouse",
-      billing: !!(process.env.PAYMENT_LINK_PRO || process.env.PAYMENT_LINK_STARTER || process.env.PAYMENT_LINK_ELITE),
+      billing: !!(process.env.PAYMENT_LINK_PRO || process.env.PAYMENT_LINK_STARTER || process.env.PAYMENT_LINK_ELITE)
+        || (process.env.CRYPTO_RAIL !== "off"),
       adminList: (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean).length,
     },
     scan,

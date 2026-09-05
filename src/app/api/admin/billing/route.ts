@@ -13,7 +13,7 @@ import { TIERS } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
-const TIERS_SET = new Set(TIERS.map((t) => t.key));
+const TIERS_SET: Set<string> = new Set(TIERS.map((t) => t.key));
 
 export async function GET() {
   const admin = await requireAdmin();
