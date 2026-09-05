@@ -28,7 +28,12 @@ import { db } from "@/lib/db";
 import { mirrorOnEntry, mirrorOnExit, mirrorCycle, openMirrorCount, venueMode } from "@/lib/engine/venue";
 
 export const SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "BNBUSD", "AVAXUSD", "LINKUSD", "DOTUSD"];
-const GATES = [65, 70];
+// Gates re-based 2026-09-05: a signals.ts weight change shifted every score
+// ~9-10 points down (see signals.ts header note) but these gates were never
+// re-based — probe over 7,220 real recent signals (10 symbols, ~10h) showed
+// max=59, p99=51, ZERO pass 65 → the engine could never trade. 65/70 on the
+// OLD scale ≡ 55/60 on the current scale (same top-percentile selectivity).
+const GATES = [55, 60];
 const HORIZONS = [10, 30];
 const WINDOW = 260;
 const SEED_BARS = 2000;
