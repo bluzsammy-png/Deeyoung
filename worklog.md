@@ -480,3 +480,18 @@ Stage Summary:
 - Full observability restored: deployment status, boot logs, live logs, variables — all on demand.
 - Everything previously shipped (feed fix, /admin, dashboard strip, EngineControl, telemetry) CONFIRMED live in production.
 - Ledger still empty (expected — gates were unreachable until 03:49 today); first entries now possible, watching.
+
+---
+Task ID: 25 (admin panel access unblocked for owner)
+Agent: main (Super Z)
+
+Work Log:
+- Production DB readout (Bun.sql over pooler URL from railway variables, read-only): 1 user — bluzsammy@gmail.com, verified, but role=USER; ADMIN_EMAILS only listed deyoungsltd@agentmail.to → owner had NO admin access despite panel being live.
+- Fix 1: railway variables --set ADMIN_EMAILS=deyoungsltd@agentmail.to,bluzsammy@gmail.com (--skip-deploy, no redeploy needed).
+- Fix 2: direct DB promote UPDATE "User" SET role='ADMIN' WHERE email='bluzsammy@gmail.com' — verified readback: ADMIN/ACTIVE/verified.
+- Auth config note: requireEmailVerification=emailConfigured() → production sign-ups need email verification; owner account already verified so sign-in works immediately. Password reset flow available to their real Gmail if forgotten.
+- Zero new code shipped; engine untouched (no redeploy).
+
+Stage Summary:
+- Owner now has full /admin access with existing credentials: https://deeyoung-production.up.railway.app/admin → sign in bluzsammy@gmail.com.
+- Panel controls: Overview (win rate/PnL/equity/feed provenance/venue/rails/per-book), Engine (pause/resume + audit, open/closed/orders), Users (warn/suspend/ban/unban ladder + stats).
