@@ -1,14 +1,14 @@
 "use client";
 
 // DEEYOUNG PRO — Landing surface (Crimson Luxe, Graphics 4.0)
-//   ✓ WebGL hero: 3D candlestick market city + data-dust + grid floor + dolly-in
+//   ✓ Twilio-style hero: giant headline left, 16:9 brand film card right
+//   ✓ Full-bleed campaign panel: ambient film loop + overlaid campaign headline
 //   ✓ Live engine proof strip — real ledger numbers from /api/engine/status
 //   ✓ Tilt-reactive feature cards, gradient-border pricing, honest FAQ
 //   ✓ Legal (ToS/Privacy/Refund) + support: deyongsltd@gmail.com
 
-import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, Gauge, Mail, Play,
   Plus, Radar, ShieldCheck, Sparkles, TrendingUp,
@@ -26,10 +26,73 @@ import { TIERS, CURRENCY_SYMBOL, detectCurrencyFromBrowser, tierPrice, type Curr
 import { universeSymbols } from "@/lib/providers/market";
 import type { Quote } from "@/lib/types";
 
-const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"), {
-  ssr: false,
-  loading: () => <div className="qe-banner absolute inset-0" aria-hidden />,
-});
+/** 16:9 brand film card, Twilio hero placement: poster + circular play button, click plays the full film with sound. */
+function HeroFilmCard() {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-hairline bg-panel shadow-[0_28px_80px_-28px_rgba(0,0,0,0.75)]">
+      {playing ? (
+        <video src="/ad-film.mp4" controls autoPlay playsInline className="absolute inset-0 h-full w-full bg-black" />
+      ) : (
+        <button
+          onClick={() => setPlaying(true)}
+          aria-label="Play the DeeYoung Pro film"
+          className="group absolute inset-0 h-full w-full cursor-pointer"
+        >
+          <img
+            src="/ad-film-poster.jpg"
+            alt="DeeYoung Pro brand film still"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          />
+          <span className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/10 to-transparent" />
+          <span className="absolute left-1/2 top-1/2 flex h-[68px] w-[68px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-background shadow-2xl transition-transform duration-300 group-hover:scale-105 sm:h-[80px] sm:w-[80px]">
+            <Play className="ml-1 h-7 w-7 fill-current" />
+          </span>
+          <span className="absolute bottom-3.5 left-4 text-[11px] font-semibold text-white/90">
+            The DeeYoung film · 80 sec
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Full-bleed cinematic brand panel, Twilio platform-story placement: ambient muted loop with the campaign headline overlaid left. */
+function CampaignPanel() {
+  const vidRef = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    try {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) vidRef.current?.pause();
+    } catch { /* older browsers: keep the loop running */ }
+  }, []);
+  return (
+    <section className="relative z-10 mt-2 px-2 sm:px-2.5">
+      <div className="relative h-[360px] w-full overflow-hidden rounded-2xl sm:h-[460px] lg:h-[560px]">
+        <video
+          ref={vidRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/campaign-loop-poster.jpg"
+          className="absolute inset-0 h-full w-full object-cover"
+        >
+          <source src="/campaign-loop.mp4" type="video/mp4" />
+        </video>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/95 via-background/55 to-background/10" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/70 to-transparent" />
+        <div className="absolute inset-0 flex items-center">
+          <div className="px-6 sm:px-12 lg:px-16">
+            <h2 className="qe-display max-w-2xl text-4xl font-bold leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-[56px]">
+              The engine behind every disciplined trade.
+            </h2>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const TICKERS = ["XAUUSD", "EURUSD", "NVDA", "AAPL", "MSFT", "TSLA", "GBPUSD", "META", "USDJPY", "SPY"];
 const SUPPORT_EMAIL = "deyongsltd@gmail.com";
@@ -151,20 +214,11 @@ export function Landing() {
         </div>
       </header>
 
-      {/* hero — 3D stage */}
-      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-6 pt-8 sm:pt-14">
-        <div className="relative">
-          {/* WebGL market city behind the headline */}
-          <div className="pointer-events-none absolute -inset-x-10 -top-24 bottom-[-120px] sm:bottom-[-60px]">
-            <HeroScene />
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className="relative">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.08] px-3 py-1.5 text-[11px] font-medium text-foreground/90">
-              <span className="qe-live-dot" />
-              A live paper engine is running on this page right now
-            </div>
-            <h1 className="qe-display max-w-3xl text-[42px] font-bold leading-[1.03] tracking-tight sm:text-7xl">
+      {/* hero — Twilio-style: giant headline left, brand film card right */}
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-8 pt-8 sm:pt-14">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
+            <h1 className="qe-display text-[44px] font-bold leading-[1.02] tracking-tight sm:text-[52px] lg:text-[48px] xl:text-[52px]">
               See what&rsquo;s moving.
               <br />
               Know why it&rsquo;s moving.
@@ -204,36 +258,36 @@ export function Landing() {
               </a>
               <span className="text-xs text-muted-foreground">Public engine ledger · delayed data · paper execution</span>
             </div>
+          </motion.div>
 
-            {/* capability strip */}
-            <div className="mt-8 flex flex-wrap items-center gap-2">
-              {[
-                { k: "26", v: "markets: stocks, FX & gold" },
-                { k: "7", v: "signal factors, math visible" },
-                { k: "10%", v: "of account risked per engine trade" },
-                { k: "100%", v: "paper execution" },
-              ].map((s, i) => (
-                <motion.span
-                  key={s.v}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 + i * 0.08, duration: 0.45 }}
-                  className="qe-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground"
-                >
-                  <span className="qe-num font-bold text-brand">{s.k}</span>
-                  {s.v}
-                </motion.span>
-              ))}
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <HeroFilmCard />
           </motion.div>
         </div>
 
-        {/* live product preview — data-driven proof, red beam */}
+        {/* capability strip — plain facts, single line, no badges */}
+        <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-2 border-t border-hairline pt-5 text-[11px] text-muted-foreground">
+          <span><b className="qe-num font-bold text-brand">26</b> markets: stocks, FX &amp; gold</span>
+          <span><b className="qe-num font-bold text-brand">7</b> signal factors, math visible</span>
+          <span><b className="qe-num font-bold text-brand">10%</b> of account risked per engine trade</span>
+          <span><b className="qe-num font-bold text-brand">100%</b> paper execution</span>
+        </div>
+      </section>
+
+      {/* campaign panel — full-bleed brand film with the campaign headline overlaid left */}
+      <CampaignPanel />
+
+      {/* live product preview — data-driven proof, red beam */}
+      <section className="relative z-10 mx-auto mt-10 max-w-6xl px-5">
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="relative mt-14"
+          className="relative"
         >
           <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[28px] bg-brand/[0.07] blur-2xl" />
           <div className="qe-brand-glow qe-card-hero relative overflow-hidden shadow-2xl">
