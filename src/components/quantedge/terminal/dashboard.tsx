@@ -32,6 +32,7 @@ interface EngineStatus {
     control: { paused: boolean };
   };
   account: { settledEquityUsd: number; realizedPnlUsd: number; openCount: number; closedCount: number; winRatePct: number | null; maxDrawdownPct: number };
+  live: { regimeUp: boolean | null; bestSinceBoot: number; cycles: number } | null;
   venue: { mode: string; verdict: string; mirror: { open: number; filled: number; failed: number } };
   build: { marker: string; sha: string | null };
   equityCurve: Array<{ t: number; e: number }>;
@@ -82,6 +83,11 @@ function EngineStrip() {
             <span className={`h-1.5 w-1.5 rounded-full ${eng.engine.status === "ACTIVE" ? "bg-pos qe-pulse-dot" : "bg-warn"}`} />
             engine {eng.engine.status.toLowerCase()} · {eng.engine.elapsedHours}h
           </span>
+          {eng.live?.regimeUp === false && (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-warn/30 bg-warn/[0.08] px-2 py-0.5 font-semibold text-warn">
+              regime stand-down — longs paused until BTC reclaims its 60m trend
+            </span>
+          )}
           <span>
             feed: <b className="text-foreground/80">{eng.engine.dataVenue.primary}</b>
             {eng.engine.dataVenue.twelvedata.configured && feed.length > 0 && (
@@ -99,7 +105,7 @@ function EngineStrip() {
 
 function MiniStat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-xl border border-hairline bg-panel-2 px-3 py-2.5">
+    <div className="qe-stat px-3 py-2.5">
       <p className="text-[9.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">{label}</p>
       <p className={`qe-num mt-0.5 text-base font-bold ${tone ?? ""}`}>{value}</p>
     </div>

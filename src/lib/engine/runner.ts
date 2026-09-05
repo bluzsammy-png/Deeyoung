@@ -57,6 +57,20 @@ function noteDenied(rules: string[]) {
   for (const r of rules) scanStats.denied[r] = (scanStats.denied[r] ?? 0) + 1;
 }
 
+// Persistent (never-reset) live state for the UI transparency panel — reflects
+// the LAST completed cycle: regime verdict, strongest signal since boot, and
+// boot-to-date crossing counts. Distinct from scanStats, which telemetry
+// snapshots + resets every 15 min. Honest observability, no invention.
+export const liveScan = {
+  regimeUp: null as boolean | null,   // BTC > 60m EMA20 verdict (null = not checked yet)
+  regimeAt: 0 as number,              // when the verdict was computed
+  lastScanAt: 0 as number,            // last completed full-scan instant
+  bestSinceBoot: 0 as number,
+  bestSymSinceBoot: "" as string,
+  crossSinceBoot: {} as Record<number, number>,
+  cycles: 0 as number,
+};
+
 export interface RunnerOpts {
   maxMinutes?: number;   // chunk limit (sandbox); undefined = run forever
   maxHours?: number;     // total run cap; undefined = unlimited
@@ -227,6 +241,9 @@ async function loopBody(
     const todayNetRCache = new Map<string, number>();
     const lastLossAtMs = await paperLastLossAtMs();
     const btcUp = BTC_FILTER ? btcRegimeUp(buf["BTCUSD"] ?? []) : true;
+    liveScan.regimeUp = btcUp;
+    liveScan.regimeAt = now;
+    liveScan.cycles += 1;
 
     let feedErrors = 0;
     for (const sym of SYMBOLS) {
@@ -284,10 +301,15 @@ async function loopBody(
             scanStats.best = sig.score;
             scanStats.bestSym = `${sym}/${hzName}`;
           }
+          if (sig.score > liveScan.bestSinceBoot) {
+            liveScan.bestSinceBoot = sig.score;
+            liveScan.bestSymSinceBoot = `${sym}/${hzName}`;
+          }
 
           for (const gate of GATES) {
             if (sig.score < gate) continue;
             scanStats.cross[gate] = (scanStats.cross[gate] ?? 0) + 1;
+            liveScan.crossSinceBoot[gate] = (liveScan.crossSinceBoot[gate] ?? 0) + 1;
             if (BTC_FILTER && !btcUp) { noteDenied(["BTC_REGIME"]); continue; }
             const bookKey = `${gate}_${h}_${sym}`;
             if (open.has(bookKey)) continue;
@@ -349,6 +371,7 @@ async function loopBody(
       }
       await sleep(60); // pace the 10-symbol loop
     }
+    if (!control.paused) liveScan.lastScanAt = now;
 
     // equity mark-to-market once per cycle
     try {

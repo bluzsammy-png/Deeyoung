@@ -1,6 +1,7 @@
 "use client";
 
-// DEEYOUNG PRO — WebGL hero: a crimson "market city" of 3D candlesticks.
+// DEEYOUNG PRO — WebGL hero: a crimson "market city" of 3D candlesticks,
+// floating data-dust, a synthwave grid floor and a cinematic camera dolly-in.
 // Plain react-three-fiber (no drei) to keep the bundle lean.
 // Degrades gracefully: if WebGL is unavailable the parent shows a static CSS banner.
 
@@ -92,20 +93,115 @@ function MarketCity({ spin }: { spin: boolean }) {
         <boxGeometry args={[50, 0.05, 0.05]} />
         <meshBasicMaterial color="#ef4444" toneMapped={false} />
       </mesh>
+      {/* mirrored echo — faint inverted skyline under the plinth reads as a glass floor */}
+      {candles.map((c, i) => (
+        <mesh key={`m${i}`} position={[c.x, -1.1 - c.bodyY * 0.28, c.z]}>
+          <boxGeometry args={[0.56, Math.max(0.1, c.bodyH * 0.5), 0.56]} />
+          <meshStandardMaterial
+            color={c.up ? "#7a7a80" : "#7f1d1d"}
+            emissive={c.up ? "#9d9da4" : "#b91c1c"}
+            emissiveIntensity={0.08}
+            roughness={0.7}
+            metalness={0.6}
+            transparent
+            opacity={0.35}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
 
-/** Camera drifts with the pointer — the scene feels alive without any input. */
+/** Floating data-dust — 400 drifting crimson/white motes with additive glow. */
+function DataDust({ count = 400 }: { count?: number }) {
+  const ref = useRef<THREE.Points>(null);
+  const { positions, colors } = useMemo(() => {
+    let seed = 7;
+    const rnd = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const crimson = new THREE.Color("#ef4444");
+    const white = new THREE.Color("#ffffff");
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (rnd() - 0.5) * 34;
+      positions[i * 3 + 1] = rnd() * 11 - 0.5;
+      positions[i * 3 + 2] = (rnd() - 0.5) * 16 - 2;
+      const c = rnd() > 0.72 ? crimson : white;
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    return { positions, colors };
+  }, [count]);
+
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    // slow upward drift with wrap-around — Three.js mutability is the R3F idiom
+    // eslint-disable-next-line react-hooks/immutability
+    ref.current.rotation.y += delta * 0.02;
+    const pos = ref.current.geometry.attributes.position as THREE.BufferAttribute;
+    const arr = pos.array as Float32Array;
+    for (let i = 1; i < arr.length; i += 3) {
+      arr[i] += delta * 0.14;
+      if (arr[i] > 10.5) arr[i] = -0.5;
+    }
+    pos.needsUpdate = true;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.055}
+        vertexColors
+        transparent
+        opacity={0.6}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        sizeAttenuation
+      />
+    </points>
+  );
+}
+
+/** Synthwave grid floor under the city — fades into fog, sells the depth. */
+function GridFloor() {
+  return (
+    <group position={[0, -0.72, 0]}>
+      <gridHelper args={[70, 46, "#4a1518", "#241012"]} position={[0, 0, 0]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+        <planeGeometry args={[70, 26]} />
+        <meshBasicMaterial color="#0a0a0a" transparent opacity={0.86} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Camera drifts with the pointer + a one-time cinematic dolly-in on load. */
 function ParallaxRig({ enabled }: { enabled: boolean }) {
   const { camera, pointer } = useThree();
-  useFrame(() => {
+  const intro = useRef(0);
+  useFrame((_, delta) => {
+    // intro dolly: z 19.5 → 13.5 over ~2.6s with ease-out cubic
+    if (intro.current < 1) {
+      intro.current = Math.min(1, intro.current + delta / 2.6);
+      const e = 1 - Math.pow(1 - intro.current, 3);
+      // Three.js objects are mutable by design (R3F useFrame idiom).
+      // eslint-disable-next-line react-hooks/immutability
+      camera.position.z = 19.5 + (13.5 - 19.5) * e;
+    }
     if (!enabled) return;
-    // Three.js objects are mutable by design (R3F useFrame idiom).
     // eslint-disable-next-line react-hooks/immutability
     camera.position.x += (pointer.x * 2.4 - camera.position.x) * 0.045;
+    // eslint-disable-next-line react-hooks/immutability
     camera.position.y += (1.9 + pointer.y * 0.9 - camera.position.y) * 0.045;
-    camera.lookAt(0, 2.4, 0);
+    camera.lookAt(0, 2.2, 0);
   });
   return null;
 }
@@ -153,16 +249,19 @@ export default function HeroScene() {
     <div className="absolute inset-0" aria-hidden>
       <Canvas
         dpr={[1, 1.75]}
-        camera={{ position: [0, 1.9, 13.5], fov: 42 }}
+        camera={{ position: [0, 1.9, 19.5], fov: 42 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         onCreated={({ gl }) => gl.setClearColor("#0a0a0a", 0)}
       >
-        <fog attach="fog" args={["#0a0a0a", 16, 38]} />
+        <fog attach="fog" args={["#0a0a0a", 15, 40]} />
         <ambientLight intensity={0.32} />
         <directionalLight position={[6, 10, 6]} intensity={1.1} color="#ffffff" />
         <pointLight position={[-8, 4, -4]} intensity={52} distance={26} color="#dc2626" />
         <pointLight position={[9, 3, 5]} intensity={30} distance={22} color="#ef4444" />
+        <pointLight position={[0, 7.5, 2]} intensity={18} distance={18} color="#fca5a5" />
+        <GridFloor />
         <MarketCity spin={!reducedMotion} />
+        <DataDust />
         <ParallaxRig enabled={!reducedMotion} />
       </Canvas>
       {/* vignette + bottom fade so the canvas melts into the page */}

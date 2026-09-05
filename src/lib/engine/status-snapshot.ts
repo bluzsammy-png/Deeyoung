@@ -47,6 +47,26 @@ export async function buildEngineSnapshot() {
   const t0 = run.startedAt.getTime();
   const [control, prov] = [await getEngineControl(), feedProvenance()];
 
+  // live scanner state (in-memory, runner loop) — powers the "why it's
+  // standing down" transparency panel. Dynamic import avoids a cycle.
+  let live: {
+    regimeUp: boolean | null; regimeAt: number; lastScanAt: number;
+    bestSinceBoot: number; bestSymSinceBoot: string;
+    crossSinceBoot: Record<number, number>; cycles: number;
+  } | null = null;
+  try {
+    const { liveScan } = await import("@/lib/engine/runner");
+    live = {
+      regimeUp: liveScan.regimeUp,
+      regimeAt: liveScan.regimeAt,
+      lastScanAt: liveScan.lastScanAt,
+      bestSinceBoot: liveScan.bestSinceBoot,
+      bestSymSinceBoot: liveScan.bestSymSinceBoot,
+      crossSinceBoot: { ...liveScan.crossSinceBoot },
+      cycles: liveScan.cycles,
+    };
+  } catch { /* engine module not loaded in this process — panel hides itself */ }
+
   return {
     engine: {
       runLabel: run.label,
@@ -92,12 +112,13 @@ export async function buildEngineSnapshot() {
     books: bookStats(closedAll),
     equityCurve: curve.slice(-96),
     brainScope: "global",
+    live,
     venue: await venueStatus(),
     build: {
       sha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
       source: process.env.RAILWAY_GIT_COMMIT_SHA ? "railway" : "local",
       // Marker only exists in this commit — its presence proves the deploy swapped.
-      marker: "engine-ui-v3",
+      marker: "graphics-4",
     },
   };
 }

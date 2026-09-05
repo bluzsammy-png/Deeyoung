@@ -7,15 +7,16 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity, Bell, BookOpen, Bot, Cpu, FlaskConical, Gauge, LayoutDashboard, LineChart, MessagesSquare,
-  PauseCircle, Play, Settings, ShieldCheck, Wallet, X,
+  PauseCircle, Play, Settings, ShieldCheck, Sparkles, Wallet, X,
 } from "lucide-react";
 import { useApp, type TerminalView } from "@/lib/store";
 import { authClient, type SessionUser } from "@/lib/auth-client";
 import { hasPremiumAccess } from "@/lib/entitlements";
-import { EdgeMark } from "@/components/quantedge/landing";
+import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { LegalModal } from "@/components/quantedge/legal";
 import { DataBadge } from "@/components/quantedge/ui-bits";
 import { AccountMenu, PlanBadge } from "@/components/quantedge/account-menu";
+import { BillingModal } from "@/components/quantedge/billing-modal";
 import { PremiumGate } from "@/components/quantedge/premium-gate";
 import { DashboardView } from "@/components/quantedge/terminal/dashboard";
 import { MarketsView } from "@/components/quantedge/terminal/markets";
@@ -44,6 +45,14 @@ const NAV: { id: TerminalView; label: string; icon: typeof LayoutDashboard }[] =
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
+// sidebar sections — scannable hierarchy beats a flat list of ten
+const NAV_GROUPS: { label: string; ids: TerminalView[] }[] = [
+  { label: "Trading", ids: ["desk", "dashboard", "markets", "signals", "portfolio"] },
+  { label: "Autopilot", ids: ["engine", "sentinel"] },
+  { label: "Intelligence", ids: ["research", "learn"] },
+  { label: "System", ids: ["settings"] },
+];
+
 const MOBILE_NAV: TerminalView[] = ["dashboard", "markets", "signals", "portfolio", "sentinel"];
 const MOBILE_OVERFLOW: TerminalView[] = ["engine", "research", "learn", "settings"];
 
@@ -62,6 +71,7 @@ export function Terminal() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [sentinelStatus, setSentinelStatus] = useState<{ mode: string; state: string; killSwitch: boolean } | null>(null);
+  const [billingOpen, setBillingOpen] = useState(false);
 
   // ── Live ticker tape (shared cache upstream; 20s refresh) ──
   useEffect(() => {
@@ -114,6 +124,7 @@ export function Terminal() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <LegalModal open={useApp((s) => s.legalModal)} onClose={() => useApp.getState().setLegalModal(null)} />
+      <BillingModal open={billingOpen} onOpenChange={setBillingOpen} />
 
       {/* ── Desktop sidebar ── */}
       <aside className="z-30 hidden w-[212px] shrink-0 flex-col border-r border-hairline bg-panel md:flex">
@@ -125,27 +136,59 @@ export function Terminal() {
           </div>
         </button>
 
-        <nav className="flex-1 space-y-0.5 px-3 py-2">
-          {[...NAV, ...(isAdmin ? [{ id: "admin" as TerminalView, label: "Admin & Trust", icon: ShieldCheck }] : [])].map((n) => {
-            const active = view === n.id;
+        <nav className="qe-scroll flex-1 space-y-3 overflow-y-auto px-3 py-2">
+          {[
+            ...NAV_GROUPS,
+            ...(isAdmin ? [{ label: "Owner", ids: ["admin" as TerminalView] }] : []),
+          ].map((g) => {
+            const items = g.ids
+              .map((id) => (id === "admin" ? { id: "admin" as TerminalView, label: "Admin & Trust", icon: ShieldCheck } : NAV.find((n) => n.id === id)!))
+              .filter(Boolean);
+            if (!items.length) return null;
             return (
-              <button
-                key={n.id}
-                onClick={() => setView(n.id)}
-                className={`group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-colors ${
-                  active ? "bg-brand/12 text-brand" : "text-muted-foreground hover:bg-panel-2 hover:text-foreground"
-                }`}
-              >
-                {active && <motion.span layoutId="nav-pill" className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-brand" />}
-                <n.icon className="h-[17px] w-[17px]" />
-                {n.label}
-                {n.id === "sentinel" && unread > 0 && (
-                  <span className="qe-num ml-auto rounded-full bg-neg px-1.5 py-0.5 text-[9px] font-bold text-white">{unread}</span>
-                )}
-              </button>
+              <div key={g.label}>
+                <p className="px-3.5 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60">{g.label}</p>
+                <div className="space-y-0.5">
+                  {items.map((n) => {
+                    const active = view === n.id;
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => setView(n.id)}
+                        className={`group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-colors ${
+                          active ? "bg-brand/12 text-brand" : "text-muted-foreground hover:bg-panel-2 hover:text-foreground"
+                        }`}
+                      >
+                        {active && <motion.span layoutId="nav-pill" className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-brand" />}
+                        <n.icon className="h-[17px] w-[17px]" />
+                        {n.label}
+                        {n.id === "sentinel" && unread > 0 && (
+                          <span className="qe-num ml-auto rounded-full bg-neg px-1.5 py-0.5 text-[9px] font-bold text-white">{unread}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
+
+        {/* upgrade card — free users see the door, premium users see their plan */}
+        {!premium && (
+          <div className="qe-upgrade-card mx-3 mb-3 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-hi">Unlock full terminal</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-foreground/75">
+              Signals, Trade Desk, SENTINEL and research — from {"₦15,000"}/mo.
+            </p>
+            <button
+              onClick={() => setBillingOpen(true)}
+              className="qe-btn qe-btn-primary mt-2.5 w-full px-3 py-2 text-[11px]"
+            >
+              <Sparkles className="h-3 w-3" /> See plans
+            </button>
+          </div>
+        )}
 
         {/* sentinel mini status */}
         {visibleSentinelStatus && (

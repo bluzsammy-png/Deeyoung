@@ -11,6 +11,7 @@ import {
   Play, RefreshCw, ShieldAlert, ShieldCheck, Users as UsersIcon, XCircle,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { SupportTab } from "./support-tab";
 
 // ── types (mirrors /api/admin/engine + /api/admin/users) ──
@@ -96,40 +97,50 @@ export function AdminSignIn({ googleEnabled = false }: { googleEnabled?: boolean
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900/60 p-7">
-        <div className="flex items-center gap-2.5">
-          <ShieldCheck className="h-6 w-6 text-emerald-400" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
+      {/* backdrop — brand grid + aurora, consistent with the product */}
+      <div className="qe-grid-bg pointer-events-none absolute inset-0 opacity-50" aria-hidden />
+      <div className="pointer-events-none absolute -left-32 -top-32 h-[420px] w-[420px] rounded-full bg-brand/[0.14] blur-[110px]" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-40 -right-24 h-[380px] w-[380px] rounded-full bg-brand/[0.10] blur-[110px]" aria-hidden />
+
+      <form onSubmit={submit} className="qe-card-hero relative w-full max-w-sm p-8">
+        <div className="flex items-center gap-3">
+          <EdgeMark size={44} />
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-zinc-100">DeeYoung Control Room</h1>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">owner access only</p>
+            <h1 className="qe-display text-lg font-bold tracking-tight text-zinc-100">DeeYoung Control Room</h1>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">owner access only</p>
           </div>
         </div>
-        <label htmlFor="ad-email" className="mt-6 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Email</label>
+
+        <label htmlFor="ad-email" className="mt-7 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Email</label>
         <input id="ad-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
-          className="mt-1.5 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-emerald-500/60" placeholder="you@example.com" />
+          className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors focus:border-brand/60 focus:ring-2 focus:ring-brand/20" placeholder="you@example.com" />
         <label htmlFor="ad-pass" className="mt-4 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Password</label>
         <input id="ad-pass" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
-          className="mt-1.5 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-emerald-500/60" placeholder="••••••••" />
-        {err && <p className="mt-3 rounded-lg border border-rose-900/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">{err}</p>}
+          className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors focus:border-brand/60 focus:ring-2 focus:ring-brand/20" placeholder="••••••••" />
+
+        {err && <p className="mt-3 rounded-xl border border-neg/30 bg-neg/10 px-3.5 py-2.5 text-xs leading-relaxed text-neg">{err}</p>}
+
         <button type="submit" disabled={busy}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-bold text-emerald-950 transition hover:brightness-110 disabled:opacity-50">
-          {busy && <Loader2 className="h-4 w-4 animate-spin" />} Sign in
+          className="qe-btn qe-btn-primary mt-6 w-full px-4 py-3 text-sm">
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />} Sign in to Control Room
         </button>
+
         {googleEnabled && (
           <>
-            <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-zinc-600">
+            <div className="mt-5 flex items-center gap-3 text-[10px] uppercase tracking-widest text-zinc-600">
               <span className="h-px flex-1 bg-zinc-800" /> or <span className="h-px flex-1 bg-zinc-800" />
             </div>
             <button type="button" onClick={google} disabled={googleBusy}
-              className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 disabled:opacity-50">
+              className="qe-btn qe-btn-ghost mt-4 w-full px-4 py-3 text-sm">
               <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path fill="#EA4335" d="M12 5.04c1.7 0 3.22.59 4.42 1.74l3.29-3.29C17.73 1.63 15.09.5 12 .5 7.42.5 3.44 3.13 1.5 6.93l3.85 2.99C6.27 7.05 8.9 5.04 12 5.04z"/><path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.55-.2-2.27H12v4.51h6.44c-.29 1.48-1.14 2.73-2.41 3.57l3.72 2.89c2.17-2 3.75-4.96 3.75-8.7z"/><path fill="#FBBC05" d="M5.35 14.08a7.06 7.06 0 0 1 0-4.16L1.5 6.93a11.51 11.51 0 0 0 0 10.14l3.85-2.99z"/><path fill="#34A853" d="M12 23.5c3.09 0 5.68-1.02 7.58-2.76l-3.72-2.89c-1.03.7-2.36 1.11-3.86 1.11-3.1 0-5.73-2.01-6.65-4.88l-3.85 2.99C3.44 20.87 7.42 23.5 12 23.5z"/></svg>
               {googleBusy ? "Redirecting to Google…" : "Continue with Google"}
             </button>
           </>
         )}
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-600">
-          Admin side of the platform. User product lives at <a href="/" className="text-zinc-400 underline decoration-dotted">/</a>.
+
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-zinc-600">
+          Admin side of the platform. User product lives at <a href="/" className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-brand-hi">/</a>.
         </p>
       </form>
     </main>

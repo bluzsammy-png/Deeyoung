@@ -1,15 +1,18 @@
 "use client";
 
-// DEEYOUNG PRO — Landing surface (Crimson Luxe, Graphics 3.0)
-//   ✓ WebGL hero: rotating 3D candlestick market city (static drawn fallback)
-//   ✓ Tilt-reactive feature cards with hand-drawn SVG data sketches
-//   ✓ Full-bleed crimson banners, pricing banner (₦15,000/mo Pro), honest disclosures
+// DEEYOUNG PRO — Landing surface (Crimson Luxe, Graphics 4.0)
+//   ✓ WebGL hero: 3D candlestick market city + data-dust + grid floor + dolly-in
+//   ✓ Live engine proof strip — real ledger numbers from /api/engine/status
+//   ✓ Tilt-reactive feature cards, gradient-border pricing, honest FAQ
 //   ✓ Legal (ToS/Privacy/Refund) + support: deyongsltd@gmail.com
 
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, BarChart3, Bell, CheckCircle2, Gauge, Mail, Play, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import {
+  Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, Gauge, Mail, Play,
+  Plus, Radar, ShieldCheck, Sparkles, TrendingUp,
+} from "lucide-react";
 import { useApp } from "@/lib/store";
 import { DataBadge, Price, Pct } from "@/components/quantedge/ui-bits";
 import { SignalRing } from "@/components/quantedge/charts/widgets";
@@ -19,6 +22,7 @@ import { LegalModal } from "@/components/quantedge/legal";
 import { MediaKitModal } from "@/components/quantedge/media-kit";
 import { MEDIA_KIT_ENABLED } from "@/lib/kit";
 import { TiltCard } from "@/components/quantedge/three/tilt-card";
+import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { TIERS, CURRENCY_SYMBOL, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
 import type { Quote } from "@/lib/types";
 
@@ -30,24 +34,54 @@ const HeroScene = dynamic(() => import("@/components/quantedge/three/hero-scene"
 const TICKERS = ["XAUUSD", "EURUSD", "NVDA", "AAPL", "MSFT", "TSLA", "GBPUSD", "META", "USDJPY", "SPY"];
 const SUPPORT_EMAIL = "deyongsltd@gmail.com";
 
-/** Location-aware pricing currency: auto-detected, manually overridable, persisted.
- *  Set inside a rAF (not the effect body) to stay hydration-safe: server renders
- *  the USD default, then the detected currency swaps in on the first frame. */
-function usePricingCurrency() {
+/** Location-aware pricing currency: auto-detected, manually overridable, persisted. */
+function usePricingCurrency(): [CurrencyCode, (c: CurrencyCode) => void] {
   const [ccy, setCcy] = useState<CurrencyCode>("USD");
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      let initial = detectCurrencyFromBrowser();
-      try {
-        const saved = localStorage.getItem("dyp-ccy") as CurrencyCode | null;
-        if (saved && saved in CURRENCY_SYMBOL) initial = saved;
-      } catch { /* private mode */ }
-      setCcy(initial);
-    });
-    return () => cancelAnimationFrame(raf);
+    try {
+      const saved = localStorage.getItem("dyp-ccy");
+      if (saved) setCcy(saved as CurrencyCode);
+      else setCcy(detectCurrencyFromBrowser());
+    } catch { /* private mode */ }
   }, []);
-  return [ccy, setCcy] as const;
+  const set = (c: CurrencyCode) => { setCcy(c); };
+  return [ccy, set];
 }
+
+/** Real paper-ledger numbers, fetched straight from the engine's public snapshot. */
+interface LiveEngine {
+  equity: number | null; closed: number | null; open: number | null;
+  winRate: number | null; elapsed: number | null; feed: string | null;
+}
+function useLiveEngine(): LiveEngine {
+  const [s, setS] = useState<LiveEngine>({ equity: null, closed: null, open: null, winRate: null, elapsed: null, feed: null });
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await fetch("/api/engine/status", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (alive && j?.account) {
+          setS({
+            equity: j.account.settledEquityUsd ?? null,
+            closed: j.account.closedCount ?? null,
+            open: j.account.openCount ?? null,
+            winRate: j.account.winRatePct ?? null,
+            elapsed: j.engine?.elapsedHours ?? null,
+            feed: j.engine?.dataVenue?.primary ?? null,
+          });
+        }
+      } catch { /* strip stays empty until data returns — never invented */ }
+    };
+    load();
+    const iv = setInterval(load, 45_000);
+    return () => { alive = false; clearInterval(iv); };
+  }, []);
+  return s;
+}
+
+const usd = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
 export function Landing() {
   const setEntered = useApp((s) => s.setEntered);
@@ -58,6 +92,7 @@ export function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [ccy, setCcy] = usePricingCurrency();
   const [kitOpen, setKitOpen] = useState(false);
+  const live = useLiveEngine();
 
   useEffect(() => {
     let alive = true;
@@ -91,20 +126,23 @@ export function Landing() {
               <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Read the market. Move first.</span>
             </div>
           </div>
+          <div className="hidden items-center gap-1 lg:flex">
+            <a href="#features" className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">Features</a>
+            <a href="#engine" className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">Live Engine</a>
+            <a href="#pricing" className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">Pricing</a>
+            <a href="#faq" className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">FAQ</a>
+            <button onClick={() => setLegalModal("SECURITY")} className="rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">Security</button>
+          </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setLegalModal("TOS")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Terms</button>
-            <button onClick={() => setLegalModal("PRIVACY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Privacy</button>
-            <button onClick={() => setLegalModal("SECURITY")} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:block">Security</button>
-            {MEDIA_KIT_ENABLED && (
-              <button onClick={() => setKitOpen(true)} className="rounded-lg px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:text-brand">Media Kit</button>
-            )}
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="hidden rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground md:block">Support</a>
+            <button onClick={() => setEntered(true)} className="hidden rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-foreground transition-colors hover:text-brand sm:block">
+              Sign in
+            </button>
             <button
               onClick={() => setEntered(true)}
-              className="qe-glow group inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[13px] font-semibold text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
+              className="qe-btn qe-btn-primary px-4 py-2.5 text-[13px]"
             >
               Open Terminal
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -120,8 +158,8 @@ export function Landing() {
 
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className="relative">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/[0.08] px-3 py-1.5 text-[11px] font-medium text-foreground/90">
-              <span className="qe-pulse-dot h-1.5 w-1.5 rounded-full bg-brand text-brand" />
-              Serious tools for serious traders — priced for real life
+              <span className="qe-live-dot" />
+              A live paper engine is running on this page right now
             </div>
             <h1 className="qe-display max-w-3xl text-[42px] font-bold leading-[1.03] tracking-tight sm:text-7xl">
               See what&rsquo;s moving.
@@ -131,7 +169,10 @@ export function Landing() {
               <span className="qe-gradient-text">Move first.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget. Gold, FX majors and US stocks — price action, news flow and portfolio risk sit in one screen. Every signal shows the math behind its score — seven factors, nothing hidden. When you want a second pair of hands, SENTINEL drafts the trade and waits for your go-ahead. Paper execution until you decide otherwise.
+              DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget.
+              Gold, FX majors and US stocks — price action, news flow and portfolio risk sit in one screen. Every signal shows the
+              math behind its score — seven factors, nothing hidden. And an autonomous paper engine trades a validated playbook
+              in public, every number auditable in the ledger.
             </p>
 
             {/* honesty disclosure — surfaced up front */}
@@ -145,21 +186,28 @@ export function Landing() {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setEntered(true)}
-                className="qe-glow group inline-flex items-center gap-2.5 rounded-xl bg-brand px-6 py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
+                className="qe-btn qe-btn-primary px-6 py-3.5 text-sm"
               >
                 <Play className="h-4 w-4 fill-current" />
                 Open the terminal — it&rsquo;s free
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4" />
               </button>
+              <a
+                href="#engine"
+                className="qe-btn qe-btn-ghost px-5 py-3.5 text-sm"
+              >
+                <Radar className="h-4 w-4 text-brand-hi" />
+                See the live engine
+              </a>
               <span className="text-xs text-muted-foreground">No account needed to look around · delayed data · paper trading</span>
             </div>
 
-            {/* honest capability strip */}
+            {/* capability strip */}
             <div className="mt-8 flex flex-wrap items-center gap-2">
               {[
                 { k: "26", v: "markets: stocks, FX & gold" },
                 { k: "7", v: "signal factors, math visible" },
-                { k: "4", v: "SENTINEL safety levels" },
+                { k: "10%", v: "of account risked per engine trade" },
                 { k: "100%", v: "paper execution" },
               ].map((s, i) => (
                 <motion.span
@@ -185,7 +233,7 @@ export function Landing() {
           className="relative mt-14"
         >
           <div className="absolute -inset-x-8 -top-8 bottom-0 rounded-[28px] bg-brand/[0.07] blur-2xl" />
-          <div className="qe-brand-glow qe-panel relative overflow-hidden shadow-2xl">
+          <div className="qe-brand-glow qe-card-hero relative overflow-hidden shadow-2xl">
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px overflow-hidden">
               <div className="qe-beam h-px w-1/4 bg-gradient-to-r from-transparent via-mint to-transparent" />
             </div>
@@ -204,7 +252,7 @@ export function Landing() {
 
             <div className="grid gap-3 p-4 sm:grid-cols-[1fr_240px]">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {(quotes.length ? quotes : Array.from({ length: 8 }).fill(null)).slice(0, 8).map((q, i) => (
+                {(quotes.length ? quotes : (Array.from({ length: 8 }).fill(null) as (Quote | null)[])).slice(0, 8).map((q, i) => (
                   <div key={q?.symbol ?? i} className="qe-panel-2 flex flex-col gap-1.5 rounded-xl p-3">
                     {q ? (
                       <>
@@ -240,9 +288,68 @@ export function Landing() {
         </motion.div>
       </section>
 
+      {/* ── LIVE ENGINE PROOF — real ledger + measured backtest, honestly labeled ── */}
+      <section id="engine" className="relative z-10 mx-auto mt-16 max-w-6xl scroll-mt-20 px-5">
+        <div className="qe-card qe-noise relative overflow-hidden p-6 sm:p-9">
+          <div className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full bg-brand/[0.10] blur-3xl" />
+          <div className="relative">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="qe-eyebrow"><Radar className="h-3.5 w-3.5" /> Live engine — trading in public</p>
+                <h2 className="qe-display mt-2 text-2xl font-bold tracking-tight sm:text-3xl">An autopilot with its ledger open.</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                  Most platforms show you a highlight reel. We show the book. The engine below runs one validated playbook on
+                  real market data, trades a $10,000 paper account, and publishes every fill, fee, stop-out and winner. When
+                  it loses, the loss stays in the ledger — history is never rewritten.
+                </p>
+              </div>
+              <button onClick={() => setEntered(true)} className="qe-btn qe-btn-ghost px-4 py-2.5 text-[13px]">
+                Open engine view <ArrowUpRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* real ledger tiles */}
+            <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="qe-stat px-4 py-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Settled equity</span>
+                  <span className="qe-live-dot" />
+                </div>
+                <div className="qe-num mt-1 text-xl font-bold">{live.equity !== null ? usd(live.equity) : "—"}</div>
+                <div className="text-[10px] text-muted-foreground">$10,000 start · paper account</div>
+              </div>
+              <div className="qe-stat px-4 py-3.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Trades closed</span>
+                <div className="qe-num mt-1 text-xl font-bold">{live.closed !== null ? live.closed : "—"}</div>
+                <div className="text-[10px] text-muted-foreground">{live.open !== null ? `${live.open} open right now` : "position-ledger truth"}</div>
+              </div>
+              <div className="qe-stat px-4 py-3.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Win rate (ledger)</span>
+                <div className="qe-num mt-1 text-xl font-bold">{live.winRate !== null ? `${live.winRate}%` : "—"}</div>
+                <div className="text-[10px] text-muted-foreground">every closed trade, no exceptions</div>
+              </div>
+              <div className="qe-stat px-4 py-3.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Uptime</span>
+                <div className="qe-num mt-1 text-xl font-bold">{live.elapsed !== null ? `${live.elapsed.toFixed(1)}h` : "—"}</div>
+                <div className="text-[10px] text-muted-foreground">feed: {live.feed ?? "connecting"}</div>
+              </div>
+            </div>
+
+            {/* measured backtest strip — clearly labeled as a replay, not a promise */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-hairline bg-panel-2 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+              <span className="font-bold uppercase tracking-wider text-foreground/70">Playbook validation · 30-day walk-forward replay, real Binance bars:</span>
+              <span><b className="qe-num text-foreground">83.8%</b> win rate · 74 trades</span>
+              <span><b className="qe-num text-foreground">2.13</b> profit factor</span>
+              <span>worst 10-trade stretch: <b className="qe-num text-foreground">6 wins</b></span>
+              <span className="text-warn">Backtest ≠ promise — the live ledger above is the only record that counts.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* brand banner strip */}
       <section className="relative z-10 mx-auto mt-14 max-w-6xl px-5">
-        <div className="qe-banner relative overflow-hidden rounded-2xl px-6 py-6 sm:px-10">
+        <div className="qe-banner qe-noise relative overflow-hidden rounded-2xl px-6 py-7 sm:px-10">
           <div className="pointer-events-none absolute inset-y-0 w-1/3 qe-shine bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
           <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
@@ -253,17 +360,21 @@ export function Landing() {
             </div>
             <button
               onClick={() => setEntered(true)}
-              className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black transition-transform hover:scale-[1.03]"
+              className="qe-btn qe-btn-white px-5 py-3 text-sm"
             >
-              Try it free for 2 days
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              Start free — no card
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       </section>
 
       {/* features — tilt cards with drawn sketches */}
-      <section className="relative z-10 mx-auto max-w-6xl px-5 py-16">
+      <section id="features" className="relative z-10 mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
+        <div className="mb-8 max-w-2xl">
+          <p className="qe-eyebrow">Capabilities</p>
+          <h2 className="qe-display mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Everything a serious desk needs. Nothing it doesn&rsquo;t.</h2>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
@@ -318,8 +429,8 @@ export function Landing() {
               transition={{ delay: i * 0.08, duration: 0.5 }}
             >
               <TiltCard>
-                <div className="qe-panel qe-panel-hover flex h-full flex-col p-5">
-                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand/12 ring-1 ring-brand/30">
+                <div className="qe-card flex h-full flex-col p-5">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand/25 to-brand/[0.08] ring-1 ring-brand/30">
                     <f.icon className="h-5 w-5 text-brand-hi" />
                   </div>
                   <h3 className="qe-display mt-3.5 text-[15px] font-bold">{f.title}</h3>
@@ -336,18 +447,18 @@ export function Landing() {
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="qe-panel mt-4 p-6 sm:p-8"
+          className="qe-card mt-4 p-6 sm:p-8"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="qe-display text-xl font-bold tracking-tight sm:text-2xl">The DeeYoung loop</h2>
             <p className="text-sm text-muted-foreground">read → investigate → decide → act → learn</p>
           </div>
-          <div className="mt-7 grid gap-5 sm:grid-cols-5">
+          <div className="relative mt-7 grid gap-5 sm:grid-cols-5">
+            <div className="pointer-events-none absolute left-0 right-0 top-3.5 hidden h-px bg-gradient-to-r from-transparent via-brand/30 to-transparent sm:block" />
             {["Read the regime", "Spot the setup", "Check the risk", "Make the call", "Let SENTINEL draft — you approve"].map((s, i) => (
               <div key={s} className="relative">
-                <span className="qe-num inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold text-brand-hi ring-1 ring-brand/25">0{i + 1}</span>
+                <span className="qe-num relative inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold text-brand-hi ring-1 ring-brand/25">{`0${i + 1}`}</span>
                 <p className="mt-2 text-[13px] font-medium leading-snug">{s}</p>
-                {i < 4 && <ArrowRight className="absolute -right-2.5 top-1 hidden h-4 w-4 text-muted-foreground/40 sm:block" />}
               </div>
             ))}
           </div>
@@ -366,7 +477,7 @@ export function Landing() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="qe-panel-2 qe-panel-hover p-5"
+              className="qe-card p-5"
             >
               <div className="flex items-center justify-between">
                 <span className="qe-label text-brand-hi">{l.lvl}</span>
@@ -383,18 +494,18 @@ export function Landing() {
       </section>
 
       {/* pricing — three tiers, location-aware currency */}
-      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-16">
+      <section id="pricing" className="relative z-10 mx-auto max-w-6xl scroll-mt-20 px-5 pb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="qe-panel relative overflow-hidden rounded-3xl p-7 sm:p-9"
+          className="qe-card relative overflow-hidden rounded-3xl p-7 sm:p-9"
         >
           <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-brand/[0.07] blur-3xl" />
           <div className="relative">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="qe-label text-brand-hi">Pricing</p>
+                <p className="qe-eyebrow">Pricing</p>
                 <h2 className="qe-display mt-2 text-2xl font-bold sm:text-3xl">Three plans. No mystery tiers.</h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
                   Full analytics from day one on every plan — no trial games. Card details only when you subscribe,
@@ -421,12 +532,12 @@ export function Landing() {
                   key={tier.key}
                   className={`relative flex flex-col rounded-2xl border p-5 ${
                     tier.popular
-                      ? "qe-brand-glow border-brand/50 bg-brand/[0.06]"
+                      ? "qe-border-gradient"
                       : "border-hairline bg-panel-2"
                   }`}
                 >
                   {tier.popular && (
-                    <span className="absolute -top-2.5 left-5 rounded-md bg-brand px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                    <span className="absolute -top-2.5 left-5 rounded-md bg-brand px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-lg shadow-brand/40">
                       Most popular
                     </span>
                   )}
@@ -439,41 +550,110 @@ export function Landing() {
                     <span className="text-sm font-medium text-muted-foreground">/month</span>
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground">≈ ₦{tier.prices.NGN.toLocaleString("en-US")} reference price</p>
-                  <ul className="mt-4 flex-1 space-y-2 text-xs leading-relaxed text-foreground/85">
+                  <ul className="qe-check-list mt-4 flex-1 space-y-2 text-xs leading-relaxed text-foreground/85">
                     {tier.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2">
-                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
+                      <li key={f}>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-brand-hi" />
                         {f}
                       </li>
                     ))}
                   </ul>
                   <button
                     onClick={() => setEntered(true)}
-                    className={`mt-5 w-full rounded-xl py-2.5 text-sm font-bold transition-all ${
-                      tier.popular
-                        ? "qe-glow bg-brand text-white hover:brightness-110"
-                        : "border border-hairline bg-panel text-foreground hover:border-brand/40"
+                    className={`qe-btn mt-5 w-full py-2.5 text-sm ${
+                      tier.popular ? "qe-btn-primary" : "qe-btn-ghost"
                     }`}
                   >
                     Get started
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
             </div>
 
             <p className="mt-5 text-center text-[11px] text-muted-foreground">
-              Card checkout is in final onboarding with our payment provider — join the in-app waitlist to be notified
-              the moment your plan can be activated. Questions?{" "}
+              Card checkout is going live — the in-app subscribe flow shows the live payment option the moment it&rsquo;s on,
+              and a waitlist before that. Questions?{" "}
               <a className="text-brand-hi hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             </p>
           </div>
         </motion.div>
       </section>
 
+      {/* FAQ — honest answers */}
+      <section id="faq" className="relative z-10 mx-auto max-w-4xl scroll-mt-20 px-5 pb-16">
+        <div className="mb-8 text-center">
+          <p className="qe-eyebrow justify-center">Straight answers</p>
+          <h2 className="qe-display mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Questions people actually ask</h2>
+        </div>
+        <div className="space-y-2.5">
+          {[
+            {
+              q: "Is this real trading?",
+              a: "No — and we say so everywhere. Execution is paper: fills happen at real observed market prices with modeled slippage and fees, but your money never moves. The public engine mirrors its fills to a OKX demo account for extra scrutiny. When you're ready for real money, that's a venue you connect yourself — the product never holds funds.",
+            },
+            {
+              q: "Why are the quotes delayed?",
+              a: "Exchange licensing terms. Real-time equity feeds cost tens of thousands per year — we'd rather be honest and cheap than fast and quiet about it. FX and gold data comes from institutional aggregators with the same terms. Every surface is labeled with exactly what you're looking at.",
+            },
+            {
+              q: "What does the live engine actually trade?",
+              a: "Crypto majors (BTC, ETH, SOL, BNB, XRP, DOGE, ADA, AVAX, DOT, LINK) on 30-minute bars, long-only, with a validated playbook: score-64 gate, −3% stop, +1.2% target, 12-hour time stop, $1,000 notional per trade on the $10,000 paper account, and a BTC-trend regime filter. It stands down completely when conditions don't meet the playbook — that discipline is the point.",
+            },
+            {
+              q: "How is this different from a signals Telegram channel?",
+              a: "Cherry-picking is the business model there. Here, every signal shows the seven factor scores behind it, every engine trade lands in a public ledger with timestamps, fees and exit reason — wins and losses alike. You can recompute the math. If the ledger stops being good, that's visible immediately.",
+            },
+            {
+              q: "What do I need to run it?",
+              a: "A browser. The terminal, engine and support desk all run server-side — there's nothing to install, and the free plan never asks for a card. Installable as an app on Android/iOS via PWA, with a native Android shell available.",
+            },
+            {
+              q: "How do I pay when I'm ready?",
+              a: "Card checkout is being switched on with our payment provider right now. The subscribe button in the app always reflects the live state — it opens secure checkout the moment it's available, and collects your email for the heads-up before that. You can also write to " + SUPPORT_EMAIL + ".",
+            },
+          ].map((f) => (
+            <details key={f.q} className="qe-faq qe-card group p-5">
+              <summary className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold">{f.q}</span>
+                <span className="qe-faq-chevron inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-brand/30 bg-brand/10 text-brand-hi">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+              </summary>
+              <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* final CTA */}
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-20">
+        <div className="qe-banner qe-noise relative overflow-hidden rounded-3xl px-8 py-12 text-center sm:py-16">
+          <div className="pointer-events-none absolute inset-y-0 w-1/3 qe-shine bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
+          <div className="relative">
+            <h2 className="qe-display mx-auto max-w-2xl text-2xl font-bold tracking-tight sm:text-4xl">
+              The market doesn&rsquo;t wait. <span className="text-brand-hi">Now you don&rsquo;t have to guess.</span>
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Open the terminal free. Watch the engine work. Upgrade only when the ledger convinces you.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <button onClick={() => setEntered(true)} className="qe-btn qe-btn-primary px-7 py-3.5 text-sm">
+                Open the terminal
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <a href="#engine" className="qe-btn qe-btn-ghost px-5 py-3.5 text-sm">
+                <Radar className="h-4 w-4 text-brand-hi" /> Check the ledger first
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* footer with legal + support */}
       <footer className="relative z-10 border-t border-hairline">
-        <div className="mx-auto max-w-6xl px-5 py-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mx-auto max-w-6xl px-5 py-12">
+          <div className="grid gap-10 sm:grid-cols-[1.4fr_1fr_1fr]">
             <div className="max-w-sm">
               <div className="flex items-center gap-2.5">
                 <EdgeMark size={28} />
@@ -481,10 +661,26 @@ export function Landing() {
               </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                 Market data delayed per exchange terms. Simulated execution only — not real brokerage. Nothing here is investment advice.
+                Built and operated by DeeYoungs Ltd.
               </p>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-4 inline-flex items-center gap-1.5 text-xs text-foreground/80 transition-colors hover:text-brand-hi">
+                <Mail className="h-3.5 w-3.5" /> {SUPPORT_EMAIL}
+              </a>
             </div>
-            <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:items-end">
-              <div className="flex flex-wrap gap-4 sm:justify-end">
+            <div>
+              <p className="qe-label">Product</p>
+              <div className="mt-3 flex flex-col items-start gap-2.5 text-xs text-muted-foreground">
+                <a href="#features" className="transition-colors hover:text-foreground">Features</a>
+                <a href="#engine" className="transition-colors hover:text-foreground">Live engine</a>
+                <a href="#pricing" className="transition-colors hover:text-foreground">Pricing</a>
+                <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
+                <a href="/status" className="transition-colors hover:text-foreground">System status</a>
+                <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
+              </div>
+            </div>
+            <div>
+              <p className="qe-label">Legal</p>
+              <div className="mt-3 flex flex-col items-start gap-2.5 text-xs text-muted-foreground">
                 <button onClick={() => setLegalModal("TOS")} className="transition-colors hover:text-foreground">Terms of Service</button>
                 <button onClick={() => setLegalModal("PRIVACY")} className="transition-colors hover:text-foreground">Privacy Policy</button>
                 <button onClick={() => setLegalModal("SECURITY")} className="transition-colors hover:text-foreground">Security</button>
@@ -492,13 +688,14 @@ export function Landing() {
                 {MEDIA_KIT_ENABLED && (
                   <button onClick={() => setKitOpen(true)} className="font-semibold transition-colors hover:text-brand">Media Kit — film & ads</button>
                 )}
-                <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
               </div>
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-1.5 text-foreground/80 transition-colors hover:text-brand-hi">
-                <Mail className="h-3.5 w-3.5" /> {SUPPORT_EMAIL}
-              </a>
-              <p>© {new Date().getFullYear()} DeeYoungs Ltd. All rights reserved.</p>
             </div>
+          </div>
+          <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-hairline pt-6 text-[11px] text-muted-foreground sm:flex-row sm:items-center">
+            <p>© {new Date().getFullYear()} DeeYoungs Ltd. All rights reserved.</p>
+            <p className="flex items-center gap-1.5">
+              <span className="qe-live-dot" /> engine online · ledger public · history never rewritten
+            </p>
           </div>
         </div>
       </footer>
@@ -509,40 +706,4 @@ export function Landing() {
   );
 }
 
-export function EdgeMark({ size = 34 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 512 512" aria-hidden>
-      <defs>
-        <radialGradient id="dym-tile" cx="30%" cy="18%" r="105%">
-          <stop offset="0%" stopColor="#1b1b1f" />
-          <stop offset="55%" stopColor="#101013" />
-          <stop offset="100%" stopColor="#070708" />
-        </radialGradient>
-        <linearGradient id="dym-d" x1="0" y1="0" x2="0.25" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="62%" stopColor="#e8eaef" />
-          <stop offset="100%" stopColor="#c3c7d1" />
-        </linearGradient>
-        <linearGradient id="dym-wire" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stopColor="#b91c1c" />
-          <stop offset="55%" stopColor="#dc2626" />
-          <stop offset="100%" stopColor="#f87171" />
-        </linearGradient>
-        <clipPath id="dym-clip">
-          <path d="M148 128 H246 C338 128 402 182 402 260 C402 338 338 392 246 392 H148 Z" />
-        </clipPath>
-      </defs>
-      <rect width="512" height="512" rx="118" fill="url(#dym-tile)" />
-      <rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
-      <path d="M148 128 H246 C338 128 402 182 402 260 C402 338 338 392 246 392 H148 Z" fill="url(#dym-d)" />
-      <path d="M228 204 H282 C308 204 326 228 326 260 C326 292 308 316 282 316 H228 Z" fill="#0b0b0d" />
-      <g clipPath="url(#dym-clip)">
-        <path d="M194 332.8 L436 116.8 L456 139.2 L214 355.2 Z" fill="#0c0c0e" />
-        <path d="M199 338.4 L441 122.4 L451 133.6 L209 349.6 Z" fill="url(#dym-wire)" />
-      </g>
-      <path d="M371 184.4 L443 121.4 L453 132.6 L381 195.6 Z" fill="url(#dym-wire)" />
-      <circle cx="461" cy="119" r="10" fill="#ef4444" />
-      <circle cx="461" cy="119" r="5.5" fill="#fecaca" />
-    </svg>
-  );
-}
+export { EdgeMark };

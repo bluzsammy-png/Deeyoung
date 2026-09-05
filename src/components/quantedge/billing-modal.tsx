@@ -1,16 +1,21 @@
 "use client";
 
-// DEEYOUNG PRO — Billing modal. Paystack-backed subscriptions land here;
-// until payment rails go live it collects waitlist demand (audited per account).
+// DEEYOUNG PRO — Billing modal.
+// Two modes, driven by /api/billing/checkout (pure config: PAYMENT_LINK_* env):
+//   • ready  — each tier renders a real Subscribe button that opens the live
+//              payment URL (Cryptomus / Lemon Squeezy / any provider) in a new tab.
+//   • waitlist — honest "checkout is coming online" state with audited signup.
 // Shows all three tiers with location-aware currency (src/lib/pricing.ts).
 
 import { useEffect, useState } from "react";
-import { Check, Clock, CreditCard, Loader2, Sparkles } from "lucide-react";
+import { ArrowUpRight, Check, Clock, CreditCard, ExternalLink, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { authClient, type SessionUser } from "@/lib/auth-client";
 import { effectivePlan } from "@/lib/entitlements";
 import { TIERS, detectCurrencyFromBrowser, tierPrice, type CurrencyCode } from "@/lib/pricing";
+
+type CheckoutLinks = { STARTER: string | null; PRO: string | null; ELITE: string | null };
 
 export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { toast } = useToast();
@@ -18,18 +23,36 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
   const user = session?.user as SessionUser | undefined;
   const [busy, setBusy] = useState(false);
   const [ccy, setCcy] = useState<CurrencyCode>("USD");
+  const [links, setLinks] = useState<CheckoutLinks | null>(null);
+  const [provider, setProvider] = useState<string | null>(null);
+  const [joined, setJoined] = useState(false);
 
   useEffect(() => {
-    if (open) setCcy(detectCurrencyFromBrowser());
+    if (!open) return;
+    setCcy(detectCurrencyFromBrowser());
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/billing/checkout", { cache: "no-store" });
+        const json = await res.json();
+        if (alive) {
+          setLinks(json.links ?? null);
+          setProvider(json.provider ?? null);
+        }
+      } catch { /* stay in waitlist mode */ }
+    })();
+    return () => { alive = false; };
   }, [open]);
 
   const plan = user ? effectivePlan(user) : "FREE";
+  const checkoutReady = !!links && Object.values(links).some(Boolean);
 
   const joinWaitlist = async () => {
     setBusy(true);
     try {
       const res = await fetch("/api/billing/waitlist", { method: "POST" });
       if (!res.ok) throw new Error();
+      setJoined(true);
       toast({
         title: "You're on the list",
         description: "We'll email you the moment card billing goes live for your plan.",
@@ -41,9 +64,20 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
     }
   };
 
+  const subscribe = (tier: "STARTER" | "PRO" | "ELITE") => {
+    const url = links?.[tier];
+    if (!url) return;
+    // provider handles payment + webhook upgrades the account server-side
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast({
+      title: "Opening secure checkout…",
+      description: `Complete payment in the new tab — your ${tier} plan unlocks automatically once the payment provider confirms.`,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[560px] border-hairline bg-panel text-foreground">
+      <DialogContent className="max-w-[600px] border-hairline bg-panel text-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-left">
             <Sparkles className="h-4 w-4 text-brand-hi" /> Choose your plan
@@ -58,6 +92,7 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
         <div className="space-y-2.5">
           {TIERS.map((tier) => {
             const current = plan === tier.key;
+            const link = links?.[tier.key as "STARTER" | "PRO" | "ELITE"] ?? null;
             return (
               <div
                 key={tier.key}
@@ -97,43 +132,67 @@ export function BillingModal({ open, onOpenChange }: { open: boolean; onOpenChan
                     </li>
                   ))}
                 </ul>
+                {checkoutReady && !current && (
+                  <button
+                    onClick={() => subscribe(tier.key as "STARTER" | "PRO" | "ELITE")}
+                    disabled={!link}
+                    className="qe-btn qe-btn-primary mt-3 w-full px-4 py-2.5 text-[13px] disabled:opacity-50"
+                  >
+                    Subscribe to {tier.name}
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
 
-        <div className="flex items-start gap-2 rounded-xl border border-hairline bg-panel-2 px-3.5 py-3 text-[11px] leading-relaxed text-muted-foreground">
-          <CreditCard className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
-          <span>
-            Card details are requested <strong className="text-foreground">when you subscribe</strong> — never at signup.
-            Your card is charged only when your plan renews, and you can cancel anytime.
-          </span>
-        </div>
-
-        <div className="flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-3 text-[11px] leading-relaxed text-warn">
-          <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Card checkout is in final onboarding with our payment provider. Join the waitlist and we&apos;ll email
-          you the moment your plan can be activated — the free plan stays open meanwhile.
-        </div>
-
-        {plan === "PRO" || plan === "ELITE" || plan === "STARTER" ? (
-          <button disabled className="w-full rounded-xl bg-brand/20 py-3 text-sm font-bold text-brand-hi">
-            {plan} is active
-          </button>
+        {checkoutReady ? (
+          <>
+            <div className="flex items-start gap-2 rounded-xl border border-hairline bg-panel-2 px-3.5 py-3 text-[11px] leading-relaxed text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pos" />
+              <span>
+                Secure checkout handled by <strong className="text-foreground">{provider ?? "our payment provider"}</strong>.
+                Your plan upgrades automatically the moment payment confirms — no waiting, no manual step.
+              </span>
+            </div>
+            <div className="flex items-start gap-2 rounded-xl border border-hairline bg-panel-2 px-3.5 py-3 text-[11px] leading-relaxed text-muted-foreground">
+              <CreditCard className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-hi" />
+              <span>
+                Card details are requested <strong className="text-foreground">when you subscribe</strong> — never at signup.
+                You can cancel anytime.
+              </span>
+            </div>
+          </>
         ) : (
-          <button
-            onClick={joinWaitlist}
-            disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-60"
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Notify me when card checkout is live
-          </button>
+          <>
+            <div className="flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-3 text-[11px] leading-relaxed text-warn">
+              <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Card checkout is in final onboarding with our payment provider. Join the waitlist and we&apos;ll email
+              you the moment your plan can be activated — the free plan stays open meanwhile.
+            </div>
+            {joined ? (
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-pos/40 bg-pos/10 py-3 text-sm font-bold text-pos">
+                <Check className="h-4 w-4" /> You&apos;re on the list — watch your inbox
+              </div>
+            ) : (
+              <button
+                onClick={joinWaitlist}
+                disabled={busy}
+                className="qe-btn qe-btn-primary w-full px-4 py-3 text-sm disabled:opacity-60"
+              >
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                Notify me when card checkout is live
+              </button>
+            )}
+          </>
         )}
 
-        <p className="-mt-1 text-center text-[11px] text-muted-foreground">
+        <p className="-mt-1 flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
           Questions about plans?{" "}
-          <a href="mailto:deyongsltd@gmail.com" className="text-brand-hi hover:underline">deyongsltd@gmail.com</a>
+          <a href="mailto:deyongsltd@gmail.com" className="inline-flex items-center gap-1 text-brand-hi hover:underline">
+            deyongsltd@gmail.com <ExternalLink className="h-3 w-3" />
+          </a>
         </p>
       </DialogContent>
     </Dialog>

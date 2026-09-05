@@ -401,3 +401,207 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .qe-shine, .qe-spin-slow, .qe-float { animation: none !important; }
   .qe-tilt { transform: none !important; }
 }
+
+/* ─── Graphics 4.0 — premium surfaces, buttons & depth ─────────────────────── */
+
+/* Signature card: hairline panel that blooms crimson on approach */
+.qe-card {
+  position: relative;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--qe-panel) 92%, #ffffff 8%) 0%, var(--qe-panel) 34%),
+    var(--qe-panel);
+  border: 1px solid var(--qe-hairline);
+  border-radius: calc(var(--radius) + 2px);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.qe-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(340px circle at var(--mx, 50%) var(--my, -20%), rgba(220, 38, 38, 0.10), transparent 62%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.qe-card:hover { border-color: rgba(220, 38, 38, 0.30); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 20px 56px -24px rgba(220, 38, 38, 0.42); }
+.qe-card:hover::before { opacity: 1; }
+
+/* Elevated hero card — glass with inner top highlight */
+.qe-card-hero {
+  position: relative;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012) 42%, transparent 70%), var(--qe-panel);
+  border: 1px solid var(--qe-hairline);
+  border-radius: calc(var(--radius) + 6px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 40px 90px -40px rgba(0, 0, 0, 0.85);
+}
+
+/* Gradient hairline border (popular tier, feature highlights) */
+.qe-border-gradient {
+  position: relative;
+  background: var(--qe-panel);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+.qe-border-gradient::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.85), rgba(220, 38, 38, 0.12) 38%, rgba(255, 255, 255, 0.10) 62%, rgba(220, 38, 38, 0.55));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Buttons — consistent interactive voice */
+.qe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform 0.18s ease, box-shadow 0.25s ease, filter 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qe-btn:active { transform: scale(0.97); }
+.qe-btn-primary {
+  color: #fff;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 55%, #b91c1c 100%);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5), 0 10px 34px -10px rgba(220, 38, 38, 0.65), 0 1px 0 rgba(255, 255, 255, 0.22) inset;
+}
+.qe-btn-primary:hover { filter: brightness(1.09); box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.65), 0 14px 44px -10px rgba(220, 38, 38, 0.8), 0 1px 0 rgba(255, 255, 255, 0.25) inset; }
+.qe-btn-ghost {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--qe-panel-2) 80%, transparent);
+  border: 1px solid var(--qe-hairline);
+}
+.qe-btn-ghost:hover { border-color: rgba(220, 38, 38, 0.38); background: var(--qe-panel-2); }
+.qe-btn-white { color: #0a0a0a; background: linear-gradient(180deg, #ffffff, #e4e4e7); box-shadow: 0 10px 30px -12px rgba(255, 255, 255, 0.35), 0 1px 0 rgba(0,0,0,0.06) inset; }
+.qe-btn-white:hover { filter: brightness(1.04); }
+
+/* Section heading kit */
+.qe-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--qe-brand-hi);
+}
+.qe-eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 1.25rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.9));
+}
+
+/* Fine noise film — kills banding on dark gradients */
+.qe-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+}
+
+/* Stat tile — dashboard / landing metrics */
+.qe-stat {
+  position: relative;
+  overflow: hidden;
+  background: var(--qe-panel-2);
+  border: 1px solid var(--qe-hairline);
+  border-radius: 0.875rem;
+}
+.qe-stat::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(220, 38, 38, 0.85), rgba(220, 38, 38, 0.06) 70%, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.qe-stat:hover::after { opacity: 1; }
+
+/* Live badge — breathing ring */
+.qe-live-dot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #10b981;
+}
+.qe-live-dot::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  animation: qe-ring 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes qe-ring {
+  0% { transform: scale(0.55); opacity: 1; }
+  75%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Entrance reveal for scroll sections */
+@keyframes qe-rise {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.qe-rise { animation: qe-rise 0.65s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Count-up shimmer on key numerics */
+@keyframes qe-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.qe-shimmer-text {
+  background: linear-gradient(100deg, var(--foreground) 38%, #ef4444 50%, var(--foreground) 62%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: qe-shimmer 5s linear infinite;
+}
+
+/* Sidebar upgrade card */
+.qe-upgrade-card {
+  background:
+    radial-gradient(120px 60px at 82% -12%, rgba(220, 38, 38, 0.35), transparent 70%),
+    linear-gradient(160deg, #1a0e0e, #120c0c 55%, #0d0a0a);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  border-radius: 0.875rem;
+}
+
+/* Pricing check bullet alignment */
+.qe-check-list li { display: flex; align-items: flex-start; gap: 0.5rem; }
+.qe-check-list svg { flex-shrink: 0; margin-top: 0.125rem; }
+
+/* Table rows — ledger polish */
+.qe-row-hover { transition: background-color 0.16s ease; }
+.qe-row-hover:hover { background: color-mix(in srgb, var(--qe-panel-2) 60%, transparent); }
+
+/* FAQ disclosure polish */
+.qe-faq summary::-webkit-details-marker { display: none; }
+.qe-faq summary { cursor: pointer; list-style: none; }
+.qe-faq[open] summary .qe-faq-chevron { transform: rotate(45deg); }
+.qe-faq-chevron { transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .qe-rise, .qe-shimmer-text, .qe-live-dot::before { animation: none !important; }
+}
