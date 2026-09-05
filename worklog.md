@@ -543,3 +543,33 @@ Stage Summary:
 - Google sign-in is LIVE in production (env + verified redirect URI + runtime-proof pending next telemetry digest).
 - Roster: DB correct; ADMIN_EMAILS env re-applied; future Google signups of deyoungltd@gmail.com auto-ADMIN via databaseHooks.
 - Live support: built-in desk ships now; Tawk/Crisp remain one-variable opt-ins if owner ever signs up manually.
+
+---
+Task ID: 28 (why-no-trades: SECOND stale gate found + scan observability)
+Agent: main (Super Z)
+
+Work Log:
+- User asked "why hasn't it placed any trade yet?". Sandbox had reset again (railway CLI + token gone; rebuilt CLI, token NOT restorable — ntfy telemetry channel unaffected).
+- Telemetry re-read: b7dd1e9 still 0 open / 0 closed at ~07:15Z, ~3.5h after the first gate fix.
+- Rebuilt the lost score probe as scripts/score_probe2.ts (fresh 4h Binance 1m × 10 symbols, runner-identical inputs): 2152 LONG signals, median 36 / p90 46 / p99 54 / MAX 57 — **10 instants crossed gate 55** (SOL 57 @06:33, DOT 57 @06:39-42, AVAX 55 @06:10; rr=1.50 exact on all). Gate NOT the blocker anymore → something between scan and entry.
+- ROOT CAUSE #2: playbook.ts RISK.MIN_SCORE = 65 — the [C1] "gradient ≥62-65" number was measured on the PRE-regression scale and was NEVER re-based when GATES moved to [55,60]. evaluateOpenGuards denied EVERY entry with SCORE_BELOW_GATE. Two independent gates, only one had been fixed in Task 23.
+- FIX: RISK.MIN_SCORE 65 → 55 (≤ GATES[0], comment documents the incident + the invariant). RR guard verified safe (engine rr is exactly 1.50 = MIN_RR floor, passes).
+- Permanent observability: runner.ts exports scanStats (best score+symbol, longSignals, cross55/cross60, denied-by-rule counters, reset-per-digest); telemetry digest now carries a `scan` block — the measured "why no trades" answer ships every 15 min forever.
+- Deploy 253c4ca live (GraphQL auth dead post-reset; verified via ntfy boot + snapshot instead). FIRST DIGEST PROOF (windowMin=1): best=55 SOLUSD/M10, cross55=2, **denied: {}** — guards now PASS where they previously vetoed everything.
+
+Stage Summary:
+- Engine structurally able to trade as of 253c4ca; first OPEN expected within the next gate-55 window (probe: ~2.5 crossings/hour at current regime).
+- Note for future gates: ANY score threshold must derive from the SAME scale as runner GATES — the two-gate drift class is documented in playbook.ts.
+
+---
+Task ID: 28a (first trades landed — outcome recorded)
+Agent: main (Super Z)
+
+Work Log:
+- 06:56:36/40Z: engine opened FIRST TRADES EVER after the MIN_SCORE re-base: 55_10_SOLUSD + 55_30_SOLUSD @ 102.240444 (both gate-55 books, guards passed, OKX sim mirror fired).
+- 07:12Z digest: both CLOSED. equity 9971.90, realizedPnl -28.10 (-0.28%), winRate 0% on n=2 — reported verbatim, no spin.
+- Scan health post-fix: 94 long signals / 15 min, best 51 (below gate — engine correctly standing down), denied {} (no guard vetoes).
+- User question answered with the full two-gate root cause + live outcomes.
+
+Stage Summary:
+- Zero-trade mystery CLOSED end-to-end: two stale gates (runner GATES fixed 03:49Z; playbook MIN_SCORE fixed 06:55Z). Engine now trades, loses, wins, journals — the learning memory finally has real closes to learn from.
