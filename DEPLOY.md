@@ -137,6 +137,33 @@ Admin access: any email in `ADMIN_EMAILS` gets `role=ADMIN` at signup →
 
 ---
 
+## 4b. Engine multi-market ledger + news catalyst (2026-09-06 audit)
+
+The paper ledger now executes **20 markets in 3 classes** under the same validated
+gate-64 / geometry-v2 pipeline (stop 3%, target 1.2%, 12h time stop, $1k notional,
+4-of-7 confluence, full cost model):
+
+| Class | Symbols | Data | Sessions | BTC regime filter |
+|---|---|---|---|---|
+| CRYPTO | BTC, ETH, SOL, XRP, DOGE, ADA, BNB, AVAX, LINK, DOT | Binance 1m (+TD share) | 24/7 | ON (validated) |
+| FX/metals/energy | EUR, GBP, JPY, AUD, XAU (gold), WTI (oil) | Yahoo 5m | closed Fri 21:00 to Sun 22:00 UTC | OFF (validated without) |
+| EQUITY | NVDA, AAPL, MSFT, TSLA | Yahoo 5m | US RTH entries only (14:00-19:45 UTC) | OFF |
+
+Validation evidence (real bars, production-faithful fills/guards, `scripts/geometry_replay.ts`):
+- Crypto 60d: n=69, WR 73.9-75.7%, PF 1.04-1.14. Confluence-4 measured non-binding at gate 64 (kept as discipline guard).
+- Non-crypto 30d: gate 64 = WR 85.7% (rare, quality entries); a gate-58 sweep measured WR 52.9% and a net LOSS, so gates never drop below 64 on any market.
+
+Entry protections added: session gates (`SESSION` denial), last-closed-bar freshness window
+(`STALE_FEED` denial: 10 min crypto / 30 min others), honest `dataState` into the playbook guard
+(`STALE` data never enters), and the engine-side news catalyst.
+
+News catalyst: `FINNHUB_API_KEY` (already set) drives a 5-minute-interval engine feed of
+**verified real headlines only** (no fabrication). Positive, fresh (<24h) items add up to +9 bull
+catalyst points per symbol (engine's CATALYST factor); negative news contributes 0. Fail-open to 0,
+never blocks trading. Rotate coverage: 12 symbols per refresh across the 20-market universe.
+
+---
+
 ## 5. PostHog (analytics) — keys issued, activation is configuration only
 
 The PostHog project exists (US cloud, project id `595377`), both key types are

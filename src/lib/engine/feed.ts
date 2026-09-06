@@ -18,7 +18,7 @@
 export interface FeedBar {
   t: number; o: number; h: number; l: number; c: number; v: number; T: number;
 }
-export type FeedSource = "twelvedata" | "binance";
+export type FeedSource = "twelvedata" | "binance" | "yahoo";
 
 const BINANCE_HOSTS = ["https://api.binance.com", "https://data-api.binance.vision"];
 
@@ -37,11 +37,11 @@ export function feedProvenance(): Record<string, { source: FeedSource; at: numbe
   return JSON.parse(JSON.stringify(provenance)) as typeof provenance;
 }
 
-export function feedStats(): { tdServed: number; binanceServed: number; tdSkippedBudget: number } {
+export function feedStats(): { tdServed: number; binanceServed: number; tdSkippedBudget: number; yahooServed: number } {
   return { ...counters };
 }
 
-const counters = { tdServed: 0, binanceServed: 0, tdSkippedBudget: 0 };
+const counters = { tdServed: 0, binanceServed: 0, tdSkippedBudget: 0, yahooServed: 0 };
 
 // ── Per-minute rotated TD share ──
 // Universe order rotates by minute bucket: for minute M, symbols whose rotated
@@ -85,6 +85,33 @@ async function binanceKlines(sym: string, limit: number): Promise<FeedBar[]> {
   throw new Error(`binance unreachable: ${String(lastErr).slice(0, 80)}`);
 }
 
+// ── Non-crypto path: Yahoo 5m bars (shared provider instance + poll cache) ──
+// Crypto majors keep their free, proven Binance 1m path. FX/gold/oil/stocks
+// have no free 1m source on Railway (Twelve Data free plan exhausts at
+// 800 credits/day), so the ledger's non-crypto books run on Yahoo 5m bars —
+// the EXACT series class the 30-day replay validated for these markets
+// (scripts/geometry_replay.ts: gate 64, WR 85.7%, session-gated).
+import { YahooProvider } from "@/lib/providers/market";
+import { marketClassOf } from "@/lib/engine/markets";
+
+const yahoo = new YahooProvider();
+const yahooPoll = new Map<string, { at: number; bars: FeedBar[] }>();
+const YAHOO_POLL_GAP_MS = 60_000; // one Yahoo fetch per symbol per minute
+
+async function yahooKlines(sym: string, limit: number, seed: boolean): Promise<FeedBar[]> {
+  if (!seed) {
+    const hit = yahooPoll.get(sym);
+    if (hit && Date.now() - hit.at < YAHOO_POLL_GAP_MS) return hit.bars;
+  }
+  const series = await yahoo.getCandles(sym, seed ? "1mo" : "1d", "5m");
+  if (!series || series.candles.length === 0) throw new Error(`yahoo empty ${sym}`);
+  const bars: FeedBar[] = series.candles.slice(-limit).map((c) => ({
+    t: c.t, o: c.o, h: c.h, l: c.l, c: c.c, v: c.v ?? 0, T: c.t + 300_000,
+  }));
+  if (!seed) yahooPoll.set(sym, { at: Date.now(), bars });
+  return bars;
+}
+
 async function tdKlines(sym: string, limit: number): Promise<FeedBar[]> {
   const { twelvedataKlines } = await import("@/lib/market/twelvedata");
   const bars = await twelvedataKlines(sym, { interval: "1min", limit });
@@ -98,14 +125,28 @@ export interface FeedFetch {
 }
 
 /**
- * Fetch up to `limit` recent 1m bars for an engine symbol (XXXUSD).
- * Twelve Data is served inside a per-minute rotated share while the free-plan
- * budget holds; the planned remainder goes straight to Binance.
+ * Fetch recent bars for an engine symbol (XXXUSD).
+ *   CRYPTO  — Twelve Data inside its per-minute rotated share while the free
+ *             plan budget holds, Binance 1m for the remainder (free, proven).
+ *   Others  — Twelve Data when the budget allows, otherwise Yahoo 5m bars
+ *             (the validated series class for the non-crypto ledger books).
  * Note: closed-bar filtering (bar.T < now) stays the caller's job, identical
  * to the validated live-run loop.
  */
 export async function fetchKlinesAny(sym: string, limit: number): Promise<FeedFetch> {
   const { twelvedataConfigured, tdBudgetAvailable } = await import("@/lib/market/twelvedata");
+  const cls = marketClassOf(sym);
+  const seed = limit > 50;
+
+  // NON-CRYPTO: straight to Yahoo 5m — the validated series class for these
+  // books. TD would serve 1m bars (different lookbacks = unvalidated config)
+  // and equities are invalid TD symbols anyway; skip TD entirely here.
+  if (cls !== "CRYPTO") {
+    const bars = await yahooKlines(sym, limit, seed);
+    counters.yahooServed++;
+    noteSource(sym, "yahoo");
+    return { bars, source: "yahoo" };
+  }
 
   // TD path requires: keyed + inside rotated share + budget actually remaining.
   if (twelvedataConfigured() && tdRankedThisMinute(sym) && tdBudgetAvailable()) {
@@ -119,15 +160,12 @@ export async function fetchKlinesAny(sym: string, limit: number): Promise<FeedFe
       if (msg.includes("TD_RATE_LIMIT")) {
         // Budget ran out between the pre-check and the call — planned handoff,
         // NOT a degradation. Fall through to Binance silently.
+      } else {
         const bars = await binanceKlines(sym, limit);
         counters.binanceServed++;
-        noteSource(sym, "binance");
-        return { bars, source: "binance" };
+        noteSource(sym, "binance", `twelvedata: ${msg.slice(0, 60)}`);
+        return { bars, source: "binance", degraded: `twelvedata: ${msg.slice(0, 60)}` };
       }
-      const bars = await binanceKlines(sym, limit);
-      counters.binanceServed++;
-      noteSource(sym, "binance", `twelvedata: ${msg.slice(0, 60)}`);
-      return { bars, source: "binance", degraded: `twelvedata: ${msg.slice(0, 60)}` };
     }
   }
 

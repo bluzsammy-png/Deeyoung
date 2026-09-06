@@ -9,11 +9,21 @@
 //   rolling-10 stretch 6 wins (median 9). Replaces the 4-book gate-55/60
 //   config whose ATR(1m) targets (~8bps) were smaller than RT costs (24bps)
 //   — every "TARGET win" netted −1.9R (prod incident 2026-09-05).
+// 2026-09-06 AUDIT REPLAY (scripts/geometry_replay.ts, real bars, production-
+// faithful fills/guards): crypto 60d → n=69, WR 73.9-75.7%, PF 1.04-1.14
+// (confluence 4 measured NON-BINDING at gate 64 — kept as a desk-discipline
+// guard; BTC filter kept as structural risk-off protection). Non-crypto
+// markets added to the LEDGER on the validated Yahoo-5m series class (30d:
+// gate 64 → WR 85.7%, zero stops; gate 58 sweep was NET-NEGATIVE — gates
+// stay ≥64 for every market). Session gates + entry freshness gate + honest
+// dataState + Finnhub news catalyst (0-9, minutes cadence, fail-open) wired.
 
 import { computeSignal } from "@/lib/engine/signals";
 import type { Bar } from "@/lib/engine/indicators";
 import { fetchKlinesAny, setFeedUniverse, type FeedBar } from "@/lib/engine/feed";
 import { getEngineControl } from "@/lib/engine/control";
+import { LEDGER_UNIVERSE, entriesOpenFor, freshWindowMs, dataStateFor, marketClassOf } from "@/lib/engine/markets";
+import { newsIntel, startNewsIntelLoop } from "@/lib/brain/news-intel";
 import {
   paperEntry, paperExit, paperMarkToMarket, paperLastClose, paperTodayNetR,
   paperLastLossAtMs, paperClosedCount, paperOpenCount, getOrCreateRun,
@@ -24,7 +34,7 @@ import { db } from "@/lib/db";
 import { mirrorOnEntry, mirrorOnExit, mirrorCycle, openMirrorCount, venueMode } from "@/lib/engine/venue";
 import { fanoutOnEntry, fanoutOnExit } from "@/lib/engine/fanout";
 
-export const SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "BNBUSD", "AVAXUSD", "LINKUSD", "DOTUSD"];
+export const SYMBOLS = LEDGER_UNIVERSE;
 // Gate re-based to the geometry-v2 operating point (measured optimum band
 // 62-65; 64 = the deployed walk-forward winner). One book per signal: M30.
 const GATES = [64];
@@ -34,7 +44,8 @@ const SEED_BARS = 2000;
 const MAX_BARS = 3000;
 const NOTIONAL = 1_000;      // 10% of the paper account per trade — risk-bounded
 const TIME_STOP_MIN = 720;   // 12h — signal half-life is hours, not minutes
-const BTC_FILTER = true;     // longs only while BTC > its 60m EMA20 (regime gate)
+const BTC_FILTER = true;     // crypto longs only while BTC > its 60m EMA20 (regime gate);
+                             // validated per class — never applied to FX/EQUITY books
 const COOLDOWN_MS = 30 * 60_000;
 // PRO CONFLUENCE GATE (owner directive: trade like a professional, not a signal
 // spammer): an entry needs at least 4 of the 7 technical factors pointing the
@@ -183,6 +194,7 @@ async function loopBody(
 
   const { run } = await getOrCreateRun();
   log(`[engine] run=${run.label} id=${run.id} — paper engine of record`);
+  startNewsIntelLoop(SYMBOLS); // engine-side internet research, 5-min cadence, fail-open
   const pollMs = opts.pollMs ?? POLL_MS;
   let lastFlush = 0;
   setFeedUniverse(SYMBOLS); // feed fair-share rotation knows the universe
@@ -296,7 +308,7 @@ async function loopBody(
           const sig = computeSignal({
             candles: cs,
             dayCandles: { symbol: sym, candles: dayBars, dataState: "LIVE", source: `feed-${source}` } as unknown as Parameters<typeof computeSignal>[0]["dayCandles"],
-            relVolume, regimePrimary: "NEUTRAL", catalystScore: 0,
+            relVolume, regimePrimary: "NEUTRAL", catalystScore: newsIntel().scoreFor(sym),
             avgVolume: priorVol, minLiquidityUsd: 0,
             horizon: hzName,
             adaptiveWeights: brain.adaptiveWeights(hzName),
@@ -317,7 +329,13 @@ async function loopBody(
             if (sig.score < gate) continue;
             scanStats.cross[gate] = (scanStats.cross[gate] ?? 0) + 1;
             liveScan.crossSinceBoot[gate] = (liveScan.crossSinceBoot[gate] ?? 0) + 1;
-            if (BTC_FILTER && !btcUp) { noteDenied(["BTC_REGIME"]); continue; }
+            // BTC regime filter is validated for CRYPTO books only
+            if (marketClassOf(sym) === "CRYPTO" && BTC_FILTER && !btcUp) { noteDenied(["BTC_REGIME"]); continue; }
+            // session gates: FX weekend close, equities RTH-only entries
+            if (!entriesOpenFor(sym, now)) { noteDenied(["SESSION"]); continue; }
+            // entry freshness: stale feeds never enter (exits still managed above)
+            const lastClosedAge = now - (lastT[sym] ?? 0);
+            if (lastClosedAge > freshWindowMs(sym)) { noteDenied(["STALE_FEED"]); continue; }
             // professional confluence: factors must agree before money moves
             const aligned = sig.factors.filter((f) => f.contribution > 0).length;
             if (aligned < GATE_CONFLUENCE) { noteDenied(["CONFLUENCE"]); continue; }
@@ -334,7 +352,7 @@ async function loopBody(
               hourUtc, score: sig.score, rr: sig.rr,
               openPositions: open.size,
               todayNetR: todayNetRCache.get(cacheKey) ?? 0,
-              lastLossAtMs, dataState: "LIVE", liquidityOk: true,
+              lastLossAtMs, dataState: dataStateFor(sym, lastClosedAge), liquidityOk: true,
             };
             const verdict = evaluateOpenGuards(guardIn, brain.deadHours(hzName));
             if (!verdict.allowed) {

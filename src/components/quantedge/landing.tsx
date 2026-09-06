@@ -177,7 +177,7 @@ function DeskStrip() {
         })}
       </div>
       <p className="mt-2.5 border-t border-hairline pt-2 text-[10px] leading-relaxed text-muted-foreground">
-        The same 7-factor engine, run across 18 markets in 5 asset classes. The public paper ledger executes crypto majors; FX, metals, index and stock reads publish live so every plan can audit cross-market coverage. Research reads, not trade calls.
+        The same 7-factor engine, run across 20 markets in 5 asset classes. The public paper ledger now executes crypto, FX majors, gold, oil and mega-cap stocks (session-gated, same gate and geometry as the validated crypto book); index and remaining desk reads publish live so every plan can audit cross-market coverage. Research reads, not trade calls.
       </p>
     </div>
   );

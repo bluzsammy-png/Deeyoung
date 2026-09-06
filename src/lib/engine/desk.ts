@@ -1,10 +1,11 @@
 // DEEYOUNG PRO — Cross-Market Playbook Desk.
 // The SAME deterministic 7-factor signal engine that drives the paper ledger,
 // run as research reads across FX majors, metals, energy, global indices and
-// mega-cap stocks. HONESTY CONTRACT: these are computed reads from real
-// candles, never invented; the paper EXECUTION ledger remains crypto majors
-// (that is where real 1-minute bars are reliably free). FX/gold/index reads
-// are published so every plan holder can audit cross-market coverage.
+// mega-cap stocks. HONESTY CONTRACT (updated 2026-09-06): the paper EXECUTION
+// ledger now runs crypto (Binance 1m), FX majors/gold/WTI (Yahoo 5m) and
+// mega-cap stocks (Yahoo 5m, RTH-gated) under the same gate-64 geometry v2;
+// indices and the rest of the desk stay research reads. All numbers come from
+// real candles, never invented.
 
 import { computeSignal } from "@/lib/engine/signals";
 import { isVolumeBlind, marketProvider, UNIVERSE } from "@/lib/providers/market";
