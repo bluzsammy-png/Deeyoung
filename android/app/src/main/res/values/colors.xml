@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="window_background">#0A0A0A</color>
+    <color name="brand_red">#DC2626</color>
+    <color name="brand_red_hi">#EF4444</color>
+    <color name="pos_green">#10B981</color>
+    <color name="neg_red">#F6465D</color>
+    <color name="ic_launcher_background">#DC2626</color>
+</resources>

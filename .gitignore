@@ -82,3 +82,12 @@ public/*.mp4
 
 # dev-only sandbox helper (reaper escape hatch) — never deploy, never commit
 src/app/api/dev-pair/
+
+# ── Android build environment (sandbox-local, never commit) ──
+/.gradle/
+/android-sdk/
+/tools/
+/download/
+/db/
+/swapfile
+tools_bootstrap.log

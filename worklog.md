@@ -979,3 +979,22 @@ Stage Summary:
 - Direct answer to "why only 3 trades": the current config has taken ONE live trade; the strategy's denials are measured (notLong 36%, belowGate 19%, regime 45%-now-released, session 30% non-crypto) and the rare-trade profile IS the replay-validated edge — forcing frequency (more books, faster scanning) was tested on real bars and LOSES money, so it was rejected.
 - The one lever that passed evidence (regime gate removal) ships: it raises both trade count AND WR AND PF on both independent halves. Replay harness + fetcher committed as audit evidence.
 - Open: Yahoo backfill loop running for non-crypto expansion validation; probe.yml push-trigger fix abandoned (workspace anomaly, cosmetic).
+
+---
+Task ID: 45-android
+Agent: main (Super Z)
+Task: Build a real native Android app (Kotlin/Jetpack Compose/Material 3) for deyoungpro.site as a client of the existing backend; no WebView; shared API/DB; backend changes only where needed; full audit.
+
+Work Log:
+- Inspected the whole web project: routes, better-auth config, withGuard entitlements (FREE/STARTER/PRO/ELITE + 402), engine snapshot shape, desk, portfolio intel, sentinel state/config/kill, approvals, trades, news, billing checkout links, support threads, brand tokens (Crimson Luxe #DC2626/#0A0A0A, Space Grotesk + JetBrains Mono), logo.svg mark, capacitor legacy config (untouched).
+- Server changes (additive only): auth.ts + better-auth bearer plugin (set-auth-token header + Authorization: Bearer on all guarded routes); PushToken model in BOTH prisma schemas (auto-applied by boot db push); new /api/mobile/push route; new /.well-known/assetlinks.json route (ANDROID_APP_PACKAGE/ANDROID_APP_SHA256 env).
+- Built the native app at android/: single-activity Compose, NavHost + bottom bar/NavigationRail (WindowSizeClass), ViewModels + repositories + Retrofit/OkHttp/kotlinx-serialization, EncryptedSharedPreferences session, DataStore settings + offline cache, biometric lock, deep links + App Links intent filters, pull-to-refresh, Canvas equity + candle charts, manual paper-trade sheet, SENTINEL approvals/config/kill switch, notifications feed + WorkManager alert poller + FCM registrar (gated), pricing via Custom Tabs, support chat, share sheet, dark-first theme + light palette, adaptive launcher icon from logo mark, brand TTFs (OFL).
+- Environment fixes: IPv4-forced downloads (IPv6 stalls), cmdline-tools reinstall, JDK 17 (Temurin) for jlink, gradle.properties tuned for 4GB box (no daemon, in-process Kotlin, 1280m heap, workers=1) after OOM kills.
+- Build results: assembleDebug APK 21.6MB; assembleRelease APK 14.8MB; bundleRelease AAB 14.3MB; aapt badging verified (package com.deeyoungs.pro, minSdk 26, target 35, 4 permissions, autoVerify hosts); unit tests 10/10 passed (DTO fixtures + Format).
+- E2E API verification (local Next dev + throwaway SQLite): sign-up returns set-auth-token; bearer get-session OK; /api/signals 402 on FREE (gate works via bearer), 401 without token, 200 after plan=PRO; engine/status 200; mobile/push registers token; assetlinks valid JSON; sign-out revokes. Learned: local prisma client must match the sqlite schema (regenerated; repo left on postgres schema).
+- tsc --noEmit: zero errors in changed files (10 pre-existing errors elsewhere, unchanged).
+
+Stage Summary:
+- Deliverables: download/deeyoung-android/{DeeYoungPro-1.0.0-debug.apk, DeeYoungPro-1.0.0-release.apk, DeeYoungPro-1.0.0-release.aab}; android/ source committed to repo; android/docs/AUDIT.md + android/README.md (release + Play steps + App Links + FCM activation).
+- Website safety: only additive server files changed; browser cookie auth untouched; deploy via git push (Railway), verify /api/health + assetlinks after.
+- Follow-ups: real signing keystore (never commit), ANDROID_APP_SHA256 env for App Link verification, connectedDebugAndroidTest on hardware, optional free Firebase project for FCM realtime push, R8 on for store build.

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DeeYoung Pro</string>
+    <string name="notif_channel_alerts">Trade alerts</string>
+    <string name="notif_channel_alerts_desc">Trade fills, approvals and risk events from your DeeYoung Pro account</string>
+    <string name="notif_channel_general">General</string>
+    <string name="notif_channel_general_desc">Account and product updates</string>
+</resources>

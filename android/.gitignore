@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+
+# Signing material must never enter version control
+/keystore.properties
+*.jks
+*.keystore
+
+# Firebase config (contains public identifiers only, but keep out of VCS)
+/app/google-services.json

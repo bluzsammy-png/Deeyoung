@@ -677,3 +677,19 @@ model BillingOrder {
   @@index([status, createdAt])
   @@index([userId, createdAt])
 }
+
+// ─── MOBILE PUSH TOKEN REGISTRY (2026-09-06) ────────────────────────────────
+// DEEYOUNG PRO — native Android client push tokens. One row per device token.
+// No FK on purpose: device tokens are deleted by token value on sign-out or
+// uninstall; userId is indexed for future fanout sends. Stored by
+// /api/mobile/push (bearer-authenticated mobile clients only).
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String   @default("ANDROID") // ANDROID | IOS
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}

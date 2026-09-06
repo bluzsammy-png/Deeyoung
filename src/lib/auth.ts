@@ -9,6 +9,7 @@
 
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { bearer } from "better-auth/plugins";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { db } from "@/lib/db";
 import { clientIpFromHeaders, hashIp, isPrivateNetworkIp, verifyTurnstile } from "@/lib/trust";
@@ -41,6 +42,15 @@ export const auth = betterAuth({
       .map((s) => s.trim())
       .filter(Boolean),
   ],
+  // Native clients (Android/iOS apps) authenticate with the session token via
+  // the Authorization: Bearer header instead of cookies. The bearer plugin:
+  //   1. returns the session token in the `set-auth-token` response header on
+  //      sign-in / sign-up, and
+  //   2. converts `Authorization: Bearer <token>` back into a session on every
+  //      request — so ALL existing guarded routes work unchanged for mobile.
+  // Browser cookie flows are untouched (the plugin only activates when the
+  // authorization header is present).
+  plugins: [bearer()],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
