@@ -833,6 +833,7 @@ export function Landing() {
                 <a href="#pricing" className="transition-colors hover:text-foreground">Pricing</a>
                 <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
                 <a href="/status" className="transition-colors hover:text-foreground">System status</a>
+                <a href="/app" className="font-medium transition-colors hover:text-brand">Android app · download</a>
                 <button onClick={() => setEntered(true)} className="transition-colors hover:text-foreground">Terminal</button>
               </div>
             </div>
