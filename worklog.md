@@ -871,3 +871,22 @@ Stage Summary:
 - PostHog pipeline proven end to end live (capture, ingestion, REST, HogQL); one real panel bug found and fixed before keys even land.
 - Code deployed (aadb6bf); activation is now pure config: pairing approval + 5 Railway variables, then first pageview flips the panel to live data.
 - Owner deliverables this round: pairing code BRXJ-MKHS, 5-var paste list, beginner activation steps, recommendations list, engine ledger anomaly flag.
+
+---
+Task ID: 40
+Agent: Super Z (main)
+Task: Owner approved Railway API token; verify why https://deyoungpro.site does not work; finish PostHog activation.
+
+Work Log:
+- Auth: CLI device codes kept dying (sandbox reaper + 15-min TTL, user code approvals kept landing on dead processes). Owner delivered an API token (UUID) via chat. CLI 5.49.2 has NO --api-token flag and RAILWAY_TOKEN rejected it for whoami, but direct GraphQL (backboard.railway.com/graphql/v2, Bearer token) WORKS: token sees graceful-happiness + QuantEdge Terminal (untouched). Note: Railway WAF 403s python-urllib user agents; curl with custom UA passes.
+- Mapped project: env production e805b437-d576-472a-831a-667d0fd967b0; services: Postgres, WwwRedirect (caddy:2-alpine), Deeyoung df1df0cc-f7a4-43b1-abda-569e7ea028c1.
+- POSTHOG ACTIVATED: set 5 vars on Deeyoung/production via variableCollectionUpsert (NEXT_PUBLIC_POSTHOG_KEY=phc_…, NEXT_PUBLIC_POSTHOG_HOST/POSTHOG_HOST=https://us.i.posthog.com, POSTHOG_API_KEY=phx_…, POSTHOG_API_HOST=https://us.posthog.com); cleaned up a probe var; verified full readback (FINNHUB_API_KEY was already set by previous session). Also upgraded TRUSTED_ORIGINS to include https://deyoungpro.site + www (sign-in from apex would otherwise be rejected). Variable changes triggered fresh builds; final deployment (0bf25d8, contains all analytics code) SUCCESS + booted 02:11 UTC (telemetry armed line). PostHog project had only the smoke event at report time; real events flow from first visitor.
+- DOMAIN ROOT CAUSE (apex): Railway domains query shows deyoungpro.site attached to Deeyoung, syncStatus ACTIVE, cert VALID, verified true, and requires EXACTLY one record: CNAME @ -> 292c5m8z.up.railway.app. currentValue EMPTY, status REQUIRES_UPDATE. Owner deleted/lost the apex record in Spaceship since Task 37 (where it was verified working). Edge proof: probing the edge IP with SNI deyoungpro.site returns the same 429 the app gives this sandbox IP -> routing fully alive; DNS is the only missing piece.
+- DOMAIN (www): www CNAME -> hl10zdkg.up.railway.app which belongs to NO live service (ghost from a removed service) -> 502. WwwRedirect service (caddy) had start command configured (Caddyfile :8080 redir https://deyoungpro.site{uri} 301) but its ONLY deployment predated the config; it also had NO generated service domain. Fixed: created generated domain wwwredirect-production.up.railway.app (targetPort 8080), redeployed WwwRedirect twice. Reproduced the exact start command locally with a real binary: serves 301 with path+query preserved, config proven correct. Sandbox egress to Railway edge is flaky (429/hangs), so end-to-end www verification from here is inconclusive; Railway still lists required CNAME as the stale hl10zdkg (their panel may refresh after the generated domain settles).
+- Sandbox hostility log: untracked scripts keep getting wiped mid-session (telemetry_read.sh vanished, recreated; earlier pairing scripts gone). CLI installed 3x. Helper scripts are env-secret-free and safe; consider committing the reusable ones.
+
+Stage Summary:
+- PostHog: LIVE (config + code + deploy all in production). First real visits populate the admin Analytics tab.
+- deyoungpro.site: one Spaceship record away from working (apex CNAME -> 292c5m8z.up.railway.app, flatten enabled). Cert valid, edge routing proven.
+- www: infra repaired as far as possible from here (ghost target identified, redirector container fixed + redeployed); owner should verify/update the www CNAME per Railway's WwwRedirect networking panel.
+- Owner to do in Spaceship: re-add apex record; then browser-test https://deyoungpro.site.
