@@ -79,19 +79,26 @@ function digest(s: Record<string, unknown>, scan: Record<string, unknown> | null
 }
 
 async function publish(title: string, body: string): Promise<boolean> {
-  try {
-    const res = await fetch(`https://ntfy.sh/${TOPIC}`, {
-      method: "POST",
-      headers: { "Title": title, "Tags": "chart", "Content-Type": "text/plain" },
-      body: body.slice(0, MAX_BODY),
-      signal: AbortSignal.timeout(15_000),
-    });
-    console.log(`[telemetry] ntfy ${title} → HTTP ${res.status} (${body.length}B)`);
-    return res.ok;
-  } catch (e) {
-    console.log(`[telemetry] ntfy ${title} failed: ${String(e).slice(0, 120)}`);
-    return false;
+  // One retry with a short backoff: ntfy egress from Railway occasionally
+  // fails at the network level ("fetch failed", seen 2026-09-06 04:36 UTC
+  // while Binance/Yahoo egress was fine) and a single retry clears most
+  // transient DNS/TLS blips without spamming the topic.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch(`https://ntfy.sh/${TOPIC}`, {
+        method: "POST",
+        headers: { "Title": title, "Tags": "chart", "Content-Type": "text/plain" },
+        body: body.slice(0, MAX_BODY),
+        signal: AbortSignal.timeout(15_000),
+      });
+      console.log(`[telemetry] ntfy ${title} → HTTP ${res.status} (${body.length}B, attempt ${attempt})`);
+      return res.ok;
+    } catch (e) {
+      console.log(`[telemetry] ntfy ${title} failed (attempt ${attempt}): ${String(e).slice(0, 120)}`);
+      if (attempt === 1) await new Promise((r) => setTimeout(r, 20_000));
+    }
   }
+  return false;
 }
 
 async function tick() {
