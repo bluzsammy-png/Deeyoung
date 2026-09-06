@@ -29,6 +29,22 @@
 // gate 66/68 (crypto net-negative), target 1.5%/1.8% (crypto PF < 1),
 // per-symbol trend filter (non-binding / worse net), VWAP hard gate
 // (non-binding), timeStop 480m (WR 68.6%, net negative). No hopeful constants.
+// 2026-09-06 REGIME + UNIVERSE ROUND (scripts/expanded_universe_replay.ts, 60d
+// real bars, pre-registered ship rule, BOTH independent 30d halves):
+//   BTC REGIME FILTER REMOVED from the entry path. Post-volGuard it no longer
+//   protects — it only removes profitable trades: full 60d n54→59, WR
+//   79.6→81.4%, net $137.45→$186.38, PF 1.49→1.66; H1 n7→9 WR 71.4→77.8%
+//   net $11.95→$31.53 PF 1.32→1.85; H2 n47→50 WR 80.9→82% net $125.5→$154.86
+//   PF 1.51→1.63. Every segment better. The regime VERDICT stays journaled for
+//   transparency (regimeUp) but no longer gates entries.
+//   REJECTED in the same round (evidence, not folklore): adding 10 secondary
+//   crypto books (LTC/ATOM/ETC/XLM/NEAR/APT/ARB/OP/SUI/FIL) measured n=91,
+//   WR 69.2%, net −$300.09, PF 0.67 — additions DILUTE the ledger; scan stride
+//   1m (every bar instead of every 2nd) measured n79 net $45.51 PF 1.08 —
+//   sampling faster admits weaker fills; maxConcurrent 5 and cooldown 15m
+//   measurably worse or neutral. The 10 deployed majors stay; cadence stays
+//   120s. The rare-trade profile IS the edge: denials are dominated by
+//   notLong 36% / belowGate 19% (and 45% btcRegime, now released).
 
 import { computeSignal } from "@/lib/engine/signals";
 import type { Bar } from "@/lib/engine/indicators";
@@ -60,8 +76,9 @@ const TIME_STOP_MIN_DEFAULT = 720; // 12h — non-crypto stays (1080m measured w
 function timeStopMinFor(symbol: string): number {
   return marketClassOf(symbol) === "CRYPTO" ? TIME_STOP_MIN_CRYPTO : TIME_STOP_MIN_DEFAULT;
 }
-const BTC_FILTER = true;     // crypto longs only while BTC > its 60m EMA20 (regime gate);
-                             // validated per class — never applied to FX/EQUITY books
+const BTC_FILTER = false;    // crypto regime gate RETIRED 2026-09-06 (see header:
+                             // post-volGuard replay, both 30d halves, all metrics
+                             // better without it; verdict still journaled)
 const COOLDOWN_MS = 30 * 60_000;
 // PRO CONFLUENCE GATE (owner directive: trade like a professional, not a signal
 // spammer): an entry needs at least 4 of the 7 technical factors pointing the

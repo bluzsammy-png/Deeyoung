@@ -3,8 +3,9 @@
 // SAME validated pipeline (gate 64, M30 scoring, geometry v2, 4-of-7
 // confluence, $1k notional) with the session rules and series class that its
 // validation actually used:
-//   CRYPTO — Binance 1m bars, 24/7, BTC 60m-EMA20 regime filter ON
-//            (60d replay: n=69, WR 73.9%, PF 1.04 — scripts/geometry_replay.ts).
+//   CRYPTO — Binance 1m bars, 24/7. BTC regime gate RETIRED 2026-09-06 (see
+//            runner.ts header: post-volGuard replay, both 30d halves better
+//            without it — WR 79.6→81.4%, PF 1.49→1.66).
 //   FX     — Yahoo 5m bars, 24/5 (closed Fri 21:00 → Sun 22:00 UTC), BTC
 //            filter OFF (validated without it; 30d replay: WR 85.7% at gate 64).
 //   EQUITY — Yahoo 5m bars, US RTH entries only (14:00-19:45 UTC), BTC filter

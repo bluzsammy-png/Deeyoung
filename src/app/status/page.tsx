@@ -154,7 +154,7 @@ export default async function StatusPage() {
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-400">Open positions</h2>
       {snap.openPositions.length === 0 ? (
-        <p className="mt-2 text-sm text-zinc-500">None right now. The engine only enters on gate-64 signals that pass every playbook guard (confluence 4, regime, session, freshness, volatility band).</p>
+        <p className="mt-2 text-sm text-zinc-500">None right now. The engine only enters on gate-64 signals that pass every playbook guard (confluence 4, session, freshness, volatility band).</p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-800">
           <table className="w-full text-left text-sm">
@@ -214,7 +214,7 @@ export default async function StatusPage() {
         decision (enter, or the rule that said no). Written at the decision point itself, never reconstructed.
         {snap.live ? (
           <>
-            {" "}Current regime filter: BTC {snap.live.regimeUp === null ? "unknown" : snap.live.regimeUp ? "above its 60m EMA20 (crypto longs allowed)" : "below its 60m EMA20 (crypto longs blocked)"}.
+            {" "}Regime context (informational only): BTC {snap.live.regimeUp === null ? "unknown" : snap.live.regimeUp ? "above its 60m EMA20" : "below its 60m EMA20"}. The regime gate was retired 2026-09-06 after the post-volGuard replay showed every metric better without it; this readout stays for transparency and no longer blocks entries.
           </>
         ) : null}
       </p>
