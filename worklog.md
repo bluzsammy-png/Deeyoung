@@ -1045,3 +1045,18 @@ Work Log:
 Stage Summary:
 - APK now discoverable three ways: deyoungpro.site/app page, homepage footer link, direct /deeyoungpro-1.0.0.apk URL. Disk at 62%, build pipeline healthy.
 - Caveat: ~/.gradle caches deleted (Android rebuilds will re-download; JDK 21 system is compatible with AGP, .tools/jdk17 removed - reinstall Temurin 17 if a JDK-17-pinned rebuild is ever needed).
+
+---
+Task ID: 45-launch-kit
+Agent: Super Z (main)
+Task: Owner request - cinematic "coming soon" social media designs for the Android app announcement.
+
+Work Log:
+- Loaded pdf skill; routed to Creative pipeline per poster.md + creative-fixed-canvas.md; used Direct HTML Flow (brand-specific bypass, sanctioned for posters needing exact brand control).
+- Brand-faithful design system: #0a0a0a canvas, #dc2626/#ef4444 red family, hairline 8% grid (54px, masked), Space Grotesk + JetBrains Mono (real brand variable TTFs from android/res/font, copied to kit/fonts/), inline EdgeMark SVG (exact copy of edge-mark.tsx), ghost "PRO" 4% typography, radial red glow, CSS phone mockup recreating the real app UI (engine-active bar, paper equity $9,946.47 from public ledger, candle+trendline SVG, EURUSD signal card, bottom nav).
+- 5 canvases, all rendered @2x via Playwright (scripts/posters/render_posters.js): 01-master-square-1080 (COMING SOON hero), 02-story-1080x1920 (vertical), 03-wide-1200x675 (X/LinkedIn), 04-features-square-1080 (anti-modular typography list, hairline rows), 05-outnow-square-1080 (launch-day variant -> deyoungpro.site/app).
+- Validation: poster_validate.py check-html on all 5 (2 FONT_NO_FALLBACK errors per file are false positives on @font-face definition lines - fallbacks invalid inside @font-face; all usage declarations have generic fallbacks); fixed poster-floor text sizes on wide (subline 22->24px, ticker 13->16px); visual iteration via PNG Reads: fixed speclist/subline overlap (measured getBoundingClientRect: speclist top 565->648), sigmeta wraps in 306px/250px phones (split entry/stop + target/confluence lines), 05 subline hidden behind phone (headwrap 640->620).
+- Honesty: no profit/win-rate claims on any poster; paper equity shown as "Paper Equity" (real public ledger number); symbols-only ticker (no invented prices); CAPTIONS.txt includes honesty rules + platform mapping + 6 caption sets (X, IG, FB, TG/WA broadcast, launch day, story overlay).
+
+Stage Summary:
+- Deliverables in download/app-launch-kit/: 5 PNGs @2x (2160px etc), 5 editable HTML sources, fonts/, CAPTIONS.txt. Phone mockup is a UI recreation, not a screenshot (no emulator on host) - disclosed here for audit honesty.
