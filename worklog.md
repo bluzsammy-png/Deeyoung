@@ -998,3 +998,18 @@ Stage Summary:
 - Deliverables: download/deeyoung-android/{DeeYoungPro-1.0.0-debug.apk, DeeYoungPro-1.0.0-release.apk, DeeYoungPro-1.0.0-release.aab}; android/ source committed to repo; android/docs/AUDIT.md + android/README.md (release + Play steps + App Links + FCM activation).
 - Website safety: only additive server files changed; browser cookie auth untouched; deploy via git push (Railway), verify /api/health + assetlinks after.
 - Follow-ups: real signing keystore (never commit), ANDROID_APP_SHA256 env for App Link verification, connectedDebugAndroidTest on hardware, optional free Firebase project for FCM realtime push, R8 on for store build.
+
+---
+Task ID: 45-android-b
+Agent: Super Z (main)
+Task: Independent verification round of the Android deliverable after sandbox reset (rebuild from zero, re-audit, final report).
+
+Work Log:
+- Verified commit 725a039 IS on origin/main (Railway auto-deploy); non-android diff = exactly 5 files (.gitignore, 2 prisma schemas, auth.ts, worklog) + 2 additive routes; website untouched.
+- Code re-audit PASS: SessionStore (EncryptedSharedPreferences AES256-GCM/SIV + Keystore, backup-excluded), ApiClient (bearer per call, set-auth-token captured only on /api/auth/, one-shot 401 clear, BASIC debug-only logging), manifest (4 declared permissions, singleTask, autoVerify App Links both hosts), network_security_config (cleartext loopback only), /api/mobile/push (withGuard, length cap, userId-scoped delete), assetlinks route (env-driven, safe default). Secret scan on android/ = 0 hits.
+- Sandbox had been reset (no SDK, no JDK17, no ~/.gradle caches, javac missing): rebuilt toolchain from scratch - Temurin 17 + cmdline-tools + platforms;android-35 + build-tools;35.0.0 (all free).
+- Build failures diagnosed and fixed: (a) detached/backgrounded gradle processes die silently AND kernel OOM-kills java at ~2.2GB anon RSS on this 4GB box -> must build in foreground with a tighter JVM ceiling; (b) gradle.properties heap 1280m->1024m, metaspace 448m->384m, kotlin daemon 768m (committed 3838712); (c) first non-clean build packaged a 32.5MB APK with ~11MB of dead ZIP space from stale intermediates of killed runs -> clean rebuild restored exact 21,646,876 bytes.
+- RE-VERIFIED FROM ZERO: :app:assembleDebug BUILD SUCCESSFUL (1m15s clean), testDebugUnitTest 10/10 (4+6, 0 failures, fresh XML), assembleRelease 14,776,975B, bundleRelease 14,251,334B; artifacts refreshed in download/deeyoung-android/; aapt: package com.deeyoungs.pro v1.0.0, min26/target35, 4 declared permissions (+4 standard AndroidX manifest merges noted honestly); npx tsc --noEmit = exactly 10 pre-existing errors in unrelated scripts/skills, ZERO in changed server files.
+
+Stage Summary:
+- Every material claim in android/docs/AUDIT.md independently re-verified on a from-zero toolchain. Deliverables are real, reproducible, and byte-consistent. Caveats unchanged: no emulator/device run on this host (no KVM), FCM realtime push activation-gated, App Links verification needs ANDROID_APP_SHA256 env + real keystore.
