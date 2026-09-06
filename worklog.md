@@ -890,3 +890,17 @@ Stage Summary:
 - deyoungpro.site: one Spaceship record away from working (apex CNAME -> 292c5m8z.up.railway.app, flatten enabled). Cert valid, edge routing proven.
 - www: infra repaired as far as possible from here (ghost target identified, redirector container fixed + redeployed); owner should verify/update the www CNAME per Railway's WwwRedirect networking panel.
 - Owner to do in Spaceship: re-add apex record; then browser-test https://deyoungpro.site.
+
+---
+Task ID: 41
+Agent: Super Z (main)
+Task: Owner mandate "final audit on everything, bot must win 7-8 of 10, must trade any market (fx/stock/etc), apply every playbook, lock onto internet research on minutes cadence" + scalability recommendations.
+
+Work Log:
+- Verified production: build e7b2613 ACTIVE, engine running, ledger preserved (equity 9940.79, 3 closed, winRatePct 0). Apex deyoungpro.site DNS restored (A 69.46.46.105; the sandbox's own 429 is the long-standing edge block, site works for the owner).
+- SOLUSD anomaly CLOSED OUT: exit-logic audit proved accounting was CORRECT all along (LONG-only engine, TARGET fills at exact target, netR = netPct/stopDistPct, 10bps/side fees). Root cause of "TARGET exits with exit>entry but -1.9R": the OLD ATR(1m) geometry put targets ~6-8bps above entry vs 24bps round-trip costs — mathematically guaranteed losers. Fixed since 5ff8de3 (geometry v2: stop -3%, target +1.2%). The 2 SOLUSD books were pre-fix; the DOGE 64_30 close (STOP, R -1.07) confirms new geometry + accounting live and consistent.
+- Wrote scripts/geometry_replay.ts: production-faithful replay (paper.ts fills/fees, runner guards, stride, BTC 60m-EMA20 port) over REAL bars — 60d Binance 1m x 10 crypto + 30d Yahoo 5m x 10 non-crypto. Results: crypto gate64 = n=69, WR 73.9-75.7%, PF 1.04-1.14 (confluence-4 measured NON-BINDING at gate 64; BTC filter costs 5 trades here, kept as structural protection). Non-crypto 5m gate64 = n=7, WR 85.7%, 0 stops; gate-61 sweep WR 80% n=15; gate-58 sweep WR 52.9% NET-NEGATIVE — gates stay >=64 everywhere, no hopeful constants.
+- Multi-market ledger shipped (654440c): NEW src/lib/engine/markets.ts (3 classes: CRYPTO 24/7 Binance 1m, FX=EUR/GBP/JPY/AUD/XAU/WTI 24/5 Yahoo 5m, EQUITY=NVDA/AAPL/MSFT/TSLA RTH-only Yahoo 5m); feed.ts Yahoo-5m path (seed 1mo/poll 1d, 60s gap cache, yahoo provenance; TD skipped for non-crypto — would feed unvalidated 1m and equities are invalid TD symbols); runner.ts session gates (SESSION denial), entry freshness windows (STALE_FEED: 10min crypto/30min others), honest dataState (was hardcoded "LIVE") into playbook guard, BTC filter restricted to CRYPTO books.
+- Internet research wired into the ENGINE (not just the analyst chat): NEW src/lib/brain/news-intel.ts — Finnhub verified-headlines feed every 5 minutes, rotating 12-symbol coverage over 20, positive <24h items -> per-symbol catalyst score 0-9 into computeSignal's CATALYST factor; negative news contributes 0 (no negative path in the engine, no fabrication); fail-open to 0, never blocks trading. FINNHUB_API_KEY already set in production.
+- Honesty updates: desk.ts + landing.tsx captions now say the ledger executes crypto + FX + gold + oil + stocks (session-gated) instead of crypto-only.
+- Verified: src tsc clean, production build exit 0, audit_smoke 11/11 session-gate checks PASS, secret scan clean, pushed 654440c -> Railway auto-deploy.
