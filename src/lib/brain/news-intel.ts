@@ -10,7 +10,11 @@
 
 import { getNewsFeed } from "@/lib/providers/news";
 
-const REFRESH_MS = 5 * 60_000;
+// 2-minute cadence (recommendations round 2026-09-06): a 12-symbol slice per
+// refresh means the full 20-symbol universe gets fresh coverage every ~4
+// minutes — inside the owner's "minutes cadence" mandate. Finnhub free tier
+// allows 60 req/min; 12 req per 2 min is ~10% of that ceiling. Fail-open.
+const REFRESH_MS = 2 * 60_000;
 const MAX_AGE_MS = 24 * 3_600_000; // news older than a day no longer counts
 const MAX_SCORE = 9;
 

@@ -30,6 +30,28 @@ export interface GuardedContext {
 
 type RouteHandler<C> = (req: Request, ctx: C, routeCtx: unknown) => Response | Promise<Response>;
 
+// ── in-memory per-user rate limiter (scale hardening, zero-cost) ────────────
+// Token-bucket-lite: fixed window per user per process. Protects expensive
+// paths (AI analyst, market scans) from scripted hammering; normal UI polling
+// sits orders of magnitude below the default. Reset on process restart by
+// design — this is abuse damping, not billing.
+const RATE_DEFAULT = { n: 120, windowMs: 60_000 };
+const rateBuckets = new Map<string, { winStart: number; count: number }>();
+function rateLimitExceeded(key: string, limit: { n: number; windowMs: number }): boolean {
+  const now = Date.now();
+  const b = rateBuckets.get(key);
+  if (!b || now - b.winStart >= limit.windowMs) {
+    rateBuckets.set(key, { winStart: now, count: 1 });
+    // occasional sweep so the map cannot grow without bound
+    if (rateBuckets.size > 5_000) {
+      for (const [k, v] of rateBuckets) if (now - v.winStart >= limit.windowMs) rateBuckets.delete(k);
+    }
+    return false;
+  }
+  b.count += 1;
+  return b.count > limit.n;
+}
+
 /**
  * Wrap a route handler with auth + trust enforcement:
  *  401 AUTH_REQUIRED       — no valid session
@@ -41,7 +63,7 @@ type RouteHandler<C> = (req: Request, ctx: C, routeCtx: unknown) => Response | P
  */
 export function withGuard<C = GuardedContext>(
   handler: RouteHandler<C>,
-  opts?: { minPlan?: Plan },
+  opts?: { minPlan?: Plan; rateLimit?: { n: number; windowMs: number } },
 ): (req: Request, routeCtx: unknown) => Promise<Response> {
   return async (req: Request = new Request("http://local/"), routeCtx?: unknown) => {
     try {
@@ -63,6 +85,13 @@ export function withGuard<C = GuardedContext>(
           402,
           "PREMIUM_REQUIRED",
           `This feature is part of ${needed}. Subscribe to unlock it. Your plan doesn't include it right now.`,
+        );
+      }
+      const limit = opts?.rateLimit ?? RATE_DEFAULT;
+      if (rateLimitExceeded(user.id, limit)) {
+        return NextResponse.json(
+          { error: "RATE_LIMITED", message: "Too many requests. Slow down and retry shortly." },
+          { status: 429, headers: { "Retry-After": String(Math.ceil(limit.windowMs / 1000)) } },
         );
       }
       return await handler(req, { user, config, account } as C, routeCtx);

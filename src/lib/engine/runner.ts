@@ -89,6 +89,34 @@ export const liveScan = {
   cycles: 0 as number,
 };
 
+// DECISION JOURNAL — "show workings" made literal. Every LONG signal scoring
+// >= JOURNAL_FLOOR (near-gate candidates) gets one immutable entry recording
+// exactly what the engine saw and what it decided, including the denial reason
+// when it stood down (BTC_REGIME / SESSION / STALE_FEED / CONFLUENCE /
+// SYMBOL_COLD / guard vetoes) or the fill when it traded. Ring buffer, newest
+// last. Powers the public /status "Engine workings" panel and the
+// /api/engine/status `decisions` field. Honest by construction: entries are
+// written at the decision point itself, never reconstructed afterward.
+export interface DecisionEntry {
+  ts: number;
+  sym: string;
+  horizon: string;
+  score: number;
+  regimeUp: boolean;
+  catalyst: number;
+  aligned: number;          // factors with positive contribution (confluence count)
+  verdict: string;
+  factors: { name: string; contribution: number; max: number; detail: string }[];
+}
+export const decisionLog: DecisionEntry[] = [];
+const DECISION_LOG_CAP = 40;
+const JOURNAL_FLOOR = 55;
+function pushDecision(e: DecisionEntry): void {
+  decisionLog.push(e);
+  if (decisionLog.length > DECISION_LOG_CAP) decisionLog.splice(0, decisionLog.length - DECISION_LOG_CAP);
+}
+const trimDetail = (s: string) => (s.length > 90 ? s.slice(0, 87) + "..." : s);
+
 export interface RunnerOpts {
   maxMinutes?: number;   // chunk limit (sandbox); undefined = run forever
   maxHours?: number;     // total run cap; undefined = unlimited
@@ -259,6 +287,7 @@ async function loopBody(
     // per-cycle guard caches (2 queries/cycle instead of per-signal)
     const todayNetRCache = new Map<string, number>();
     const lastLossAtMs = await paperLastLossAtMs();
+    const coldSyms = new Set(brain.coldSymbols(3)); // evidence-gated: needs 3+ closed trades
     const btcUp = BTC_FILTER ? btcRegimeUp(buf["BTCUSD"] ?? []) : true;
     liveScan.regimeUp = btcUp;
     liveScan.regimeAt = now;
@@ -324,27 +353,49 @@ async function loopBody(
             liveScan.bestSinceBoot = sig.score;
             liveScan.bestSymSinceBoot = `${sym}/${hzName}`;
           }
+          // decision journal: one entry per near-gate LONG signal, written at
+          // the exact decision point (first decisive verdict wins)
+          let journaled = false;
+          const jEntry: DecisionEntry = {
+            ts: now, sym, horizon: hzName, score: sig.score, regimeUp: btcUp,
+            catalyst: sig.catalystScore,
+            aligned: sig.factors.filter((f) => f.contribution > 0).length,
+            verdict: "",
+            factors: sig.factors.map((f) => ({
+              name: f.name, contribution: f.contribution,
+              max: (f as { max?: number }).max ?? 0,
+              detail: trimDetail(String((f as { detail?: string }).detail ?? "")),
+            })),
+          };
+          const jv = (v: string) => {
+            if (journaled || sig.score < JOURNAL_FLOOR) return;
+            jEntry.verdict = v;
+            pushDecision(jEntry);
+            journaled = true;
+          };
 
           for (const gate of GATES) {
-            if (sig.score < gate) continue;
+            if (sig.score < gate) { jv(`BELOW_GATE ${gate} (score ${sig.score})`); continue; }
             scanStats.cross[gate] = (scanStats.cross[gate] ?? 0) + 1;
             liveScan.crossSinceBoot[gate] = (liveScan.crossSinceBoot[gate] ?? 0) + 1;
             // BTC regime filter is validated for CRYPTO books only
-            if (marketClassOf(sym) === "CRYPTO" && BTC_FILTER && !btcUp) { noteDenied(["BTC_REGIME"]); continue; }
+            if (marketClassOf(sym) === "CRYPTO" && BTC_FILTER && !btcUp) { jv("DENIED BTC_REGIME (BTC below 60m EMA20)"); noteDenied(["BTC_REGIME"]); continue; }
+            // symbol-form guard: 3+ consecutive losses on this symbol = cold book
+            if (coldSyms.has(sym)) { jv("DENIED SYMBOL_COLD (3+ consecutive losses)"); noteDenied(["SYMBOL_COLD"]); continue; }
             // session gates: FX weekend close, equities RTH-only entries
-            if (!entriesOpenFor(sym, now)) { noteDenied(["SESSION"]); continue; }
+            if (!entriesOpenFor(sym, now)) { jv("DENIED SESSION (market closed)"); noteDenied(["SESSION"]); continue; }
             // entry freshness: stale feeds never enter (exits still managed above)
             const lastClosedAge = now - (lastT[sym] ?? 0);
-            if (lastClosedAge > freshWindowMs(sym)) { noteDenied(["STALE_FEED"]); continue; }
+            if (lastClosedAge > freshWindowMs(sym)) { jv(`DENIED STALE_FEED (${Math.round(lastClosedAge / 60_000)}m old)`); noteDenied(["STALE_FEED"]); continue; }
             // professional confluence: factors must agree before money moves
             const aligned = sig.factors.filter((f) => f.contribution > 0).length;
-            if (aligned < GATE_CONFLUENCE) { noteDenied(["CONFLUENCE"]); continue; }
+            if (aligned < GATE_CONFLUENCE) { jv(`DENIED CONFLUENCE (${aligned}/${GATE_CONFLUENCE} factors agree)`); noteDenied(["CONFLUENCE"]); continue; }
             const bookKey = `${gate}_${h}_${sym}`;
-            if (open.has(bookKey)) continue;
+            if (open.has(bookKey)) { jv("SKIP book already open"); continue; }
 
             // cooldown from last close of this book (30min, loss or win)
             const lc = await paperLastClose(bookKey);
-            if (lc && now - lc.closedAtMs < COOLDOWN_MS) continue;
+            if (lc && now - lc.closedAtMs < COOLDOWN_MS) { jv("SKIP cooldown (closed <30m ago)"); continue; }
 
             const cacheKey = `${gate}_${h}`;
             if (!todayNetRCache.has(cacheKey)) todayNetRCache.set(cacheKey, await paperTodayNetR(gate, h));
@@ -356,10 +407,12 @@ async function loopBody(
             };
             const verdict = evaluateOpenGuards(guardIn, brain.deadHours(hzName));
             if (!verdict.allowed) {
+              jv(`DENIED ${verdict.deniedBy.join("+")}`);
               noteDenied(verdict.deniedBy);
               continue;
             }
 
+            jv(`ENTRY ${bookKey} @${price} (stop ${sig.stop.toFixed(4)} target ${sig.target.toFixed(4)})`);
             const entryOid = `E_${bookKey}_${Math.floor(now / 60_000)}`;
             const res = await paperEntry({
               bookKey, symbol: sym, gate, horizonMin: h,

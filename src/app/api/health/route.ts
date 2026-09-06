@@ -24,6 +24,27 @@ export async function GET() {
     ? { state: "HEALTHY", detail: "Finnhub key configured (BYOK)" }
     : { state: "DEGRADED", detail: "No news provider key: feed shows NEWS DATA UNAVAILABLE by design" };
 
+  // Autonomous engine scanner heartbeat (in-process state; the loop marks
+  // lastScanAt after every full-universe cycle when unpaused).
+  try {
+    const { liveScan } = await import("@/lib/engine/runner");
+    const ageMin = liveScan.lastScanAt ? Math.round((Date.now() - liveScan.lastScanAt) / 60_000) : null;
+    if (liveScan.cycles === 0) {
+      sources.ENGINE = { state: "DEGRADED", detail: "Scanner has not completed a cycle yet (boot or not started)" };
+    } else if (ageMin !== null && ageMin <= 10) {
+      sources.ENGINE = { state: "HEALTHY", detail: `Scanner alive: last full cycle ${ageMin}m ago, ${liveScan.cycles} cycles this process` };
+    } else {
+      sources.ENGINE = { state: "DEGRADED", detail: `Scanner heartbeat stale: last full cycle ${ageMin ?? "?"}m ago` };
+    }
+  } catch {
+    sources.ENGINE = { state: "DEGRADED", detail: "Engine module not loaded in this process" };
+  }
+
+  // Product analytics (PostHog) — presence booleans only, never values.
+  sources.ANALYTICS = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY) && Boolean(process.env.POSTHOG_API_KEY)
+    ? { state: "HEALTHY", detail: "PostHog client + server keys configured" }
+    : { state: "DEGRADED", detail: "PostHog keys not set: analytics runs dark (panel falls back to DB truth)" };
+
   // AI
   sources.AI = { state: "HEALTHY", detail: "Z.ai SDK available server-side" };
 

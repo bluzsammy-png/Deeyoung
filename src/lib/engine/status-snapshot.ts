@@ -55,8 +55,11 @@ export async function buildEngineSnapshot() {
     bestSinceBoot: number; bestSymSinceBoot: string;
     crossSinceBoot: Record<number, number>; cycles: number;
   } | null = null;
+  // decision journal (same in-memory runner state) — the literal "show
+  // workings" feed: what the engine saw and decided per near-gate signal.
+  let decisions: Array<{ ts: number; sym: string; horizon: string; score: number; regimeUp: boolean; catalyst: number; aligned: number; verdict: string; factors: Array<{ name: string; contribution: number; max: number; detail: string }> }> | null = null;
   try {
-    const { liveScan } = await import("@/lib/engine/runner");
+    const { liveScan, decisionLog } = await import("@/lib/engine/runner");
     live = {
       regimeUp: liveScan.regimeUp,
       regimeAt: liveScan.regimeAt,
@@ -66,7 +69,15 @@ export async function buildEngineSnapshot() {
       crossSinceBoot: { ...liveScan.crossSinceBoot },
       cycles: liveScan.cycles,
     };
+    decisions = decisionLog.slice(-14).map((d) => ({ ...d }));
   } catch { /* engine module not loaded in this process — panel hides itself */ }
+
+  const factorListOf = (json: string): Array<{ key?: string; name?: string; contribution: number; max?: number; detail?: string }> => {
+    try {
+      const arr = JSON.parse(json || "[]");
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  };
 
   return {
     engine: {
@@ -98,12 +109,14 @@ export async function buildEngineSnapshot() {
       bookKey: p.bookKey, symbol: p.symbol, gate: p.gate, horizonMin: p.horizonMin,
       qty: p.qty, entryPrice: p.entryPrice, stop: p.stopPrice, target: p.targetPrice,
       score: p.score, rr: p.rr, notionalUsd: p.notionalUsd, openedAt: p.openedAt,
+      factors: factorListOf(p.factors),
     })),
     recentClosed: closed.map((p) => ({
       bookKey: p.bookKey, symbol: p.symbol, gate: p.gate, horizonMin: p.horizonMin,
       entryPrice: p.entryPrice, exitPrice: p.exitPrice, exitReason: p.exitReason,
       grossPnlUsd: p.grossPnlUsd, netPnlUsd: p.netPnlUsd, netR: p.netR,
       openedAt: p.openedAt, closedAt: p.closedAt,
+      score: p.score, factors: factorListOf(p.factors),
     })),
     recentOrders: orders.map((o) => ({
       clientOid: o.clientOid, bookKey: o.bookKey, symbol: o.symbol, side: o.side,
@@ -114,6 +127,7 @@ export async function buildEngineSnapshot() {
     equityCurve: curve.slice(-96),
     brainScope: "global",
     live,
+    decisions,
     venue: await venueStatus(),
     // per-user broker mirror ("connect your broker, go live")
     brokerMirror: await fanoutStats(),

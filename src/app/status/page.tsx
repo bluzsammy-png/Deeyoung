@@ -45,6 +45,38 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "go
   );
 }
 
+interface Factor {
+  name?: string; contribution: number; max?: number; detail?: string;
+}
+
+/** The engine's reasons, rendered: positive factors in green, negative in
+ *  red, neutral grey. This is the literal "show workings" surface. */
+function FactorChips({ factors, limit = 4 }: { factors: Factor[]; limit?: number }) {
+  const shown = factors.filter((f) => f.contribution !== 0).slice(0, limit);
+  if (!shown.length) return <span className="text-xs text-zinc-600">no decisive factors recorded</span>;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {shown.map((f, i) => (
+        <span
+          key={i}
+          title={f.detail ?? f.name ?? ""}
+          className={`rounded px-1.5 py-0.5 text-[11px] font-mono ${
+            f.contribution > 0 ? "bg-emerald-950/60 text-emerald-300" : "bg-rose-950/60 text-rose-300"
+          }`}
+        >
+          {f.name} {f.contribution > 0 ? "+" : ""}{f.contribution}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const VERDICT_TONE = (v: string) =>
+  v.startsWith("ENTRY") ? "text-emerald-300"
+  : v.startsWith("DENIED") ? "text-amber-300"
+  : v.startsWith("BELOW_GATE") ? "text-zinc-400"
+  : "text-zinc-300";
+
 export default async function StatusPage() {
   let snap: Awaited<ReturnType<typeof buildEngineSnapshot>> | null = null;
   let err: string | null = null;
@@ -122,12 +154,12 @@ export default async function StatusPage() {
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-400">Open positions</h2>
       {snap.openPositions.length === 0 ? (
-        <p className="mt-2 text-sm text-zinc-500">None right now. The engine only enters on gate-65/70 signals that pass every playbook guard.</p>
+        <p className="mt-2 text-sm text-zinc-500">None right now. The engine only enters on gate-64 signals that pass every playbook guard (confluence 4, regime, session, freshness).</p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-800">
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-900 text-[11px] uppercase tracking-wider text-zinc-500">
-              <tr>{["Book", "Symbol", "Qty", "Entry", "Stop", "Target", "Score", "Opened"].map((h) => <th key={h} className="px-3 py-2 font-medium">{h}</th>)}</tr>
+              <tr>{["Book", "Symbol", "Qty", "Entry", "Stop", "Target", "Score", "Why in", "Opened"].map((h) => <th key={h} className="px-3 py-2 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/70 font-mono">
               {snap.openPositions.map((p) => (
@@ -139,6 +171,7 @@ export default async function StatusPage() {
                   <td className="px-3 py-2 text-rose-400">{p.stop.toFixed(2)}</td>
                   <td className="px-3 py-2 text-emerald-400">{p.target.toFixed(2)}</td>
                   <td className="px-3 py-2">{p.score}</td>
+                  <td className="max-w-md px-3 py-2"><FactorChips factors={p.factors} /></td>
                   <td className="px-3 py-2 text-zinc-500">{new Date(p.openedAt).toISOString().slice(11, 16)}Z</td>
                 </tr>
               ))}
@@ -154,7 +187,7 @@ export default async function StatusPage() {
         <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-800">
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-900 text-[11px] uppercase tracking-wider text-zinc-500">
-              <tr>{["Book", "Symbol", "Entry", "Exit", "Reason", "Net $", "Net R", "Closed"].map((h) => <th key={h} className="px-3 py-2 font-medium">{h}</th>)}</tr>
+              <tr>{["Book", "Symbol", "Entry", "Exit", "Reason", "Net $", "Net R", "Why in", "Closed"].map((h) => <th key={h} className="px-3 py-2 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/70 font-mono">
               {snap.recentClosed.map((p) => (
@@ -166,6 +199,7 @@ export default async function StatusPage() {
                   <td className="px-3 py-2 text-zinc-400">{p.exitReason}</td>
                   <td className={`px-3 py-2 ${(p.netPnlUsd ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{(p.netPnlUsd ?? 0) >= 0 ? "+" : ""}{(p.netPnlUsd ?? 0).toFixed(2)}</td>
                   <td className={`px-3 py-2 ${(p.netR ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{(p.netR ?? 0) >= 0 ? "+" : ""}{(p.netR ?? 0).toFixed(2)}</td>
+                  <td className="max-w-md px-3 py-2"><FactorChips factors={p.factors} /></td>
                   <td className="px-3 py-2 text-zinc-500">{p.closedAt ? new Date(p.closedAt).toISOString().slice(5, 16).replace("T", " ") : "-"}Z</td>
                 </tr>
               ))}
@@ -174,8 +208,37 @@ export default async function StatusPage() {
         </div>
       )}
 
+      <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-400">Engine workings — why it trades, why it stands down</h2>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-500">
+        Every near-gate signal the scanner produces is journaled here with its full factor read and the exact
+        decision (enter, or the rule that said no). Written at the decision point itself, never reconstructed.
+        {snap.live ? (
+          <>
+            {" "}Current regime filter: BTC {snap.live.regimeUp === null ? "unknown" : snap.live.regimeUp ? "above its 60m EMA20 (crypto longs allowed)" : "below its 60m EMA20 (crypto longs blocked)"}.
+          </>
+        ) : null}
+      </p>
+      {!snap.decisions || snap.decisions.length === 0 ? (
+        <p className="mt-2 text-sm text-zinc-600">No near-gate signals journaled yet in this process. The journal fills as the scanner works (stride: every 2 minutes per symbol).</p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {[...snap.decisions].reverse().map((d, i) => (
+            <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+                <span className="font-mono text-xs text-zinc-500">{new Date(d.ts).toISOString().slice(5, 16).replace("T", " ")}Z</span>
+                <span className="font-semibold">{d.sym}</span>
+                <span className="font-mono text-xs text-zinc-500">{d.horizon} · score {d.score} · confluence {d.aligned}/4 · catalyst {d.catalyst}/9</span>
+                <span className={`font-mono text-xs font-semibold ${VERDICT_TONE(d.verdict)}`}>{d.verdict}</span>
+              </div>
+              <div className="mt-2"><FactorChips factors={d.factors} limit={6} /></div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mt-10 border-t border-zinc-800 pt-4 text-xs text-zinc-600">
         Raw JSON: <a className="text-zinc-400 underline decoration-dotted hover:text-zinc-200" href="/api/engine/status">/api/engine/status</a>
+        {" · "}Ledger CSV: <a className="text-zinc-400 underline decoration-dotted hover:text-zinc-200" href="/api/engine/export">/api/engine/export</a>
         {" · "}Venue diagnostics: <a className="text-zinc-400 underline decoration-dotted hover:text-zinc-200" href="/api/brokers/metaapi-diag">/api/brokers/metaapi-diag</a>
         <div className="mt-2 font-mono">
           build {snap.build.marker}{snap.build.sha ? ` · commit ${String(snap.build.sha).slice(0, 7)}` : " · commit unknown"}

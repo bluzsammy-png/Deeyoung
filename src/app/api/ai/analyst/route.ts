@@ -374,4 +374,4 @@ export const POST = withGuard(async (req: Request, { user, config }) => {
     asOf: Date.now(),
     disclaimer: "Paper analysis only: not financial advice. DeeYoung never routes live orders and levels shift with delayed data.",
   });
-}, { minPlan: "TRIAL" });
+}, { minPlan: "TRIAL", rateLimit: { n: 20, windowMs: 60_000 } });

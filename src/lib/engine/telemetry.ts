@@ -99,6 +99,21 @@ async function tick() {
     const { buildEngineSnapshot } = await import("@/lib/engine/status-snapshot");
     const snap = (await buildEngineSnapshot()) as unknown as Record<string, unknown>;
     await publish("engine-snapshot", digest(snap, await scanSnapshot()));
+    // STALL WATCHDOG (free ops hardening): the digest loop runs in the same
+    // process as the engine loop. If the scanner has not completed a cycle for
+    // 15+ minutes while unpaused, something is wedged — scream over ntfy so
+    // the owner hears it without watching logs.
+    const live = snap.live as { lastScanAt: number } | null | undefined;
+    const paused = ((snap.engine as Record<string, unknown> | undefined)?.control as Record<string, unknown> | undefined)?.paused === true;
+    if (live?.lastScanAt && !paused && Date.now() - live.lastScanAt > 15 * 60_000) {
+      await publish("engine-stall", JSON.stringify({
+        ts: new Date().toISOString(),
+        event: "engine scanner stalled",
+        lastScanAt: new Date(live.lastScanAt).toISOString(),
+        staleForMin: Math.round((Date.now() - live.lastScanAt) / 60_000),
+        hint: "engine loop wedged while process alive — check Railway logs",
+      }));
+    }
   } catch (e) {
     // snapshot failure is itself the diagnosis (e.g. database unreachable)
     await publish("engine-snapshot-ERROR", JSON.stringify({

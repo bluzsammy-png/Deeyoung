@@ -132,6 +132,30 @@ export class LearningMemory {
       .map(([hr]) => Number(hr));
   }
 
+  /** Symbols whose most recent outcomes are minStreak+ consecutive losses
+   *  (evidence-gated cold-book guard). Reads the trailing journal only: a
+   *  symbol needs at least minStreak journaled losses IN A ROW before the
+   *  engine stands down on it, and a single win resets it to warm. Bounded,
+   *  reversible, never fabricated. */
+  coldSymbols(minStreak = 3): string[] {
+    const streak = new Map<string, number>();
+    for (let i = this.state.recent.length - 1; i >= 0; i--) {
+      const r = this.state.recent[i];
+      if (streak.has(r.symbol)) continue; // most recent occurrence already decided the start
+      if (r.win) { streak.set(r.symbol, 0); continue; }
+      // walk further back while losses stay consecutive for this symbol
+      let n = 0;
+      for (let j = i; j >= 0; j--) {
+        const rj = this.state.recent[j];
+        if (rj.symbol !== r.symbol) continue;
+        if (rj.win) break;
+        n++;
+      }
+      streak.set(r.symbol, n);
+    }
+    return [...streak.entries()].filter(([, n]) => n >= minStreak).map(([sym]) => sym);
+  }
+
   guard(i: OpenGuardInput, hz: Horizon): OpenGuardVerdict {
     return evaluateOpenGuards(i, this.deadHours(hz));
   }
