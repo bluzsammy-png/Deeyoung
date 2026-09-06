@@ -66,6 +66,7 @@ export interface SignalResult {
   target: number;
   rr: number;
   atr: number;
+  atrRatio?: number;          // ATR(14) now / mean ATR(14) over trailing window (>1 = vol expanding). Additive context, never scores
   regime: string;
   catalystScore: number;      // 0–9
   liquidityOk: boolean;

@@ -86,6 +86,11 @@ export function computeSignal(input: EngineInput): SignalResult | null {
   const bbWidthAvg = bbWidthSeries.slice(-60).reduce((a, b) => a + b, 0) / Math.min(60, bbWidthSeries.length);
   const rocVal = lastDefined(roc(closes, 10)) ?? 0;
   const atr14 = lastDefined(atr(bars, 14));
+  // ATR expansion ratio (additive context, NEVER scores): current ATR(14) vs the
+  // mean of defined trailing ATR values. >1 = volatility expanding, <1 = dead tape.
+  const atrSeriesRaw = atr(bars, 14).filter((v): v is number => v != null);
+  const atrAvg = atrSeriesRaw.length ? atrSeriesRaw.reduce((a, b) => a + b, 0) / atrSeriesRaw.length : null;
+  const atrRatio = atr14 != null && atrAvg && atrAvg > 0 ? atr14 / atrAvg : null;
   const vwapSession = lastDefined(input.dayCandles ? vwap(input.dayCandles.candles.map((c) => c)) : vwap(bars.slice(-78)));
 
   const factors: FactorContribution[] = [];
@@ -231,6 +236,7 @@ export function computeSignal(input: EngineInput): SignalResult | null {
     factors,
     entry, stop, target, rr,
     atr: atrVal,
+    atrRatio: atrRatio == null ? undefined : Math.round(atrRatio * 100) / 100,
     regime: input.regimePrimary,
     catalystScore: input.catalystScore,
     liquidityOk,

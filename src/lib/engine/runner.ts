@@ -17,6 +17,18 @@
 // gate 64 → WR 85.7%, zero stops; gate 58 sweep was NET-NEGATIVE — gates
 // stay ≥64 for every market). Session gates + entry freshness gate + honest
 // dataState + Finnhub news catalyst (0-9, minutes cadence, fail-open) wired.
+// 2026-09-06 EDGE UPGRADE (scripts/edge_upgrade_replay.ts, 60d real bars,
+// pre-registered ship rule, both market classes): VOL GUARD added — entries
+// denied when ATR(14)/trailing-mean-ATR is outside [0.55, 2.0] (dead tape has
+// no edge; blow-off tape is exhaustion). Crypto 60d: WR 73.9→79.6%, net
+// $19.70→$107.86, PF 1.04→1.36, improving BOTH independent 30d halves.
+// Non-crypto 60d: WR 69.6→72.7%, net $0.64→$12.72, PF 1.01→1.11.
+// TIME STOP per class: CRYPTO 1080m (18h) — combo measured net $137.45,
+// PF 1.49, consistent across halves; non-crypto 1080m measured WORSE on both
+// 30d and 60d (PF 0.75) so FX/EQUITY keep 720m. REJECTED by the same replay:
+// gate 66/68 (crypto net-negative), target 1.5%/1.8% (crypto PF < 1),
+// per-symbol trend filter (non-binding / worse net), VWAP hard gate
+// (non-binding), timeStop 480m (WR 68.6%, net negative). No hopeful constants.
 
 import { computeSignal } from "@/lib/engine/signals";
 import type { Bar } from "@/lib/engine/indicators";
@@ -43,7 +55,11 @@ const WINDOW = 260;
 const SEED_BARS = 2000;
 const MAX_BARS = 3000;
 const NOTIONAL = 1_000;      // 10% of the paper account per trade — risk-bounded
-const TIME_STOP_MIN = 720;   // 12h — signal half-life is hours, not minutes
+const TIME_STOP_MIN_CRYPTO = 1080; // 18h — crypto: gives winners room; measured better on 60d + both halves
+const TIME_STOP_MIN_DEFAULT = 720; // 12h — non-crypto stays (1080m measured worse there)
+function timeStopMinFor(symbol: string): number {
+  return marketClassOf(symbol) === "CRYPTO" ? TIME_STOP_MIN_CRYPTO : TIME_STOP_MIN_DEFAULT;
+}
 const BTC_FILTER = true;     // crypto longs only while BTC > its 60m EMA20 (regime gate);
                              // validated per class — never applied to FX/EQUITY books
 const COOLDOWN_MS = 30 * 60_000;
@@ -53,6 +69,11 @@ const COOLDOWN_MS = 30 * 60_000;
 // to revert. Denied entries count in scanStats.denied["CONFLUENCE"] so the
 // telemetry keeps answering "why no trades" honestly.
 const GATE_CONFLUENCE = 4;
+// VOL GUARD (edge_upgrade_replay 2026-09-06, 60d real bars, pre-registered):
+// ATR(14) vs its trailing mean outside [0.55, 2.0] = dead or blow-off tape;
+// both have no edge. Improves BOTH classes and BOTH crypto halves. Null ratio
+// (short history) never blocks. Denied entries count as scanStats.denied["VOL_GUARD"].
+const VOL_GUARD: [number, number] = [0.55, 2.0];
 const POLL_MS = 15_000;
 const SCAN_STRIDE_MS = 120_000;
 const SEED_PACE_MS = 1_000;
@@ -387,6 +408,9 @@ async function loopBody(
             // entry freshness: stale feeds never enter (exits still managed above)
             const lastClosedAge = now - (lastT[sym] ?? 0);
             if (lastClosedAge > freshWindowMs(sym)) { jv(`DENIED STALE_FEED (${Math.round(lastClosedAge / 60_000)}m old)`); noteDenied(["STALE_FEED"]); continue; }
+            // volatility guard: dead tape and blow-off tape both measured edgeless
+            const ar = sig.atrRatio;
+            if (ar != null && (ar < VOL_GUARD[0] || ar > VOL_GUARD[1])) { jv(`DENIED VOL_GUARD (ATR ratio ${ar.toFixed(2)} outside ${VOL_GUARD[0]}-${VOL_GUARD[1]})`); noteDenied(["VOL_GUARD"]); continue; }
             // professional confluence: factors must agree before money moves
             const aligned = sig.factors.filter((f) => f.contribution > 0).length;
             if (aligned < GATE_CONFLUENCE) { jv(`DENIED CONFLUENCE (${aligned}/${GATE_CONFLUENCE} factors agree)`); noteDenied(["CONFLUENCE"]); continue; }
@@ -501,8 +525,8 @@ async function manageBars(
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
       continue;
     }
-    if (now - p.openedAt.getTime() >= TIME_STOP_MIN * 60_000) {
-      const timeReason = "TIME_720M";
+    if (now - p.openedAt.getTime() >= timeStopMinFor(p.symbol) * 60_000) {
+      const timeReason = `TIME_${timeStopMinFor(p.symbol)}M` as "TIME_720M" | "TIME_1080M";
       const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
@@ -525,8 +549,8 @@ async function manageTick(
       const exitOid = `X_${p.id}_TARGET_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: "TARGET", clientOid: exitOid });
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: "TARGET" }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: "TARGET" }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TARGET(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }
-    } else if (now - p.openedAt.getTime() >= TIME_STOP_MIN * 60_000) {
-      const timeReason = "TIME_720M";
+    } else if (now - p.openedAt.getTime() >= timeStopMinFor(p.symbol) * 60_000) {
+      const timeReason = `TIME_${timeStopMinFor(p.symbol)}M` as "TIME_720M" | "TIME_1080M";
       const exitOid = `X_${p.id}_${timeReason}_${Math.floor(now / 60_000)}`;
       const r = await paperExit({ positionId: p.id, exitRefPrice: price, reason: timeReason, clientOid: exitOid });
       if (r.status === "FILLED") { open.delete(key); void mirrorOnExit({ engineOid: exitOid, symbol: sym, refPrice: price, reason: timeReason }); void fanoutOnExit({ positionId: p.id, symbol: sym, refPrice: price, reason: timeReason }); await journalClose(p, r, brain); log(`[engine] CLOSE ${key} TIME(tick) fill=${r.exitPrice?.toFixed(2)} net=$${r.netPnlUsd?.toFixed(2)} R=${r.netR?.toFixed(2)}`); }

@@ -154,7 +154,7 @@ export default async function StatusPage() {
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-400">Open positions</h2>
       {snap.openPositions.length === 0 ? (
-        <p className="mt-2 text-sm text-zinc-500">None right now. The engine only enters on gate-64 signals that pass every playbook guard (confluence 4, regime, session, freshness).</p>
+        <p className="mt-2 text-sm text-zinc-500">None right now. The engine only enters on gate-64 signals that pass every playbook guard (confluence 4, regime, session, freshness, volatility band).</p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-800">
           <table className="w-full text-left text-sm">
