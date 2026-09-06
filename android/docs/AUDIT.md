@@ -139,8 +139,9 @@ Local Next.js server + throwaway SQLite DB (no production contact):
   flow better shipped with native keystore review in a later pass.
 - **AI Trade Desk chat (`/api/ai/analyst`)**: the public playbook desk is
   native; the conversational analyst joins v1.1 (it needs streaming UX work).
-- **Google sign-in on Android**: requires redirect out/in with Play App Links;
-  email+password is the v1 path (server plugin already supports both).
+- **Google sign-in on Android**: SHIPPED in v1.0.1 as the native ID-token flow
+  (Credential Manager -> `/api/auth/sign-in/social`); activates when the owner
+  sets the Google OAuth env vars (steps in section 11).
 
 ## 9. Security review (actually inspected, not assumed)
 
@@ -173,3 +174,72 @@ Follow-ups recommended before wide distribution:
 - `download/deeyoung-android/DeeYoungPro-1.0.0-release.aab`
 - Play publishing steps: see `android/README.md` (keystore, signing, upload,
   App Links activation).
+
+---
+
+## 11. v1.0.1 changelog (owner-reported defect round)
+
+**Owner report: "app downloads but login says error; icon shows a z.ai logo,
+not DeYoung; add Google login on sign in / sign up."** All three verified and
+fixed:
+
+1. **Login error (root cause, code-level).** better-auth answers
+   `/sign-in/email` and `/sign-up/email` with an envelope
+   `{ redirect, token, url, user:{...} }` (verified in better-auth 1.7.2
+   `dist/api/routes/sign-in.mjs`). v1.0.0 declared the Retrofit return as flat
+   `AuthUserDto` whose `id` is required, so kotlinx.serialization threw on
+   EVERY login even with correct credentials; the interceptor had already
+   stored the token but the UI showed "Sign-in failed". Fix: `AuthEnvelopeDto`
+   envelope, `settleEnvelope()` only enters SignedIn when a real token was
+   issued, new `ApiResult.VerifyEmail` surfaces the email-verification hold
+   with a resend flow (`/api/auth/send-verification-email`). Regression tests
+   pin the envelope shape (`AuthEnvelopeParseTest`, 6/6 green).
+2. **Icon showed a Z (read as z.ai).** `ic_launcher_foreground.xml` and
+   `ic_splash_logo.xml` were vectorized from the legacy `public/logo.svg`
+   (white "Z" glyph; the site itself no longer uses it - PWA icons are the
+   EdgeMark). Replaced with the real EdgeMark (white D + red rising wire +
+   live dot): adaptive foreground scaled into the 66dp safe circle (verified
+   by rendered preview), full-tile version for splash/auth, alpha-only
+   `ic_notification.xml` for notifications, launcher background red ->
+   #0B0B0D to match the site tile.
+3. **Google sign-in (native, ID-token flow).** Credential Manager +
+   `googleid` 1.1.1: `GetGoogleIdOption(serverClientId, nonce)` -> POST
+   `/api/auth/sign-in/social {provider, idToken{token,nonce}}` (better-auth
+   verifies the token server-side; bearer plugin emits `set-auth-token`,
+   captured by the existing interceptor). Button on both Sign in and Create
+   account; availability + client id probed at runtime from
+   `/api/auth-methods` (now returns `googleClientId`), so NO rebuild is needed
+   when the owner adds env vars. Account linking is already enabled
+   server-side (trustedProviders: google), so Google lands in the existing
+   account for the same email.
+
+**Signing note (important).** The v1.0.0 debug-grade key was lost with a
+sandbox reset (it lived in `~/.android`; private keys cannot be extracted from
+an APK). v1.0.1 is signed with a NEW debug-grade key, now committed as a
+managed keystore (`android/keystores/deeyoung-debug.keystore`, standard debug
+credentials, pinned via `signingConfigs.getByName("debug")`) so every future
+build signs identically and updates install in place. Consequence: v1.0.0
+installs must uninstall once before installing v1.0.1. Current cert SHA-256
+(use THIS value for `ANDROID_APP_SHA256` and the Google OAuth Android client):
+
+```
+d9103a3a2bd1c48b53060563c65bdf4ecf2c20044f11e55bcfc2464a3c11de9b
+```
+
+(The older `6a37dbd8...c750a` value is obsolete with v1.0.0.)
+
+**Owner steps to switch Google sign-in on (free, ~10 minutes):**
+1. console.cloud.google.com -> new project (e.g. `deeyoung-pro`).
+2. OAuth consent screen: External, app name DeeYoung Pro, support email.
+3. Credentials -> Create OAuth client ID, type **Web application**:
+   - Authorized redirect URI:
+     `https://deyoungpro.site/api/auth/callback/google`
+     (add the Railway origin twin too if used).
+   - This client id serves BOTH `GOOGLE_CLIENT_ID` (server) and the app's
+     `serverClientId` (delivered via `/api/auth-methods`).
+4. Credentials -> Create OAuth client ID, type **Android**:
+   - Package name: `com.deeyoungs.pro`
+   - SHA-1: fingerprint of the signing cert (managed debug keystore for now).
+5. Railway variables: `GOOGLE_CLIENT_ID=<web client id>`,
+   `GOOGLE_CLIENT_SECRET=<secret>`. The web button and the app's Google button
+   activate on the next request - no rebuild.

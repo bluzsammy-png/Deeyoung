@@ -1,5 +1,6 @@
 package com.deeyoungs.pro.ui.screens.auth
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +19,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material.icons.rounded.MarkEmailUnread
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -37,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +55,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,6 +69,8 @@ import com.deeyoungs.pro.core.session.SessionManager
 import com.deeyoungs.pro.data.ApiResult
 import com.deeyoungs.pro.ui.theme.Grotesk
 import com.deeyoungs.pro.ui.theme.MarketColors
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,6 +80,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.material3.AssistChip
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import java.util.UUID
 
 /**
  * Sign-in / sign-up / forgot-password, one screen with a mode switcher,
@@ -78,6 +91,9 @@ fun AuthScreen(onSessionMessage: (String) -> Unit) {
     val container = ProApp.container(LocalContext.current)
     val vm: AuthViewModel = viewModel(factory = simpleFactory { AuthViewModel(container.sessionManager) })
     val state by vm.state.collectAsState()
+
+    // Probe which sign-in methods the server has switched on (env-gated Google).
+    LaunchedEffect(Unit) { vm.probeGoogle() }
 
     Column(
         modifier = Modifier
@@ -128,6 +144,8 @@ fun AuthScreen(onSessionMessage: (String) -> Unit) {
             else -> ForgotForm(vm)
         }
 
+        if (mode == 0 || mode == 1) GoogleAuthSection(vm)
+
         state.error?.let { error ->
             Spacer(Modifier.height(12.dp))
             Text(
@@ -145,6 +163,10 @@ fun AuthScreen(onSessionMessage: (String) -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
+        }
+        state.unverifiedEmail?.let { pending ->
+            Spacer(Modifier.height(14.dp))
+            UnverifiedEmailPanel(vm, pending)
         }
         Spacer(Modifier.height(32.dp))
         Text(
@@ -282,6 +304,120 @@ private fun ForgotForm(vm: AuthViewModel) {
     )
 }
 
+/** Google button shown for sign-in and sign-up; flow gated by /api/auth-methods. */
+@Composable
+private fun GoogleAuthSection(vm: AuthViewModel) {
+    val state by vm.state.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    Spacer(Modifier.height(20.dp))
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+        Text(
+            "  or  ",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+    }
+    Spacer(Modifier.height(14.dp))
+    OutlinedButton(
+        onClick = {
+            val s = vm.state.value
+            if (!s.googleEnabled || s.googleClientId.isNullOrBlank()) {
+                vm.googleNotConfigured()
+                return@OutlinedButton
+            }
+            scope.launch {
+                val nonce = UUID.randomUUID().toString()
+                try {
+                    val idToken = requestGoogleIdToken(context, s.googleClientId!!, nonce)
+                    vm.signInWithGoogle(idToken, nonce)
+                } catch (e: NoCredentialException) {
+                    vm.googleNoAccount()
+                } catch (e: GetCredentialException) {
+                    // User closed the sheet or no provider resolved: stay quiet, keep the form.
+                    vm.googleSilentCancel()
+                } catch (e: Exception) {
+                    vm.fail("Google sign-in failed. Try email and password.")
+                }
+            }
+        },
+        enabled = !state.busy,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_google),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text("Continue with Google")
+    }
+    Spacer(Modifier.height(4.dp))
+    Text(
+        "Same account as the website: Google links to your existing email automatically.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/**
+ * Runs the Credential Manager flow and returns the verified Google ID token.
+ * The token goes to /api/auth/sign-in/social server-side; the app never
+ * inspects or stores Google credentials itself.
+ */
+private suspend fun requestGoogleIdToken(context: Context, serverClientId: String, nonce: String): String {
+    val option = GetGoogleIdOption.Builder()
+        .setServerClientId(serverClientId)
+        .setNonce(nonce)
+        .setFilterByAuthorizedAccounts(false)
+        .setAutoSelectEnabled(false)
+        .build()
+    val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+    val response = CredentialManager.create(context).getCredential(context, request)
+    val credential = response.credential
+    if (credential is CustomCredential &&
+        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+    ) {
+        return GoogleIdTokenCredential.createFrom(credential.data).idToken
+    }
+    throw IllegalStateException("Unsupported credential type for Google sign-in")
+}
+
+/** Shown when the server accepted the credentials but email is still unverified. */
+@Composable
+private fun UnverifiedEmailPanel(vm: AuthViewModel, email: String) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            Icons.Rounded.MarkEmailUnread,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(28.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Verify your email to continue",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            "We sent a verification link to $email. Open it on this device, then sign in again.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        TextButton(onClick = { vm.resendVerification(email) }) {
+            Text("Resend verification email")
+        }
+    }
+}
+
 /** Biometric unlock overlay shown at cold start when the lock is enabled. */
 @Composable
 fun BiometricLock(onUnlocked: () -> Unit) {
@@ -354,6 +490,9 @@ data class AuthUiState(
     val busy: Boolean = false,
     val error: String? = null,
     val info: String? = null,
+    val googleEnabled: Boolean = false,
+    val googleClientId: String? = null,
+    val unverifiedEmail: String? = null,
 )
 
 class AuthViewModel(private val sessions: SessionManager) : ViewModel() {
@@ -361,11 +500,46 @@ class AuthViewModel(private val sessions: SessionManager) : ViewModel() {
     private val _state = MutableStateFlow(AuthUiState())
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
+    /** Ask the server which sign-in methods are configured (env-gated Google). */
+    fun probeGoogle() = viewModelScope.launch {
+        when (val res = sessions.authMethods()) {
+            is ApiResult.Success -> _state.value = _state.value.copy(
+                googleEnabled = res.data.google,
+                googleClientId = res.data.googleClientId,
+            )
+            else -> Unit // stay email-only; probed again next time the screen opens
+        }
+    }
+
+    fun googleNotConfigured() {
+        _state.value = _state.value.copy(
+            error = "Google sign-in isn't switched on for this server yet. It activates " +
+                "once GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in the deployment " +
+                "settings. Email sign-in works right now.",
+        )
+    }
+
+    fun googleNoAccount() {
+        _state.value = _state.value.copy(
+            error = "No Google account was available on this device. Use email and password.",
+        )
+    }
+
+    fun googleSilentCancel() {
+        _state.value = _state.value.copy(error = null)
+    }
+
+    fun fail(message: String) {
+        _state.value = _state.value.copy(error = message)
+    }
+
     fun signIn(email: String, password: String) = launch {
         when (val res = sessions.signIn(email, password)) {
-            is ApiResult.Success -> _state.value = AuthUiState()
-            is ApiResult.Paywalled -> err(res.message)
-            is ApiResult.HttpError -> err(res.message)
+            is ApiResult.Success -> _state.value = _state.value.copy(error = null, info = null, unverifiedEmail = null)
+            is ApiResult.VerifyEmail -> _state.value = unverified(email)
+            is ApiResult.HttpError ->
+                if (res.isUnverified()) _state.value = unverified(email)
+                else err(res.message)
             is ApiResult.Offline -> err("No connection. Check your network and retry.")
             is ApiResult.RateLimited -> err("Too many attempts. Wait a minute and retry.")
             else -> err("Sign-in failed. Check your email and password.")
@@ -374,31 +548,76 @@ class AuthViewModel(private val sessions: SessionManager) : ViewModel() {
 
     fun signUp(name: String, email: String, password: String) = launch {
         when (val res = sessions.signUp(name, email, password)) {
-            is ApiResult.Success -> _state.value = AuthUiState()
-            is ApiResult.Paywalled -> err(res.message)
-            is ApiResult.HttpError -> err(res.message)
+            is ApiResult.Success -> _state.value = _state.value.copy(error = null, info = null, unverifiedEmail = null)
+            is ApiResult.VerifyEmail -> _state.value = unverified(
+                email,
+                "Account created. Open the verification link we emailed you, then sign in.",
+            )
+            is ApiResult.HttpError ->
+                if (res.isUnverified()) _state.value = unverified(email)
+                else err(res.message)
             is ApiResult.Offline -> err("No connection. Check your network and retry.")
             is ApiResult.RateLimited -> err("Too many signups from this network. Try again later.")
             else -> err("Could not create the account. Try again.")
         }
     }
 
+    fun signInWithGoogle(idToken: String, nonce: String) = launch {
+        when (val res = sessions.signInWithGoogle(idToken, nonce)) {
+            is ApiResult.Success -> _state.value = _state.value.copy(error = null, info = null, unverifiedEmail = null)
+            is ApiResult.VerifyEmail -> _state.value = unverified(
+                "your Google account email",
+                "That Google account needs email verification first. Sign in with email and password once, then retry Google.",
+            )
+            is ApiResult.HttpError -> err(res.message ?: "Google sign-in failed. Use email and password.")
+            is ApiResult.Offline -> err("No connection. Check your network and retry.")
+            is ApiResult.RateLimited -> err("Too many attempts. Wait a minute and retry.")
+            else -> err("Google sign-in failed. Use email and password.")
+        }
+    }
+
     fun forgot(email: String) = launch {
         when (val res = sessions.sendPasswordReset(email)) {
             is ApiResult.Success ->
-                _state.value = AuthUiState(info = "If that address has an account, a reset link is on its way.")
+                _state.value = _state.value.copy(
+                    info = "If that address has an account, a reset link is on its way.",
+                )
             is ApiResult.HttpError -> err(res.message)
             is ApiResult.Offline -> err("No connection. Check your network and retry.")
             else -> err("Could not send the reset email right now.")
         }
     }
 
+    fun resendVerification(email: String) = launch {
+        when (val res = sessions.resendVerification(email)) {
+            is ApiResult.Success -> _state.value = _state.value.copy(
+                info = "Verification email sent to $email. Open the link, then sign in.",
+            )
+            is ApiResult.Offline -> err("No connection. Check your network and retry.")
+            is ApiResult.RateLimited -> err("Too many requests. Wait a minute and retry.")
+            else -> err("Could not send the verification email right now.")
+        }
+    }
+
+    private fun unverified(email: String, note: String? = null) = _state.value.copy(
+        error = null,
+        info = note,
+        unverifiedEmail = email.trim().lowercase(),
+    )
+
+    /** better-auth rejects unverified sign-ins with 403 EMAIL_NOT_VERIFIED. */
+    private fun ApiResult.HttpError.isUnverified(): Boolean =
+        code == 403 && (
+            errorCode?.uppercase()?.contains("VERIF") == true ||
+                message?.uppercase()?.contains("VERIF") == true
+            )
+
     private fun err(message: String?) {
-        _state.value = AuthUiState(error = message ?: "Something went wrong. Try again.")
+        _state.value = _state.value.copy(error = message ?: "Something went wrong. Try again.")
     }
 
     private fun launch(block: suspend () -> Unit) {
-        _state.value = AuthUiState(busy = true)
+        _state.value = _state.value.copy(busy = true, error = null, info = null, unverifiedEmail = null)
         viewModelScope.launch {
             try {
                 block()

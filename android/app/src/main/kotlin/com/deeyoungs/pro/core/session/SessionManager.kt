@@ -2,12 +2,17 @@ package com.deeyoungs.pro.core.session
 
 import com.deeyoungs.pro.data.ApiClient
 import com.deeyoungs.pro.data.ApiResult
+import com.deeyoungs.pro.data.AuthEnvelopeDto
+import com.deeyoungs.pro.data.AuthMethodsDto
 import com.deeyoungs.pro.data.AuthUserDto
 import com.deeyoungs.pro.data.ChangePasswordBody
 import com.deeyoungs.pro.data.ForgetPasswordBody
 import com.deeyoungs.pro.data.GenericOkDto
+import com.deeyoungs.pro.data.GoogleIdTokenBody
+import com.deeyoungs.pro.data.SendVerificationBody
 import com.deeyoungs.pro.data.SignInBody
 import com.deeyoungs.pro.data.SignUpBody
+import com.deeyoungs.pro.data.SocialSignInBody
 import com.deeyoungs.pro.data.UpdateUserBody
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +26,12 @@ sealed interface SessionState {
 
 /**
  * Owns the auth session lifecycle:
- *  - sign-in / sign-up (better-auth email+password; the session token arrives
- *    in the `set-auth-token` response header and is persisted by ApiClient);
+ *  - sign-in / sign-up (better-auth email+password) and native Google sign-in
+ *    (Credential Manager ID token verified server-side); the session token
+ *    arrives in the `set-auth-token` response header and is persisted by
+ *    ApiClient. The response BODY is the better-auth envelope { token, user }
+ *    and only settles into SignedIn when a token was truly issued - when the
+ *    server holds the session for email verification we surface VerifyEmail.
  *  - cached cold-start user for instant render, refreshed from the server;
  *  - sign-out (server revocation + local wipe).
  */
@@ -50,15 +59,30 @@ class SessionManager(
 
     suspend fun signIn(email: String, password: String): ApiResult<AuthUserDto> {
         val res = api.call { api.api.signIn(SignInBody(email.trim().lowercase(), password)) }
-        return settle(res)
+        return settleEnvelope(res)
     }
 
     suspend fun signUp(name: String, email: String, password: String): ApiResult<AuthUserDto> {
         val res = api.call {
             api.api.signUp(SignUpBody(email.trim().lowercase(), password, name.trim()))
         }
-        return settle(res)
+        return settleEnvelope(res)
     }
+
+    /** Google sign-in: idToken comes from Credential Manager (server verified). */
+    suspend fun signInWithGoogle(idToken: String, nonce: String): ApiResult<AuthUserDto> {
+        val res = api.call {
+            api.api.signInWithGoogle(SocialSignInBody("google", GoogleIdTokenBody(idToken, nonce)))
+        }
+        return settleEnvelope(res)
+    }
+
+    suspend fun resendVerification(email: String): ApiResult<GenericOkDto> =
+        api.call { api.api.sendVerificationEmail(SendVerificationBody(email.trim().lowercase())) }
+
+    /** Which sign-in methods the server has switched on (env-gated Google). */
+    suspend fun authMethods(): ApiResult<AuthMethodsDto> =
+        api.call { api.api.authMethods() }
 
     suspend fun refreshUser(): ApiResult<AuthUserDto> {
         if (store.token.isNullOrBlank()) return ApiResult.AuthRequired
@@ -80,6 +104,7 @@ class SessionManager(
             }
             is ApiResult.Offline -> ApiResult.Offline
             is ApiResult.RateLimited -> ApiResult.RateLimited
+            is ApiResult.VerifyEmail -> ApiResult.AuthRequired // no live session server-side
             is ApiResult.HttpError -> ApiResult.Failure("Session check failed (${res.code})")
             is ApiResult.Paywalled -> ApiResult.Failure(res.message)
             is ApiResult.Failure -> ApiResult.Failure(res.message)
@@ -103,13 +128,32 @@ class SessionManager(
         return res
     }
 
-    private suspend fun settle(res: ApiResult<AuthUserDto>): ApiResult<AuthUserDto> = when (res) {
+    /**
+     * v1.0.0 login bug fix: the envelope must settle on the nested user AND a
+     * real session token. When the server responds 200 with user but WITHOUT a
+     * token (email verification required in production), report VerifyEmail so
+     * the UI shows "check your inbox" instead of a dead-end error.
+     */
+    private suspend fun settleEnvelope(res: ApiResult<AuthEnvelopeDto>): ApiResult<AuthUserDto> = when (res) {
         is ApiResult.Success -> {
-            persistUser(res.data)
-            _state.value = SessionState.SignedIn(res.data)
-            res
+            val user = res.data.user
+            when {
+                user == null -> ApiResult.Failure("The server response was incomplete. Try again.")
+                store.token.isNullOrBlank() -> ApiResult.VerifyEmail
+                else -> {
+                    persistUser(user)
+                    _state.value = SessionState.SignedIn(user)
+                    ApiResult.Success(user)
+                }
+            }
         }
-        else -> res
+        is ApiResult.HttpError -> res
+        is ApiResult.AuthRequired -> res
+        is ApiResult.Paywalled -> res
+        is ApiResult.RateLimited -> res
+        is ApiResult.Offline -> res
+        is ApiResult.VerifyEmail -> res
+        is ApiResult.Failure -> res
     }
 
     private fun persistUser(user: AuthUserDto) {

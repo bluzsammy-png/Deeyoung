@@ -23,12 +23,21 @@ android {
     namespace = "com.deeyoungs.pro"
     compileSdk = 35
 
+    // Managed debug keystore: committed at keystores/deeyoung-debug.keystore so
+    // CI, sandboxes and local machines all sign with the SAME certificate
+    // (SHA-256 d9103a3a2bd1c48b53060563c65bdf4ecf2c20044f11e55bcfc2464a3c11de9b).
+    // Without this, a rebuilt sandbox would mint a new debug key and users
+    // could not install updates over the existing app.
+    signingConfigs.getByName("debug") {
+        storeFile = rootProject.file("keystores/deeyoung-debug.keystore")
+    }
+
     defaultConfig {
         applicationId = "com.deeyoungs.pro"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BASE_URL_RELEASE", "\"${project.findProperty("DEEYOUNG_BASE_URL_RELEASE") ?: "https://deyoung-production.up.railway.app"}\"")
@@ -116,6 +125,11 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.browser:browser:1.8.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Google sign-in: Credential Manager + Google ID (ID token flow, verified server-side)
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     // Unit tests
     testImplementation("junit:junit:4.13.2")

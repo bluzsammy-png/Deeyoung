@@ -63,10 +63,21 @@ cd android
 The backend serves `/.well-known/assetlinks.json` (added in this change).
 On Railway set:
 - `ANDROID_APP_PACKAGE=com.deeyoungs.pro`
-- `ANDROID_APP_SHA256=<SHA256 from the step above>`
+- `ANDROID_APP_SHA256=d9103a3a2bd1c48b53060563c65bdf4ecf2c20044f11e55bcfc2464a3c11de9b`
+  (current managed debug keystore; replace with the release keystore digest
+  once a production key exists)
 
 Android then auto-opens `https://deyoungpro.site/...` links in the app.
 Until then, links open in the browser and the `deeyoung://` scheme works.
+
+## Google sign-in (owner activation)
+
+Server: set `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (Web application
+client, redirect `https://deyoungpro.site/api/auth/callback/google`). The web
+button appears automatically. The Android button reads the same client id from
+`/api/auth-methods` at runtime - also register an **Android** OAuth client
+(package `com.deeyoungs.pro`, SHA-1 of the signing cert) in the same Google
+project. Full steps: `docs/AUDIT.md` section 11.
 
 ## Background push (optional, free)
 

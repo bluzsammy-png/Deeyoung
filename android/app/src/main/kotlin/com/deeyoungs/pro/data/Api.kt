@@ -82,11 +82,22 @@ interface DeeYoungApi {
     suspend fun supportThread(@Query("key") key: String): Response<SupportThreadDto>
 
     // ── better-auth (bearer plugin) ──────────────────────────────────────────
+    // All three sign-in endpoints return the real better-auth envelope
+    // { token, user, ... } - the session token ALSO arrives in the
+    // `set-auth-token` header (captured by ApiClient for every /api/auth/ path).
     @POST("api/auth/sign-in/email")
-    suspend fun signIn(@Body body: SignInBody): Response<AuthUserDto>
+    suspend fun signIn(@Body body: SignInBody): Response<AuthEnvelopeDto>
 
     @POST("api/auth/sign-up/email")
-    suspend fun signUp(@Body body: SignUpBody): Response<AuthUserDto>
+    suspend fun signUp(@Body body: SignUpBody): Response<AuthEnvelopeDto>
+
+    /** Native Google sign-in: app obtains a Google ID token via Credential Manager. */
+    @POST("api/auth/sign-in/social")
+    suspend fun signInWithGoogle(@Body body: SocialSignInBody): Response<AuthEnvelopeDto>
+
+    /** Re-send the verification email (production requires verified emails). */
+    @POST("api/auth/send-verification-email")
+    suspend fun sendVerificationEmail(@Body body: SendVerificationBody): Response<GenericOkDto>
 
     @POST("api/auth/sign-out")
     suspend fun signOut(@Body body: JsonObject): Response<JsonObject>

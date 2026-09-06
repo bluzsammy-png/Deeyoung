@@ -675,7 +675,42 @@ data class AuthSessionInfoDto(
 )
 
 @Serializable
-data class AuthMethodsDto(val google: Boolean = false)
+data class AuthMethodsDto(
+    val google: Boolean = false,
+    /** Web OAuth client id - used as Credential Manager's serverClientId. */
+    val googleClientId: String? = null,
+)
+
+/**
+ * The REAL shape better-auth returns from /sign-in/email, /sign-up/email and
+ * /sign-in/social: an envelope { redirect, token, url, user } - the user object
+ * is nested, and `token` is null when email verification blocks auto sign-in.
+ * (v1.0.0 parsed this as a flat AuthUserDto and failed on every login even
+ * with correct credentials - the bug this release fixes.)
+ */
+@Serializable
+data class AuthEnvelopeDto(
+    val token: String? = null,
+    val user: AuthUserDto? = null,
+    val redirect: Boolean? = null,
+    val url: String? = null,
+)
+
+/** Native Google sign-in: ID token from Credential Manager, verified server-side. */
+@Serializable
+data class SocialSignInBody(
+    val provider: String,
+    val idToken: GoogleIdTokenBody,
+)
+
+@Serializable
+data class GoogleIdTokenBody(
+    val token: String,
+    val nonce: String? = null,
+)
+
+@Serializable
+data class SendVerificationBody(val email: String, val callbackURL: String? = null)
 
 @Serializable
 data class ForgetPasswordBody(val email: String, val redirectTo: String? = null)

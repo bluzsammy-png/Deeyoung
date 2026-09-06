@@ -8,10 +8,14 @@ build/
 .externalNativeBuild
 .cxx
 
-# Signing material must never enter version control
+# Signing material must never enter version control — EXCEPT the managed debug
+# keystore: it is a standard debug-grade key (storepass android) committed so
+# every machine/reset signs with the SAME certificate and updates install in
+# place. Never put a real release keystore here.
 /keystore.properties
 *.jks
 *.keystore
+!keystores/deeyoung-debug.keystore
 
 # Firebase config (contains public identifiers only, but keep out of VCS)
 /app/google-services.json

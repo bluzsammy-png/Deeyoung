@@ -28,6 +28,8 @@ sealed interface ApiResult<out T> {
     data class Paywalled(val message: String) : ApiResult<Nothing>
     data object RateLimited : ApiResult<Nothing>
     data object Offline : ApiResult<Nothing>
+    /** The server accepted the credentials but no session was issued: email must be verified first. */
+    data object VerifyEmail : ApiResult<Nothing>
     data class Failure(val message: String) : ApiResult<Nothing>
 }
 
@@ -38,6 +40,7 @@ inline fun <T, R> ApiResult<T>.map(transform: (T) -> R): ApiResult<R> = when (th
     is ApiResult.Paywalled -> this
     is ApiResult.RateLimited -> this
     is ApiResult.Offline -> this
+    is ApiResult.VerifyEmail -> this
     is ApiResult.Failure -> this
 }
 
@@ -166,7 +169,9 @@ class ApiClient(private val sessionStore: SessionStore) {
     private fun <T> extractErrorCode(res: retrofit2.Response<T>): String? = try {
         val errorBody = res.errorBody()?.string() ?: return null
         val o = json.parseToJsonElement(errorBody) as? kotlinx.serialization.json.JsonObject
-        o?.get("error")?.toString()?.trim('"')?.takeIf { it != "null" }
+        // better-auth error bodies are { code, message }; some routes use { error }.
+        o?.get("code")?.toString()?.trim('"')?.takeIf { it != "null" && it != "" }
+            ?: o?.get("error")?.toString()?.trim('"')?.takeIf { it != "null" && it != "" }
     } catch (_: Exception) {
         null
     }

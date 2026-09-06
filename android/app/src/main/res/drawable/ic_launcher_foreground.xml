@@ -1,23 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The brand "Z" mark from public/logo.svg, white on transparent. -->
+<!--
+  DeeYoung Pro adaptive launcher foreground: the EdgeMark (white "D" with the
+  red rising wire and the live dot), matching the website emblem and
+  public/icon-512.png. Scaled to sit fully inside the 66dp adaptive-icon safe
+  circle (content bbox in 512-space maps through scale 0.15 / translate
+  7.6,16.3 so even the dot stays inside every mask).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group
-        android:scaleX="2.4"
-        android:scaleY="2.4"
-        android:translateX="18"
-        android:translateY="18">
+        android:scaleX="0.15"
+        android:scaleY="0.15"
+        android:translateX="7.6"
+        android:translateY="16.3">
+        <!-- D slab -->
+        <path android:pathData="M148,128 H246 C338,128 402,182 402,260 C402,338 338,392 246,392 H148 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="148" android:startY="128"
+                    android:endX="402" android:endY="392">
+                    <item android:offset="0" android:color="#FFFFFFFF" />
+                    <item android:offset="0.62" android:color="#FFE8EAEF" />
+                    <item android:offset="1" android:color="#FFC3C7D1" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- counter (reads as a cut because it matches the launcher background) -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M15.47,7.1l-1.3,1.85c-0.2,0.29 -0.54,0.47 -0.9,0.47h-7.1V7.09C6.16,7.1,15.47,7.1,15.47,7.1z" />
+            android:fillColor="#FF0B0B0D"
+            android:pathData="M228,204 H282 C308,204 326,228 326,260 C326,292 308,316 282,316 H228 Z" />
+        <!-- diagonal slot + red wire, clipped to the D silhouette -->
+        <group>
+            <clip-path
+                android:pathData="M148,128 H246 C338,128 402,182 402,260 C402,338 338,392 246,392 H148 Z" />
+            <path
+                android:fillColor="#FF0C0C0E"
+                android:pathData="M194,332.8 L436,116.8 L456,139.2 L214,355.2 Z" />
+            <path android:pathData="M199,338.4 L441,122.4 L451,133.6 L209,349.6 Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:type="linear"
+                        android:startX="199" android:startY="349.6"
+                        android:endX="451" android:endY="122.4">
+                        <item android:offset="0" android:color="#FFB91C1C" />
+                        <item android:offset="0.55" android:color="#FFDC2626" />
+                        <item android:offset="1" android:color="#FFF87171" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+        </group>
+        <!-- wire escaping the D -->
+        <path android:pathData="M371,184.4 L443,121.4 L453,132.6 L381,195.6 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="371" android:startY="195.6"
+                    android:endX="453" android:endY="121.4">
+                    <item android:offset="0" android:color="#FFB91C1C" />
+                    <item android:offset="1" android:color="#FFF87171" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- live dot -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M24.3,7.1L13.14,22.91H5.7L16.86,7.1Z" />
+            android:fillColor="#FFEF4444"
+            android:pathData="M451,119 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0 Z" />
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M14.53,22.91l1.31,-1.86c0.2,-0.29 0.54,-0.47 0.9,-0.47h7.09v2.33H14.53z" />
+            android:fillColor="#FFFECACA"
+            android:pathData="M455.5,119 a5.5,5.5 0 1 0 11,0 a5.5,5.5 0 1 0 -11,0 Z" />
     </group>
 </vector>

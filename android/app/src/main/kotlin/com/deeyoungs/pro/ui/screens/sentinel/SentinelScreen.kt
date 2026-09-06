@@ -105,6 +105,7 @@ class SentinelViewModel(private val repo: com.deeyoungs.pro.data.SentinelReposit
                 is ApiResult.RateLimited -> "Too many actions. Slow down and retry."
                 is ApiResult.HttpError -> res.message
                 is ApiResult.Failure -> res.message
+                is ApiResult.VerifyEmail -> null // unreachable here: approvals need a live session
             }
             _state.value = _state.value.copy(busy = false, message = msg)
             if (res is ApiResult.Success) load()
@@ -132,6 +133,7 @@ class SentinelViewModel(private val repo: com.deeyoungs.pro.data.SentinelReposit
                 is ApiResult.RateLimited -> "Too many actions. Slow down and retry."
                 is ApiResult.HttpError -> res.message
                 is ApiResult.Failure -> res.message
+                is ApiResult.VerifyEmail -> null // unreachable here: config needs a live session
             }
             _state.value = _state.value.copy(busy = false, message = msg)
             if (res is ApiResult.Success) load()
@@ -150,6 +152,7 @@ class SentinelViewModel(private val repo: com.deeyoungs.pro.data.SentinelReposit
                 is ApiResult.RateLimited -> "Too many actions. Slow down and retry."
                 is ApiResult.HttpError -> res.message
                 is ApiResult.Failure -> res.message
+                is ApiResult.VerifyEmail -> null // unreachable here: the kill switch needs a live session
             }
             _state.value = _state.value.copy(busy = false, message = msg)
             if (res is ApiResult.Success) load()

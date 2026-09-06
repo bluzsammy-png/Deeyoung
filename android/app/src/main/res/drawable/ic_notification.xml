@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification small icon: alpha-only EdgeMark silhouette (white D + wire + dot). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.19"
+        android:scaleY="0.19"
+        android:translateX="-4.8"
+        android:translateY="6.2">
+        <!-- D with counter cut (evenOdd) -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M148,128 H246 C338,128 402,182 402,260 C402,338 338,392 246,392 H148 Z M228,204 H282 C308,204 326,228 326,260 C326,292 308,316 282,316 H228 Z" />
+        <!-- wire -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M199,338.4 L441,122.4 L451,133.6 L209,349.6 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M371,184.4 L443,121.4 L453,132.6 L381,195.6 Z" />
+        <!-- dot -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M451,119 a10,10 0 1 0 20,0 a10,10 0 1 0 -20,0 Z" />
+    </group>
+</vector>
