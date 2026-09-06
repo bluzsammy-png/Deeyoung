@@ -1030,3 +1030,18 @@ Stage Summary:
 - Real download links live: https://deyoungpro.site/deeyoungpro-1.0.0.apk (primary) and https://deeyoung-production.up.railway.app/deeyoungpro-1.0.0.apk (backup), same signed release APK. Repo no longer carries toolchain junk.
 - Layman guide delivered in chat: download on phone, allow install-unknown-apps, install, sign in with website account (shared auth).
 - Honest caveats restated: debug-grade signing cert OK for sideload, real keystore needed before Play Store; FCM realtime push activation-gated; App Links need ANDROID_APP_SHA256 env (value now known) set owner-side in Railway dashboard (both API tokens dead).
+
+---
+Task ID: 45-android-d
+Agent: Super Z (main)
+Task: Owner question "where would I find the apk on the site" - make the APK discoverable by browsing.
+
+Work Log:
+- Built /app public download page (src/app/app/page.tsx): on-brand dark layout, EdgeMark header, Download APK button -> /deeyoungpro-1.0.0.apk, version/size/package facts, 4-step layman install accordion cards, honest safety note (Chrome warning normal, download only from deyoungpro.site).
+- Footer: added "Android app - download" link to landing.tsx Product column (line ~836); sitemap.ts gained /app (priority 0.7 weekly).
+- Validation: tsc filtered clean on touched files; eslint clean on new page + sitemap (1 error in landing.tsx line 192 is PRE-EXISTING, proven via stash test, unrelated to edit); production build initially ENOSPC twice - box was 100% full (9.9G). Cleanup: .tools (926M, unreferenced toolchain snapshot), .next (874M), /tmp/apkcheck (47M), ~/.gradle (1.8G, caches re-download free; APK already shipped). Final build exit 0 with /app listed as static route.
+- Deployed 8f7ff84, verified via ntfy telemetry (boot 13:19:59 UTC, engine ACTIVE). Repo push also fixes the accidental .tools tracking for good (gitignored in d47abe2).
+
+Stage Summary:
+- APK now discoverable three ways: deyoungpro.site/app page, homepage footer link, direct /deeyoungpro-1.0.0.apk URL. Disk at 62%, build pipeline healthy.
+- Caveat: ~/.gradle caches deleted (Android rebuilds will re-download; JDK 21 system is compatible with AGP, .tools/jdk17 removed - reinstall Temurin 17 if a JDK-17-pinned rebuild is ever needed).
