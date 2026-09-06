@@ -927,3 +927,17 @@ Stage Summary:
 - Every zero-cost recommendation is now live-code: transparency (decision journal + workings panel + factor chips), learning (symbol-form guard, 2-min news), ops (stall watchdog, health ENGINE/ANALYTICS), scale (rate limits, cache), web (SEO, PWA, CSV).
 - Trade management shipped NOTHING by design: replay says the deployed geometry already dominates on both market classes; the win-rate mandate is served by validated baseline + multi-market mix, not by optics-friendly stops.
 - Replay evidence committed (scripts/manage_replay.ts) so the rejection is auditable, not folklore.
+
+---
+Task ID: 42-b
+Agent: Super Z (main)
+Task: Post-deploy verification + telemetry recovery hardening.
+
+Work Log:
+- Deploy d20428e/43dc858 SUCCESS 04:34:06 UTC; new process booted, engine LOOP START confirmed via Railway deploymentLogs (cycle=21, equity 9940.79, closed 3).
+- Found: ntfy publishes failing network-level ("fetch failed") from the new container while Binance/Yahoo/TD egress was fine. Fixed publish() with one retry + 20s backoff (334b53c). Verified live: boot + engine-snapshot digest arriving, build 334b53c, engine ACTIVE, scan window best 45 EURUSD/M30 (FX scanning works).
+- Diagnosed "yahoo empty XAUUSD/WTI" feed errors: weekend market close for metals/energy instruments (Yahoo returns empty 5m for closed futures), benign + session-gated, EUR pairs unaffected. No change needed.
+
+Stage Summary:
+- Production on 334b53c with the full free-recommendations round live: decision journal, workings panel, symbol-form guard, 2-min news cadence, stall watchdog, rate limits, SEO/PWA/CSV, health ENGINE+ANALYTICS, telemetry retry.
+- ntfy egress flakiness is transient infra, now self-healing inside the app.
