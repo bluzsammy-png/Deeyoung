@@ -91,3 +91,4 @@ src/app/api/dev-pair/
 /db/
 /swapfile
 tools_bootstrap.log
+/.tools/
