@@ -904,3 +904,26 @@ Work Log:
 - Internet research wired into the ENGINE (not just the analyst chat): NEW src/lib/brain/news-intel.ts — Finnhub verified-headlines feed every 5 minutes, rotating 12-symbol coverage over 20, positive <24h items -> per-symbol catalyst score 0-9 into computeSignal's CATALYST factor; negative news contributes 0 (no negative path in the engine, no fabrication); fail-open to 0, never blocks trading. FINNHUB_API_KEY already set in production.
 - Honesty updates: desk.ts + landing.tsx captions now say the ledger executes crypto + FX + gold + oil + stocks (session-gated) instead of crypto-only.
 - Verified: src tsc clean, production build exit 0, audit_smoke 11/11 session-gate checks PASS, secret scan clean, pushed 654440c -> Railway auto-deploy.
+
+---
+Task ID: 42
+Agent: Super Z (main)
+Task: Owner directive "implement all recommendations you can do, no funds / no spending" — ship every zero-cost upgrade from the recommendations list, evidence-gated.
+
+Work Log:
+- Deploy verification: 654440c/e046b54 landed SUCCESS at 03:34:56 UTC (Railway GraphQL, deployments list), telemetry bridge on build e7b2613 pre-restart digest only. Git main == origin at push time.
+- TRADE MANAGEMENT REPLAY (scripts/manage_replay.ts, committed as auditable evidence): breakeven + trailing stop variants vs production baseline on REAL bars (crypto 60d Binance 1m x10, non-crypto 30d Yahoo 5m x10, production-faithful fills/guards, conservative same-bar sequencing: stop-check first, management applies next bar). RESULT: REJECTED. Crypto baseline WR 73.9% net +$17.71 PF 1.04; best-WR variant (BE trig +0.7% lock +0.40%) WR 77.3% but net -$65.36 PF 0.79 (net-negative = banned); trail-only 0.7/0.4 WR 79.2% but net $3.94 (5x profit give-up, PF 1.01). Non-crypto baseline WR 85.7% PF 14.51 dominates every variant. Pre-registered ship rule (WR up AND PF >= baseline on BOTH classes) => no variant qualifies. Geometry v2 (stop -3%/target +1.2%/time 12h, fixed levels) STAYS. Honest answer to "apply every playbook": the playbook techniques were TESTED on real data and fail on this geometry — replay evidence recorded, no hopeful constants shipped.
+- DECISION JOURNAL ("show workings" literal): runner.ts now journals every near-gate LONG signal (score >= 55) at the exact decision point — score, confluence count, catalyst, regime verdict, full 9-factor table (name/contribution/max/detail trimmed 90c), and the decisive verdict (ENTRY w/ levels, or BELOW_GATE / DENIED BTC_REGIME / SYMBOL_COLD / SESSION / STALE_FEED / CONFLUENCE x/4 / guard vetoes / SKIP open+cooldown). Ring buffer cap 40. Exposed via buildEngineSnapshot `decisions` (last 14).
+- WORKINGS UI: /status page new "Engine workings — why it trades, why it stands down" panel (server-rendered, newest first, factor chips green/red with detail tooltips); open + closed trade tables gained a "Why in" column rendering the stored entry factors. Stale gate-65/70 caption corrected to gate-64 guard list.
+- SYMBOL-FORM GUARD (learning): brain.coldSymbols(minStreak=3) walks the trailing journal; 3+ consecutive losses on a symbol => entries denied (SYMBOL_COLD), single win resets. Evidence-gated (dormant until the ledger grows), bounded, reversible. Unit-checked 3 scenarios PASS.
+- NEWS INTEL cadence 5min => 2min (12-symbol slice/refresh => full 20-symbol coverage ~4min; ~10% of Finnhub free-tier ceiling).
+- OPS: telemetry tick gained engine-stall watchdog (unpaused lastScanAt stale >15min => ntfy "engine-stall" alert); /api/health gained ENGINE source (scanner heartbeat age, cycles) + ANALYTICS source (PostHog key presence booleans).
+- SCALE (free): in-memory per-user rate limiter in withGuard (default 120 req/min, AI analyst 20/min, AI briefing 10/min, 429 + Retry-After, bounded map sweep). /api/engine/status already had s-maxage=15+SWR.
+- WEB: sitemap.xml + robots.txt (public surfaces only, api/admin/checkout disallowed) + PWA manifest.webmanifest (existing /public icons; no service worker by design — a trading terminal must never serve stale prices). /api/engine/export = full closed-ledger CSV (attachment, no-store).
+- Validation: tsc src/ 0 errors, eslint 0 problems on 14 touched files, audit_smoke 11/11 PASS, coldSymbols 3/3 PASS, production build exit 0 (after killing a 1.2GB stale next-server that OOM-killed the first build), secret scan 0 hits (phc_/phx_/token).
+- Pushed d20428e -> Railway auto-deploy.
+
+Stage Summary:
+- Every zero-cost recommendation is now live-code: transparency (decision journal + workings panel + factor chips), learning (symbol-form guard, 2-min news), ops (stall watchdog, health ENGINE/ANALYTICS), scale (rate limits, cache), web (SEO, PWA, CSV).
+- Trade management shipped NOTHING by design: replay says the deployed geometry already dominates on both market classes; the win-rate mandate is served by validated baseline + multi-market mix, not by optics-friendly stops.
+- Replay evidence committed (scripts/manage_replay.ts) so the rejection is auditable, not folklore.
