@@ -1079,3 +1079,21 @@ Work Log:
 Stage Summary:
 - Deliverables: public/deeyoungpro-1.0.1.apk (15.5MB, managed-cert signed) + download/deeyoung-android/DeeYoungPro-1.0.1-{release,debug}.apk; android source incl. regression tests; docs/AUDIT.md section 11 (root causes, signing incident, Google activation steps); README App Links env updated to new cert.
 - Owner actions remaining: Railway env GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET (Web OAuth client, redirect https://deyoungpro.site/api/auth/callback/google) -> both web + app Google buttons go live with zero rebuild; ANDROID_APP_SHA256 should now be d9103a3a2bd1c48b53060563c65bdf4ecf2c20044f11e55bcfc2464a3c11de9b; one-time uninstall of v1.0.0 before v1.0.1 install.
+---
+Task ID: 46-db-restore
+Agent: Super Z (main)
+Task: Owner "Status?" - verify Task 46 deploy + discovered P0 production DB outage, diagnose and restore.
+
+Work Log:
+- Verified Task 46 fixes ARE live: commit 922b292 (android v1.0.1 login-envelope fix + EdgeMark icon + Credential Manager Google sign-in) deployed to graceful/production/Deeyoung = deyoungpro.site at 2026-09-06 16:30Z SUCCESS; APK public/deeyoungpro-1.0.1.apk (15,520,609 B) in git.
+- Railway API access RESTORED: token c24c8a90-... works (was marked dead). GraphQL schema changed (variables needs projectId; deployments(input:...); serviceInstance.domains{serviceDomains,customDomains}).
+- Architecture mapped: project graceful-happiness hosts production site (service Deeyoung, domain deyoungpro.site + deeyoung-production.up.railway.app, repo bluzsammy-png/Deeyoung branch main) AND project QuantEdge Terminal hosts a SECOND site (deyoungltd.site, repo bluzsammy-png/Deyoung different branch, deploys eb5c180/6b622d4 actively developed - NOT touched).
+- P0 FOUND via ntfy: engine snapshotError every 15 min since 03:34:42Z 2026-09-07 - Prisma "Authentication failed ... credentials for `postgres` are not valid". Root cause: graceful web DATABASE_URL held STALE Supabase password (i2r...eePp) while QuantEdge service held the WORKING one (fAd...YNRY); same Supabase project qmummmtraypryueyicza pooler. Verified live: stale URL = FATAL password authentication failed; working URL = AUTH OK. Data in schema public (4 users, EngineRun etc.); schema deyoung belongs to the other site.
+- FIX: variableUpsert DATABASE_URL on graceful/production/Deeyoung = same URL shape (?sslmode=require, public schema) with working password. Auto-redeploy triggered: ba7a1c9c deployment BUILDING 13:23Z -> SUCCESS. Boot telemetry 13:27:06Z build 922b292 engine ACTIVE. ntfy errors stopped (0 errors since fix).
+- PROOF: direct psycopg2 query on production URL: public."EngineRun" updatedAt = 13:40:10Z (fresh write, 8s before query). DB persistence restored; all DB-backed auth (email + Google), engine snapshots, admin, billing live again.
+- Google env audit: GOOGLE_CLIENT_ID/SECRET already SET on production service; TRUSTED_ORIGINS covers deyoungpro.site + www + railway.app; BETTER_AUTH_URL still railway.app domain (works; owner may switch to deyoungpro.site + register matching Google redirect URI later).
+
+Stage Summary:
+- Production outage RESTORED with 1 surgical env change; no code changed this task; QuantEdge/deyoungltd.site service untouched.
+- Owner-side Google Cloud items (unchanged from Task 46): redirect URI https://deyoungpro.site/api/auth/callback/google on the Web OAuth client; Android OAuth client (package com.deeyoungs.pro, SHA-256 d9103a3a2bd1c48b53060563c65bdf4ecf2c20044f11e55bcfc2464a3c11de9b) for the app's Google button; ANDROID_APP_SHA256 env update to same cert; v1.0.0 must be uninstalled before v1.0.1.
+- Scripts saved under scripts/railway/ (probe, inspect, vars, deployments, testdb, fix_db, verify_fix, dbproof) for future ops.
