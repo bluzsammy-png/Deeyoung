@@ -1128,3 +1128,19 @@ Work Log:
 
 Stage Summary:
 - Task 47 findings CONFIRMED, nothing to fix in code. Both watch items were resolved by the Sep 5 GEOMETRY v2 migration; the remaining work is statistical (let the new geometry reach 30+ closed trades). Report delivered to owner.
+
+---
+Task ID: 48-daily-digest
+Agent: Super Z (main)
+Task: Owner approved "daily digest of the paper account (equity, trades, win rate) without logging in" - build, deploy, verify.
+
+Work Log:
+- Built src/lib/engine/daily-digest.ts: once-per-UTC-day human-readable ntfy summary. Fires on first 5-min tick at/after DIGEST_HOUR_UTC (default 21 = 2pm Los Angeles); marker in BrainMemory scope "daily-digest" survives redeploys (down-at-the-hour self-heals on next boot, never double-sends); failed publish is not marked so next tick retries.
+- Honest-data rule kept: all numbers from the engine's own Prisma rows (PaperEngineAccount/Position); marked equity = last engine-written equity-curve point, labeled with age. Body: equity/cash/realized/fees/maxDD/day R, last-24h closed trades with W/L + net + R per trade, overall WR/streak/open positions.
+- telemetry.ts: exported publishNtfy (shared retry/backoff, no behavior change); instrumentation.ts arms the loop next to the 15m telemetry.
+- TESTED BEFORE DEPLOY: scripts/railway/digest_preview.ts (bun + postgres prisma client) rendered the exact body from PRODUCTION data; caught and fixed 3 formatting nits (equity sign, fee sign, double-space) + a nested-template quoting bug pre-ship. tsc + eslint clean on all changed files.
+- Deployed: commit 9321bc5 pushed 21:53Z, Railway deploy SUCCESS 21:57:30Z. Digest FIRED at 21:58:24Z on boot (hour >= 21, no marker yet), marker written; verified content on ntfy matches DB exactly. Engine healthy (snapshots 21:59/22:14, EngineRun heartbeat fresh).
+- Ops notes: Railway GraphQL Deployment type dropped buildInfo/startedAt - use meta.commitSha + createdAt/updatedAt (deploy_watch.py fixed). ntfy poll JSON: message events carry event="message", do not filter them out. Local prisma client must be regenerated for postgres schema to run previews (schema.postgres.prisma), regenerate sqlite client after.
+
+Stage Summary:
+- Daily digest LIVE: "QuantEdge daily <date>" on ntfy topic deeyoung-prod-e20ade8aadf0dc1e32abe467, default 21:00 UTC daily. Owner tunes hour with DIGEST_HOUR_UTC env, suppresses with DIGEST_DISABLED=1. To receive on phone: subscribe to the topic in the ntfy app.
