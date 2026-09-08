@@ -241,6 +241,8 @@ export async function register() {
     try {
       const { startTelemetryLoop } = await import("@/lib/engine/telemetry");
       startTelemetryLoop();
+      const { startDailyDigestLoop } = await import("@/lib/engine/daily-digest");
+      startDailyDigestLoop();
     } catch (e) {
       console.log(`[telemetry] failed to arm: ${String(e).slice(0, 120)}`);
     }

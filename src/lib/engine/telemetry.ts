@@ -78,6 +78,10 @@ function digest(s: Record<string, unknown>, scan: Record<string, unknown> | null
   return JSON.stringify(out);
 }
 
+export async function publishNtfy(title: string, body: string): Promise<boolean> {
+  return publish(title, body);
+}
+
 async function publish(title: string, body: string): Promise<boolean> {
   // One retry with a short backoff: ntfy egress from Railway occasionally
   // fails at the network level ("fetch failed", seen 2026-09-06 04:36 UTC
