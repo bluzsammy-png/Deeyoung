@@ -1097,3 +1097,19 @@ Stage Summary:
 - Production outage RESTORED with 1 surgical env change; no code changed this task; QuantEdge/deyoungltd.site service untouched.
 - Owner-side Google Cloud items (unchanged from Task 46): redirect URI https://deyoungpro.site/api/auth/callback/google on the Web OAuth client; Android OAuth client (package com.deeyoungs.pro, SHA-256 d9103a3a2bd1c48b53060563c65bdf4ecf2c20044f11e55bcfc2464a3c11de9b) for the app's Google button; ANDROID_APP_SHA256 env update to same cert; v1.0.0 must be uninstalled before v1.0.1.
 - Scripts saved under scripts/railway/ (probe, inspect, vars, deployments, testdb, fix_db, verify_fix, dbproof) for future ops.
+---
+Task ID: 47-bot-forensics
+Agent: Super Z (main)
+Task: Owner approved deep-dive into (1) SOLUSD "TARGET but -1.9R" anomaly and (2) fee drag.
+
+Work Log:
+- Sandbox reset again (scripts/, download/ gone, auto-snapshot 8d88c28 on top). Rebuilt railway probe scripts from session knowledge; token c24c8a90-... still live.
+- DB forensics: SOLUSD rows cmto14y2s/151ee are bookKeys 55_10_SOLUSD + 55_30_SOLUSD (OLD 4-book config, gate 55, horizons 10+30), each $10,000 notional (old sizing), opened 4s apart on the SAME signal. Target +6bps hit; gross +$5.96; fees $20.01 (10bps x 2 sides on $10k) -> net -$14.05, netR -1.92 per book. Root cause: ATR(1m)-derived targets (~8bps) < 24bps round-trip costs.
+- VERDICT: already self-healed. runner.ts header documents "prod incident 2026-09-05" and the GEOMETRY v2 migration shipped Sep 5: single book GATES=[64] HORIZONS=[30] (no duplicate books), NOTIONAL=1_000, stop -3.0%, target +1.2%, time stop 18h crypto / 12h else, VOL_GUARD [0.55,2.0], GATE_CONFLUENCE=4, cooldown 30m. Walk-forward replays (real Binance 1m bars) pre-registered each change: crypto WR 73.9->79.6->81.4%, PF 1.04->1.36->1.66; rejected variants documented (gates 66/68, targets 1.5/1.8%, 10 extra books net -$300, 1m stride).
+- Production data confirms new config live: 7 closed trades since Sep 5 19:22 (DOGE stop -1.07R = legit 3% stop; then 6 straight TARGET wins) = 6W/1L 85.7% WR, net +$16.00; fees now $2.01/RT on $1k (17% of a $12 target vs 300% on SOLUSD). Account -$12.12 net total is entirely the old-config SOLUSD artifact ($40 of the $54 fees are the four $10k SOLUSD fills).
+- Exit paths re-audited (manageBars/manageTick): conservative bar-low/high stop checks, target requires high >= target AND price >= target (no phantom fills), idempotent clientOids, conditional updateMany concurrency lock, brain journals every close. No new defects found.
+- No code changes needed this task. Engine untouched and ACTIVE (102h uptime, 0 DB errors since 46-db-restore).
+
+Stage Summary:
+- Both watch items from the Sep 8 status report were already resolved by the validated Sep 5 GEOMETRY v2 migration; the remaining task is statistical: let the new geometry accumulate 30+ closed trades before judging. Current 7-trade sample (85.7% WR) tracks slightly above the replay's 81.4%.
+- scripts/railway/ restored (bot_status, bot_perf, sol_probe) for future forensics.
