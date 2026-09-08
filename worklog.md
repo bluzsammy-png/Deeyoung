@@ -1113,3 +1113,18 @@ Work Log:
 Stage Summary:
 - Both watch items from the Sep 8 status report were already resolved by the validated Sep 5 GEOMETRY v2 migration; the remaining task is statistical: let the new geometry accumulate 30+ closed trades before judging. Current 7-trade sample (85.7% WR) tracks slightly above the replay's 81.4%.
 - scripts/railway/ restored (bot_status, bot_perf, sol_probe) for future forensics.
+
+---
+Task ID: 47-verify
+Agent: Super Z (main)
+Task: Re-verify Task 47-bot-forensics findings against live production DB after session context reset (investigation had already run; verification pass to confirm before reporting).
+
+Work Log:
+- Sandbox intact this time: scripts/railway/ present, psycopg2 ok.
+- Re-ran sol_probe.py: SOLUSD rows confirmed as bookKeys 55_10_SOLUSD + 55_30_SOLUSD ($10k each, same signal 4s apart, exit == target 102.301355, gross +$5.96, fees $20.01 each, net -$14.05 / -1.92R each). Sanity sweep over ALL 9 closed positions: every TARGET exit fills exactly at target, zero anomalies flagged.
+- Fee ledger per symbol confirmed: SOLUSD $40.01 of ~$55 total (74%); new-config trades $2.01/RT on $1k.
+- runner.ts header re-read: GEOMETRY v2 documented verbatim incl. "prod incident 2026-09-05" wording; live constants GATES=[64], HORIZONS=[30], NOTIONAL=1_000, time stops 1080m/720m, GATE_CONFLUENCE=4, cooldown 30m. paper.ts: FEE_BPS_PER_SIDE=10 on both sides at real fill prices (realistic taker model, correct).
+- bot_status/bot_perf re-run at 21:42Z Sep 8: engine ACTIVE, DB writes fresh, account net -$12.12 fully explained (SOL artifact -28.10 + legit DOGE stop -31.11 vs 6 TARGET wins +47.09), LINKUSD open and tracking.
+
+Stage Summary:
+- Task 47 findings CONFIRMED, nothing to fix in code. Both watch items were resolved by the Sep 5 GEOMETRY v2 migration; the remaining work is statistical (let the new geometry reach 30+ closed trades). Report delivered to owner.
