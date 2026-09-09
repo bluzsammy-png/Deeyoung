@@ -8,8 +8,9 @@
 // (public reader caches 30s).
 
 import { useCallback, useEffect, useState } from "react";
-import { ImageIcon, Loader2, RotateCcw, Save, Type } from "lucide-react";
+import { Download, ImageIcon, Loader2, RotateCcw, Save, Share2, Type } from "lucide-react";
 import { CONTENT_TEXT_KEYS, CONTENT_IMAGE_KEYS, IMAGE_MAX_BYTES } from "@/lib/site-content";
+import { MARKETING_ASSETS, marketingPath } from "@/lib/marketing-assets";
 
 type Row = { key: string; value: string; updatedBy: string | null; updatedAt: string };
 
@@ -120,6 +121,53 @@ export function ContentTab() {
                 {msg?.key === key && (
                   <span className={`text-[11px] ${msg.ok ? "text-emerald-400" : "text-rose-400"}`}>{msg.text}</span>
                 )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+        <h2 className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">
+          <Share2 className="h-3.5 w-3.5 text-emerald-400" /> Social flyers
+        </h2>
+        <p className="mb-3 text-[11px] text-zinc-500">
+          Cinematic, ready-to-post assets for every platform. Download and share as-is; QR and copy point at deyoungpro.site.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {MARKETING_ASSETS.map((a) => (
+            <div key={a.file} className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+              <a href={marketingPath(a.file)} target="_blank" rel="noreferrer" aria-label={`Open ${a.label}`}>
+                <img
+                  src={marketingPath(a.file)}
+                  alt={a.label}
+                  loading="lazy"
+                  className="h-44 w-full object-cover object-top transition-transform duration-300 hover:scale-[1.02]"
+                />
+              </a>
+              <div className="p-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-xs font-bold text-zinc-200">{a.label}</p>
+                  <p className="shrink-0 font-mono text-[10px] text-zinc-500">{a.w}&times;{a.h}</p>
+                </div>
+                <p className="mt-1 min-h-[2.2em] text-[10.5px] leading-relaxed text-zinc-500">{a.note}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <a
+                    href={marketingPath(a.file)}
+                    download={a.file}
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[11px] font-bold text-emerald-950 transition-transform hover:scale-[1.03]"
+                  >
+                    <Download className="h-3 w-3" /> Download
+                  </a>
+                  <a
+                    href={marketingPath(a.file)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-900"
+                  >
+                    Full size
+                  </a>
+                </div>
               </div>
             </div>
           ))}
