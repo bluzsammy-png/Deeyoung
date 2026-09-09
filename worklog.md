@@ -1144,3 +1144,23 @@ Work Log:
 
 Stage Summary:
 - Daily digest LIVE: "QuantEdge daily <date>" on ntfy topic deeyoung-prod-e20ade8aadf0dc1e32abe467, default 21:00 UTC daily. Owner tunes hour with DIGEST_HOUR_UTC env, suppresses with DIGEST_DISABLED=1. To receive on phone: subscribe to the topic in the ntfy app.
+
+---
+Task ID: 49-admin-powers
+Agent: Super Z (main)
+Task: Owner approved weekly digest line + "everything on the admin panel free for the admin like everything users can do and more: block/unblock users, activate/deactivate, change text/photos".
+
+Work Log:
+- AUDIT of existing admin: console already had Overview/Engine/Users/Billing/Analytics/Support tabs; /api/admin/users already implemented WARN/SUSPEND/BAN/UNBAN with session revocation, notifications, audit trail; billing desk approves/cancels orders; requireAdmin gate (role=ADMIN or ADMIN_EMAILS env, banned admins refused). Gaps found: (1) effectivePlan ignored role - an admin on plan FREE got FREE features; (2) no direct plan activate/deactivate without a billing order; (3) zero content management.
+- FIX 1 (owner-free): entitlements.ts EntitledUser gains optional role; effectivePlan returns ELITE for ADMIN/SUPER_ADMIN. Server guard passes the full db row, client passes SessionUser (both carry role) - all gated surfaces unlock for the owner with zero per-route changes. Verified every call site type (premium-gate, dashboard, settings, billing-modal, account-menu, checkout).
+- FIX 2 (activate/deactivate): /api/admin/users POST gains PLAN_SET (FREE/STARTER/PRO/ELITE) - updates plan, notifies the user ("Subscription activated: X at no charge" / "deactivated"), audits from->to. Console Users tab: per-row plan dropdown opens the confirm dialog (reason required, shown to user + audited). Existing SUSPEND/UNBAN already covers account deactivation/activation.
+- FIX 3 (content CMS): SiteContent model added to BOTH schema files; additive `prisma db push` applied to prod (no data-loss flag; verified table + roundtrip insert/select/delete). New /api/site-content public reader (whitelisted keys, 30s cache, fails open to empty {}), /api/admin/content admin writer (key whitelist, text 5k chars / image 600KB data-URL caps, empty value = reset to default, audited). Admin console gets a Content tab (content-tab.tsx): hero headline/sub, campaign headline, announcement banner text fields + film poster file upload + reset buttons, updatedBy/updatedAt shown.
+- LANDING overrides: Landing fetches /api/site-content once; hero headline (newline split, last line gradient), hero sub, campaign headline, film poster and an optional announcement banner become owner-editable; built-in defaults remain hardcoded fallbacks; page never breaks if the content API fails.
+- DIGEST (approved "Yes do that"): daily-digest.ts adds "Last 7d: N closed, xW/yL, net $Z | worst trade rR" plus worst peak-to-trough drawdown over the marked-equity curve window with its actual span labeled (curve is rolling ~4d, not 7d - honest labeling). Previewed against prod: "Last 7d: 10 closed, 6W/4L, net -$44.66 | worst trade -1.92R".
+- DEPLOY 6da35fd: pushed 09:45Z Sep 9, SUCCESS 09:52Z; ntfy boot 09:48:46 + first snapshot from build 6da35fd 09:50:11, engine ACTIVE. Public API is 429-walled from sandbox IPs (known edge behavior, real browsers pass) - verified at DB level instead. Tonight's 21:00 UTC digest will carry the new line.
+- Sandbox reset again mid-task (scripts/railway wiped; venv lost psycopg2 -> python3 -m pip install psycopg2-binary). Recreated only what was needed.
+
+Stage Summary:
+- Owner now has: every user feature free (ELITE via role), user moderation (warn/suspend/ban/unban), plan activation/deactivation per user, billing approvals, support inbox, analytics, engine controls, and a content CMS for site text + film poster + announcement banner.
+- Known 429 wall on prod from datacenter IPs is external-only; owner browser traffic unaffected.
+- Tonight 21:00 UTC (2pm LA) the daily digest includes the 7-day line.
