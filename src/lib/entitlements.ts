@@ -18,6 +18,10 @@ export interface EntitledUser {
   plan: string;
   status: string;
   trialEndsAt?: string | Date | null;
+  /** Present on db User rows and better-auth session users. Admin roles bypass
+   *  the plan ladder entirely (see effectivePlan): the owner must be able to
+   *  use every surface they ship, free, forever. */
+  role?: string;
 }
 
 export const TRIAL_DAYS = 2;
@@ -44,8 +48,12 @@ export const FEATURE_MIN_RANK = {
 
 export type GatedFeature = keyof typeof FEATURE_MIN_RANK;
 
-/** Resolve the effective plan. Legacy "PREMIUM" maps to PRO. Trials are abolished — any legacy TRIAL row behaves as FREE. */
+/** Resolve the effective plan. Legacy "PREMIUM" maps to PRO. Trials are abolished — any legacy TRIAL row behaves as FREE.
+ *  ADMIN / SUPER_ADMIN roles resolve to ELITE unconditionally: the owner gets
+ *  every user capability for free, on every surface (server guard passes the
+ *  full db row; the client passes the session user — both carry role). */
 export function effectivePlan(user: EntitledUser): Plan {
+  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") return "ELITE";
   if (user.plan === "STARTER" || user.plan === "PRO" || user.plan === "ELITE") return user.plan;
   if (user.plan === "PREMIUM") return "PRO";
   return "FREE";

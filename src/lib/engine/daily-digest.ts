@@ -68,7 +68,8 @@ export async function buildDigestBody(): Promise<string> {
   const { run, acct } = await getOrCreateRun();
 
   const since = new Date(Date.now() - 24 * 3_600_000);
-  const [closed24, open, allClosed] = await Promise.all([
+  const since7d = new Date(Date.now() - 7 * 24 * 3_600_000);
+  const [closed24, open, allClosed, closed7d] = await Promise.all([
     db.paperEnginePosition.findMany({
       where: { runId: run.id, status: "CLOSED", closedAt: { gte: since } },
       orderBy: { closedAt: "asc" },
@@ -79,16 +80,33 @@ export async function buildDigestBody(): Promise<string> {
       select: { netPnlUsd: true },
       orderBy: { closedAt: "desc" },
     }),
+    db.paperEnginePosition.findMany({
+      where: { runId: run.id, status: "CLOSED", closedAt: { gte: since7d } },
+      select: { netPnlUsd: true, netR: true },
+    }),
   ]);
 
   let markedEquity: number | null = null;
   let curveAgeMin: number | null = null;
+  let curveWorstDd: { pct: number; spanDays: number } | null = null;
   try {
     const curve = JSON.parse(acct.equityCurve) as Array<{ t: number; e: number }>;
     const last = curve[curve.length - 1];
     if (last) {
       markedEquity = last.e;
       curveAgeMin = Math.max(0, Math.round((Date.now() - last.t) / 60_000));
+    }
+    // worst peak-to-trough drawdown over whatever span the curve actually
+    // covers (labeled honestly in the output — the curve is a rolling window)
+    if (curve.length >= 10) {
+      let peak = curve[0].e;
+      let worst = 0;
+      for (const pt of curve) {
+        if (pt.e > peak) peak = pt.e;
+        if (peak > 0) worst = Math.max(worst, ((peak - pt.e) / peak) * 100);
+      }
+      const spanDays = (curve[curve.length - 1].t - curve[0].t) / 86_400_000;
+      curveWorstDd = { pct: worst, spanDays: +spanDays.toFixed(1) };
     }
   } catch { /* fresh account — settled cash still reported below */ }
 
@@ -98,6 +116,9 @@ export async function buildDigestBody(): Promise<string> {
   const r24 = closed24.reduce((a, p) => a + (p.netR ?? 0), 0);
   const winsAll = allClosed.filter((p) => (p.netPnlUsd ?? 0) > 0).length;
   const wrAll = allClosed.length ? (winsAll / allClosed.length) * 100 : null;
+  const net7d = closed7d.reduce((a, p) => a + (p.netPnlUsd ?? 0), 0);
+  const wins7d = closed7d.filter((p) => (p.netPnlUsd ?? 0) > 0).length;
+  const worstR7d = closed7d.length ? Math.min(...closed7d.map((p) => p.netR ?? 0)) : null;
 
   // current streak from the most recent close backwards
   let streak = "none";
@@ -123,6 +144,16 @@ export async function buildDigestBody(): Promise<string> {
     }
   } else {
     L.push("Last 24h: no trades closed (desk flat or positions still running)");
+  }
+  L.push("");
+  if (closed7d.length) {
+    const worstTxt = worstR7d !== null && worstR7d < 0 ? ` | worst trade ${worstR7d.toFixed(2)}R` : "";
+    L.push(`Last 7d: ${closed7d.length} closed, ${wins7d}W/${closed7d.length - wins7d}L, net ${signed(net7d)}${worstTxt}`);
+  } else {
+    L.push("Last 7d: no closed trades yet");
+  }
+  if (curveWorstDd && curveWorstDd.spanDays >= 0.5) {
+    L.push(`Worst drawdown ${curveWorstDd.pct.toFixed(2)}% over the ${curveWorstDd.spanDays}d marked-equity window`);
   }
   L.push("");
   L.push(`Overall: ${allClosed.length} closed${wrAll !== null ? `, ${wrAll.toFixed(1)}% win rate` : ""} | streak ${streak} | open ${open.length}`);

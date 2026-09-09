@@ -8,13 +8,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity, Ban, BarChart3, Bot, CheckCircle2, Cpu, Database, Gauge, Loader2, LogOut, MessageCircle, PauseCircle,
-  Play, RefreshCw, ShieldAlert, ShieldCheck, Users as UsersIcon, Wallet, XCircle,
+  Play, RefreshCw, ShieldAlert, ShieldCheck, Type as TypeIcon, Users as UsersIcon, Wallet, XCircle,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { EdgeMark } from "@/components/quantedge/edge-mark";
 import { SupportTab } from "./support-tab";
 import { BillingTab } from "./billing-tab";
 import { AnalyticsTab } from "./analytics-tab";
+import { ContentTab } from "./content-tab";
 
 // ── types (mirrors /api/admin/engine + /api/admin/users) ──
 interface Snapshot {
@@ -164,7 +165,7 @@ export function AdminForbidden({ reason }: { reason: string }) {
 
 export function AdminConsole({ adminEmail }: { adminEmail: string }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "engine" | "users" | "support" | "billing" | "analytics">("overview");
+  const [tab, setTab] = useState<"overview" | "engine" | "users" | "support" | "billing" | "analytics" | "content">("overview");
   const [data, setData] = useState<EnginePayload | null>(null);
   const [users, setUsers] = useState<UsersPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -205,6 +206,7 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
     { id: "overview" as const, label: "Overview", icon: Gauge },
     { id: "engine" as const, label: "Engine", icon: Cpu },
     { id: "users" as const, label: "Users", icon: UsersIcon },
+    { id: "content" as const, label: "Content", icon: TypeIcon },
     { id: "billing" as const, label: "Billing", icon: Wallet },
     { id: "analytics" as const, label: "Analytics", icon: BarChart3 },
     { id: "support" as const, label: "Support", icon: MessageCircle },
@@ -251,6 +253,8 @@ export function AdminConsole({ adminEmail }: { adminEmail: string }) {
         <EngineTab data={data} />
       ) : tab === "support" ? (
         <SupportTab />
+      ) : tab === "content" ? (
+        <ContentTab />
       ) : tab === "billing" ? (
         <BillingTab />
       ) : tab === "analytics" ? (
@@ -458,7 +462,7 @@ function EngineTab({ data }: { data: EnginePayload }) {
 
 // ── Users tab ──
 function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged: () => void }) {
-  const [dialog, setDialog] = useState<{ userId: string; email: string; action: "WARN" | "SUSPEND" | "BAN" | "UNBAN" } | null>(null);
+  const [dialog, setDialog] = useState<{ userId: string; email: string; action: "WARN" | "SUSPEND" | "BAN" | "UNBAN" | "PLAN_SET"; plan?: string } | null>(null);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -470,7 +474,7 @@ function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged:
     try {
       const r = await fetch("/api/admin/users", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: dialog.userId, action: dialog.action, reason, message: msg }),
+        body: JSON.stringify({ userId: dialog.userId, action: dialog.action, reason, message: msg, plan: dialog.plan }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message ?? j.error ?? "Action failed");
@@ -518,7 +522,12 @@ function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged:
                     <td className="px-2 py-2 text-[11px] text-zinc-500">{new Date(u.createdAt).toISOString().slice(0, 10)}</td>
                     <td className="px-2 py-2">
                       {u.role === "ADMIN" ? <span className="text-[10px] text-zinc-600">·</span> : (
-                        <div className="flex flex-wrap justify-end gap-1 sm:justify-start">
+                        <div className="flex flex-wrap items-center justify-end gap-1 sm:justify-start">
+                          <select aria-label={`Plan for ${u.email}`} value={u.plan}
+                            onChange={(e) => { const plan = e.target.value; if (plan !== u.plan) setDialog({ userId: u.id, email: u.email, action: "PLAN_SET", plan }); }}
+                            className="rounded-md border border-zinc-700 bg-zinc-950 px-1.5 py-1 text-[10px] font-semibold text-zinc-300 outline-none">
+                            {["FREE", "STARTER", "PRO", "ELITE"].map((p) => <option key={p} value={p}>{p}</option>)}
+                          </select>
                           {u.status !== "BANNED" && u.status !== "SUSPENDED" && (
                             <>
                               <button onClick={() => setDialog({ userId: u.id, email: u.email, action: "WARN" })} className="rounded-md border border-zinc-700 px-2 py-1 text-[10px] font-semibold text-zinc-300 hover:bg-zinc-900">Warn</button>
@@ -545,10 +554,10 @@ function UsersTab({ users, onChanged }: { users: UsersPayload | null; onChanged:
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-zinc-100">{dialog.action === "UNBAN" ? "Restore access" : `Confirm ${dialog.action.toLowerCase()}`}</h3>
+              <h3 className="text-sm font-bold text-zinc-100">{dialog.action === "UNBAN" ? "Restore access" : dialog.action === "PLAN_SET" ? `Set plan to ${dialog.plan}` : `Confirm ${dialog.action.toLowerCase()}`}</h3>
               <button onClick={() => setDialog(null)} aria-label="Close"><XCircle className="h-4 w-4 text-zinc-500" /></button>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-400">{dialog.email}{dialog.action === "BAN" ? ": permanent block, all sessions revoked" : dialog.action === "SUSPEND" ? ": read-only lock, sessions revoked" : dialog.action === "UNBAN" ? ": full access restored" : ": warning recorded + user notified"}</p>
+            <p className="mt-1.5 text-xs text-zinc-400">{dialog.email}{dialog.action === "BAN" ? ": permanent block, all sessions revoked" : dialog.action === "SUSPEND" ? ": read-only lock, sessions revoked" : dialog.action === "UNBAN" ? ": full access restored" : dialog.action === "PLAN_SET" ? (dialog.plan === "FREE" ? ": revoke the subscription - account returns to Free" : `: activate ${dialog.plan} at no charge - user notified`) : ": warning recorded + user notified"}</p>
             {dialog.action !== "UNBAN" && (
               <>
                 <label htmlFor="md-reason" className="mt-4 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Reason (required, shown to user + audited)</label>

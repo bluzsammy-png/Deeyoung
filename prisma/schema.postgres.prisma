@@ -694,3 +694,15 @@ model PushToken {
 
   @@index([userId])
 }
+
+// ─── SITE CONTENT OVERRIDES (2026-09-08) ─────────────────────────────────────
+// DEEYOUNG PRO — owner-editable site copy + media, keyed whitelist. The admin
+// Content tab writes here; public surfaces read /api/site-content and fall
+// back to their built-in defaults when a key is absent. Images are stored as
+// data URLs (size-capped) so content survives redeploys without object storage.
+model SiteContent {
+  key       String   @id
+  value     String   @default("")
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}

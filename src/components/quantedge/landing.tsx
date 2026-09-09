@@ -33,7 +33,7 @@ import { universeSymbols } from "@/lib/providers/market";
 import type { Quote } from "@/lib/types";
 
 /** 16:9 brand film card, Twilio hero placement: poster + circular play button, click plays the full film with sound. */
-function HeroFilmCard() {
+function HeroFilmCard({ poster }: { poster?: string }) {
   const [playing, setPlaying] = useState(false);
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-hairline bg-panel shadow-[0_28px_80px_-28px_rgba(0,0,0,0.75)]">
@@ -46,7 +46,7 @@ function HeroFilmCard() {
           className="group absolute inset-0 h-full w-full cursor-pointer"
         >
           <img
-            src="/ad-film-poster.jpg"
+            src={poster || "/ad-film-poster.jpg"}
             alt="DeeYoung Pro brand film still"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
           />
@@ -64,7 +64,7 @@ function HeroFilmCard() {
 }
 
 /** Full-bleed cinematic brand panel, Twilio platform-story placement: ambient muted loop with the campaign headline overlaid left. The moving market chart breathes behind the panel. */
-function CampaignPanel() {
+function CampaignPanel({ headline }: { headline?: string }) {
   const vidRef = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
     try {
@@ -98,7 +98,7 @@ function CampaignPanel() {
         <div className="absolute inset-0 flex items-center">
           <div className="px-6 sm:px-12 lg:px-16">
             <h2 className="qe-display max-w-2xl text-4xl font-bold leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-[56px]">
-              The engine behind every disciplined trade.
+              {headline || "The engine behind every disciplined trade."}
             </h2>
           </div>
         </div>
@@ -245,6 +245,21 @@ export function Landing() {
   const [ccy, setCcy] = usePricingCurrency();
   const [kitOpen, setKitOpen] = useState(false);
   const live = useLiveEngine();
+  // owner-editable site copy (admin Content tab) — falls back to built-ins
+  const [content, setContent] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/site-content", { cache: "no-store" });
+        if (alive && r.ok) setContent(await r.json());
+      } catch { /* defaults stay live */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const heroLines = (content["hero.headline"] || "See what\u2019s moving.\nKnow why it\u2019s moving.\nMove first.").split("\n").filter((l) => l.trim());
 
   useEffect(() => {
     let alive = true;
@@ -300,22 +315,27 @@ export function Landing() {
         </div>
       </header>
 
+      {/* owner announcement banner — visible only when the admin sets it */}
+      {content["announcement"] ? (
+        <div className="relative z-10 border-b border-brand/25 bg-brand/[0.08] px-5 py-2 text-center text-xs font-medium text-brand-hi">
+          {content["announcement"]}
+        </div>
+      ) : null}
+
       {/* hero — Twilio-style: giant headline left, brand film card right */}
       <section className="relative z-10 mx-auto max-w-6xl px-5 pb-8 pt-8 sm:pt-14">
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
             <h1 className="qe-display text-[44px] font-bold leading-[1.02] tracking-tight sm:text-[52px] lg:text-[48px] xl:text-[52px]">
-              See what&rsquo;s moving.
-              <br />
-              Know why it&rsquo;s moving.
-              <br />
-              <span className="qe-gradient-text">Move first.</span>
+              {heroLines.map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br />}
+                  {i === heroLines.length - 1 ? <span className="qe-gradient-text">{line}</span> : line}
+                </span>
+              ))}
             </h1>
             <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-              DeeYoung Pro is a market terminal for people who take their money seriously but don&rsquo;t have a Bloomberg budget.
-              Stocks, ETFs, FX, crypto, indices and commodities: price action, news flow and portfolio risk sit in one screen. Every signal shows the
-              math behind its score, seven factors, nothing hidden. And an autonomous paper engine trades a validated playbook
-              in public, every number auditable in the ledger.
+              {content["hero.sub"] || "DeeYoung Pro is a market terminal for people who take their money seriously but don't have a Bloomberg budget. Stocks, ETFs, FX, crypto, indices and commodities: price action, news flow and portfolio risk sit in one screen. Every signal shows the math behind its score, seven factors, nothing hidden. And an autonomous paper engine trades a validated playbook in public, every number auditable in the ledger."}
             </p>
 
             {/* honesty disclosure — surfaced up front */}
@@ -351,7 +371,7 @@ export function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
           >
-            <HeroFilmCard />
+            <HeroFilmCard poster={content["film.poster"]} />
           </motion.div>
         </div>
 
@@ -365,7 +385,7 @@ export function Landing() {
       </section>
 
       {/* campaign panel — full-bleed brand film with the campaign headline overlaid left */}
-      <CampaignPanel />
+      <CampaignPanel headline={content["campaign.headline"]} />
 
       {/* live product preview — data-driven proof, red beam */}
       <section className="relative z-10 mx-auto mt-10 max-w-6xl px-5">

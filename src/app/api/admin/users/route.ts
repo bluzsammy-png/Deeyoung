@@ -10,6 +10,9 @@ export const dynamic = "force-dynamic";
  *   SUSPEND  → revoke all sessions, read-only lock
  *   BAN      → revoke all sessions, permanent block at the session layer
  *   UNBAN    → restore ACTIVE (appeals outcome)
+ *   PLAN_SET → activate/deactivate a plan directly (grant STARTER/PRO/ELITE
+ *              or revoke to FREE) without needing a billing order — the
+ *              owner-side switch for comps, partnerships and downgrades.
  * Every action lands in the audit trail with the acting admin attached.
  */
 
@@ -57,13 +60,17 @@ export async function POST(req: NextRequest) {
   const userId = String(body?.userId ?? "");
   const reason = String(body?.reason ?? "").trim();
   const message = String(body?.message ?? "").trim();
+  const plan = String(body?.plan ?? "").trim().toUpperCase();
 
-  if (!["WARN", "SUSPEND", "BAN", "UNBAN"].includes(action)) {
+  if (!["WARN", "SUSPEND", "BAN", "UNBAN", "PLAN_SET"].includes(action)) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
-  if (action !== "UNBAN" && reason.length < 3) {
+  if (reason.length < 3) {
     return NextResponse.json({ error: "A clear reason (3+ chars) is required. It is shown to the user and audited." }, { status: 422 });
+  }
+  if (action === "PLAN_SET" && !["FREE", "STARTER", "PRO", "ELITE"].includes(plan)) {
+    return NextResponse.json({ error: "plan must be one of FREE, STARTER, PRO, ELITE" }, { status: 400 });
   }
 
   const target = await db.user.findUnique({ where: { id: userId } });
@@ -117,6 +124,27 @@ export async function POST(req: NextRequest) {
     case "UNBAN":
       status = "ACTIVE";
       break;
+    case "PLAN_SET": {
+      const planLabel = plan === "FREE" ? "Free" : plan.charAt(0) + plan.slice(1).toLowerCase();
+      await db.user.update({ where: { id: target.id }, data: { plan } });
+      await db.notificationRecord.create({
+        data: {
+          userId: target.id, event: "ACCOUNT_SECURITY", importance: plan === "FREE" ? "IMPORTANT" : "CRITICAL",
+          title: plan === "FREE" ? "Subscription deactivated" : `Subscription activated: ${planLabel}`,
+          body: message || (plan === "FREE"
+            ? `Your subscription has been changed to the Free plan. Reason: ${reason}.`
+            : `Your account now includes the ${planLabel} plan at no charge. Reason on file: ${reason}. Enjoy.`),
+          channels: JSON.stringify(["WEB"]), status: "SENT", deliveredAt: new Date(),
+        },
+      });
+      await db.auditEvent.create({
+        data: {
+          userId: admin.id, category: "SUBSCRIPTION", action: `PLAN_SET_${plan}`,
+          detail: JSON.stringify({ target: target.email, targetId: target.id, from: target.plan, to: plan, reason }),
+        },
+      }).catch(() => undefined);
+      return NextResponse.json({ ok: true, action, plan, priorPlan: target.plan });
+    }
   }
 
   if (action !== "WARN") {

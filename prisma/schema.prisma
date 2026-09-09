@@ -693,3 +693,12 @@ model PushToken {
 
   @@index([userId])
 }
+
+// ─── SITE CONTENT OVERRIDES (2026-09-08) ─────────────────────────────────────
+// Owner-editable site copy + media, keyed whitelist (mirrors schema.postgres).
+model SiteContent {
+  key       String   @id
+  value     String   @default("")
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
